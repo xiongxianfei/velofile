@@ -27,18 +27,29 @@ artifacts:
 validation:
   - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug
     result: passed
-  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root <scratch-root>
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File tests/validation/CorpusScriptsIsolation.Tests.ps1 -ScratchRoot <scratch-root>
     result: passed
-  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>
     result: passed
-  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root <scratch-root>
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile operations -ScratchRoot <scratch-root>
     result: passed
-  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile preview -ScratchRoot <scratch-root>
+    result: passed
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile search -ScratchRoot <scratch-root>
+    result: passed
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile large-folder -ScratchRoot <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -ScratchRoot <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -ScratchRoot <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root>
     result: passed
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed 9 tests across 4 test assemblies
 notes:
-  - M2 implements smoke corpus and non-gating benchmark shape only.
+  - M2 implements deterministic placeholder corpus profiles and non-gating benchmark shape only.
   - Non-smoke compat and preview scopes fail fast until their owning milestones implement them.
   - Scratch roots must be explicit, absolute, dedicated VeloFile corpus workspaces.
+  - Script wrappers publish and run corpus tooling from the scratch root instead of writing build output under the repository.
   - scripts/select-validation.py is not present; M2 used the plan-specified validation commands directly.

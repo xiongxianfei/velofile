@@ -11,7 +11,7 @@ public sealed class CorpusToolingSmokeTests
     {
         var repoRoot = FindRepoRoot();
 
-        var result = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-Root", repoRoot.FullName);
+        var result = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", repoRoot.FullName);
 
         Assert.AreNotEqual(0, result.ExitCode);
         StringAssert.Contains(result.AllOutput, "unsafe scratch root");
@@ -19,30 +19,33 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    public void Generate_smoke_profile_is_deterministic()
+    public void Generate_placeholder_profiles_are_deterministic()
     {
-        using var scratch = ScratchWorkspace.Create();
+        var profiles = new[] { "smoke", "operations", "preview", "search", "large-folder" };
 
-        var first = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-Root", scratch.Root);
-        AssertCommandSucceeded(first);
+        foreach (var profile in profiles)
+        {
+            using var scratch = ScratchWorkspace.Create();
 
-        var manifestPath = Path.Combine(scratch.Root, "manifest.json");
-        Assert.IsTrue(File.Exists(manifestPath), "Smoke corpus generation must write a manifest.");
+            var first = RunScript("generate-corpus.ps1", "-Profile", profile, "-ScratchRoot", scratch.Root);
+            AssertCommandSucceeded(first);
 
-        var firstManifest = File.ReadAllText(manifestPath);
-        var manifest = JsonNode.Parse(firstManifest)!.AsObject();
+            var manifestPath = Path.Combine(scratch.Root, "corpora", profile, "manifest.json");
+            Assert.IsTrue(File.Exists(manifestPath), $"{profile} corpus generation must write a manifest.");
 
-        Assert.AreEqual("velofileCorpusManifest", (string?)manifest["documentType"]);
-        Assert.AreEqual("smoke", (string?)manifest["profile"]);
-        Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-corpus-root")));
-        Assert.IsTrue(Directory.Exists(Path.Combine(scratch.Root, "small")));
-        Assert.IsTrue(Directory.Exists(Path.Combine(scratch.Root, "preview")));
-        Assert.IsTrue(Directory.Exists(Path.Combine(scratch.Root, "compat")));
+            var firstManifest = File.ReadAllText(manifestPath);
+            var manifest = JsonNode.Parse(firstManifest)!.AsObject();
 
-        var second = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-Root", scratch.Root);
-        AssertCommandSucceeded(second);
+            Assert.AreEqual("velofileCorpusManifest", (string?)manifest["documentType"]);
+            Assert.AreEqual(profile, (string?)manifest["profile"]);
+            Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-corpus-root")));
+            Assert.IsTrue(Directory.Exists(Path.Combine(scratch.Root, "corpora", profile)));
 
-        Assert.AreEqual(firstManifest, File.ReadAllText(manifestPath));
+            var second = RunScript("generate-corpus.ps1", "-Profile", profile, "-ScratchRoot", scratch.Root);
+            AssertCommandSucceeded(second);
+
+            Assert.AreEqual(firstManifest, File.ReadAllText(manifestPath));
+        }
     }
 
     [TestMethod]
@@ -50,11 +53,11 @@ public sealed class CorpusToolingSmokeTests
     {
         using var scratch = ScratchWorkspace.Create();
 
-        AssertCommandSucceeded(RunScript("generate-corpus.ps1", "-Profile", "smoke", "-Root", scratch.Root));
-        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "smoke", "-Root", scratch.Root));
-        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Root", scratch.Root));
+        AssertCommandSucceeded(RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "smoke", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
 
-        var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-Root", scratch.Root);
+        var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-ScratchRoot", scratch.Root);
 
         Assert.AreNotEqual(0, unimplemented.ExitCode);
         StringAssert.Contains(unimplemented.AllOutput, "not implemented");
@@ -65,7 +68,7 @@ public sealed class CorpusToolingSmokeTests
     {
         using var scratch = ScratchWorkspace.Create();
 
-        var result = RunScript("run-benchmarks.ps1", "-NonGating", "-Root", scratch.Root);
+        var result = RunScript("run-benchmarks.ps1", "-NonGating", "-ScratchRoot", scratch.Root);
 
         AssertCommandSucceeded(result);
 
@@ -171,6 +174,23 @@ public sealed class CorpusToolingSmokeTests
         {
             if (Directory.Exists(Root))
             {
+                for (var attempt = 0; attempt < 5; attempt++)
+                {
+                    try
+                    {
+                        Directory.Delete(Root, recursive: true);
+                        return;
+                    }
+                    catch (IOException) when (attempt < 4)
+                    {
+                        Thread.Sleep(200);
+                    }
+                    catch (UnauthorizedAccessException) when (attempt < 4)
+                    {
+                        Thread.Sleep(200);
+                    }
+                }
+
                 Directory.Delete(Root, recursive: true);
             }
         }

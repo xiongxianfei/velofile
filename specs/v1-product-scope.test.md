@@ -322,7 +322,7 @@ T004. Validation tooling and scratch-root safety
 - Level: integration
 - Fixture/setup: Temporary scratch roots under explicit generated-corpus workspace plus unsafe paths such as repository root and user home.
 - Steps: Run corpus, preview, compatibility, and benchmark scripts with valid and invalid roots.
-- Expected result: Scripts require explicit scratch roots, refuse ambiguous or unsafe roots, generate deterministic smoke profiles, and leave no files outside the scratch root.
+- Expected result: Scripts require explicit scratch roots, refuse ambiguous or unsafe roots, publish/run corpus tooling from the scratch root, generate deterministic placeholder profiles, and leave no files outside the scratch root.
 - Failure proves: Later validation could mutate user data or depend on missing assets.
 - Automation location: `tests/VeloFile.Corpus.Tests/`, `scripts/generate-corpus.ps1`, `scripts/run-compat-corpus.ps1`, `scripts/run-preview-corpus.ps1`, `scripts/run-benchmarks.ps1`.
 

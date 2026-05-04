@@ -44,16 +44,11 @@ internal static class CorpusCli
     private static int Generate(CliOptions options, TextWriter output)
     {
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        var profile = options.ValueOrDefault("profile", "smoke");
+        var profile = CorpusProfiles.Normalize(options.ValueOrDefault("profile", "smoke"));
 
-        if (!StringComparer.OrdinalIgnoreCase.Equals(profile, "smoke"))
-        {
-            throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.");
-        }
-
-        var manifest = SmokeCorpusGenerator.Generate(root);
-        WriteJson(Path.Combine(root.FullName, "manifest.json"), manifest);
-        output.WriteLine($"Generated VeloFile smoke corpus at {root.FullName}");
+        var manifest = CorpusProfileGenerator.Generate(root, profile);
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", profile, "manifest.json"), manifest);
+        output.WriteLine($"Generated VeloFile {profile} corpus at {ScratchRootGuard.PathUnderRoot(root, "corpora", profile)}");
         return 0;
     }
 
@@ -69,7 +64,7 @@ internal static class CorpusCli
         }
 
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        SmokeCorpusGenerator.Generate(root);
+        CorpusProfileGenerator.Generate(root, "smoke");
 
         var result = new
         {
@@ -80,7 +75,7 @@ internal static class CorpusCli
             checkedDirectories = new[] { "small", "preview", "compat" }
         };
 
-        WriteJson(Path.Combine(root.FullName, "compat", "compat-smoke-result.json"), result);
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "smoke", "compat", "compat-smoke-result.json"), result);
         output.WriteLine("Compatibility smoke corpus passed.");
         return 0;
     }
@@ -97,7 +92,7 @@ internal static class CorpusCli
         }
 
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        SmokeCorpusGenerator.Generate(root);
+        CorpusProfileGenerator.Generate(root, "smoke");
 
         var result = new
         {
@@ -108,7 +103,7 @@ internal static class CorpusCli
             fixtures = new[] { "preview/text-preview.txt", "preview/unsupported.bin" }
         };
 
-        WriteJson(Path.Combine(root.FullName, "preview", "preview-smoke-result.json"), result);
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "smoke", "preview", "preview-smoke-result.json"), result);
         output.WriteLine("Preview smoke corpus passed.");
         return 0;
     }
@@ -122,7 +117,7 @@ internal static class CorpusCli
         }
 
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        SmokeCorpusGenerator.Generate(root);
+        CorpusProfileGenerator.Generate(root, "smoke");
 
         var report = BenchmarkReport.CreateNonGating();
         WriteJson(Path.Combine(root.FullName, "benchmarks", "benchmark-smoke-report.json"), report);
@@ -246,46 +241,122 @@ internal static class ScratchRootGuard
     }
 }
 
-internal static class SmokeCorpusGenerator
+internal static class CorpusProfiles
+{
+    private static readonly string[] SupportedProfiles =
+    [
+        "smoke",
+        "operations",
+        "preview",
+        "search",
+        "large-folder"
+    ];
+
+    public static string Normalize(string profile)
+    {
+        var normalized = profile.Trim().ToLowerInvariant();
+
+        if (!SupportedProfiles.Contains(normalized, StringComparer.Ordinal))
+        {
+            throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.");
+        }
+
+        return normalized;
+    }
+}
+
+internal static class CorpusProfileGenerator
 {
     private static readonly DateTime FixedTimestampUtc = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    public static CorpusManifest Generate(DirectoryInfo root)
+    public static CorpusManifest Generate(DirectoryInfo root, string profile)
     {
-        var files = new[]
-        {
-            WriteFixture(root, "small", "alpha.txt", FixedWidth("alpha", 64)),
-            WriteFixture(root, "small", "beta.log", FixedWidth("beta", 128)),
-            WriteFixture(root, "preview", "text-preview.txt", "VeloFile preview smoke text." + Environment.NewLine),
-            WriteFixture(root, "preview", "unsupported.bin", "\0\0VeloFile unsupported preview placeholder"),
-            WriteFixture(root, "compat", "paths", "normal-file.txt", "VeloFile compatibility smoke path." + Environment.NewLine),
-            WriteFixture(root, "operations", "rename-source.txt", "Scratch-only operation placeholder." + Environment.NewLine)
-        };
+        var normalizedProfile = CorpusProfiles.Normalize(profile);
+        var profileRoot = new DirectoryInfo(ScratchRootGuard.PathUnderRoot(root, "corpora", normalizedProfile));
+        Directory.CreateDirectory(profileRoot.FullName);
+
+        var fixtures = FixturesFor(normalizedProfile);
+        var files = fixtures
+            .Select(fixture => WriteFixture(profileRoot, fixture.SegmentsAndContent))
+            .OrderBy(file => file.RelativePath, StringComparer.Ordinal)
+            .ToArray();
 
         return new CorpusManifest(
             DocumentType: "velofileCorpusManifest",
             SchemaVersion: 1,
-            Profile: "smoke",
-            Directories:
-            [
-                "small",
-                "preview",
-                "compat",
-                "compat/paths",
-                "operations",
-                "benchmarks"
-            ],
-            Files: files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray(),
-            Scopes:
-            [
-                "generate:smoke",
-                "compat:smoke",
-                "preview:smoke",
-                "benchmarks:non-gating"
-            ]);
+            Profile: normalizedProfile,
+            Directories: DirectoriesFor(normalizedProfile),
+            Files: files,
+            Scopes: ScopesFor(normalizedProfile));
     }
 
-    private static CorpusFile WriteFixture(DirectoryInfo root, params string[] segmentsAndContent)
+    private static CorpusFixture[] FixturesFor(string profile)
+    {
+        return profile switch
+        {
+            "smoke" =>
+            [
+                new CorpusFixture(["small", "alpha.txt", FixedWidth("alpha", 64)]),
+                new CorpusFixture(["small", "beta.log", FixedWidth("beta", 128)]),
+                new CorpusFixture(["preview", "text-preview.txt", "VeloFile preview smoke text." + Environment.NewLine]),
+                new CorpusFixture(["preview", "unsupported.bin", "\0\0VeloFile unsupported preview placeholder"]),
+                new CorpusFixture(["compat", "paths", "normal-file.txt", "VeloFile compatibility smoke path." + Environment.NewLine]),
+                new CorpusFixture(["operations", "rename-source.txt", "Scratch-only operation placeholder." + Environment.NewLine])
+            ],
+            "operations" =>
+            [
+                new CorpusFixture(["operations", "rename-source.txt", "Rename source placeholder." + Environment.NewLine]),
+                new CorpusFixture(["operations", "delete-target.txt", "Recycle Bin delete placeholder." + Environment.NewLine]),
+                new CorpusFixture(["operations", "collisions", "existing-name.txt", "Existing collision placeholder." + Environment.NewLine]),
+                new CorpusFixture(["operations", "collisions", "incoming-name.txt", "Incoming collision placeholder." + Environment.NewLine])
+            ],
+            "preview" =>
+            [
+                new CorpusFixture(["preview", "text-preview.txt", "VeloFile preview text placeholder." + Environment.NewLine]),
+                new CorpusFixture(["preview", "code-preview.cs", "namespace VeloFile.PreviewCorpus;" + Environment.NewLine]),
+                new CorpusFixture(["preview", "unsupported.bin", "\0\0VeloFile unsupported preview placeholder"]),
+                new CorpusFixture(["preview", "metadata-only.placeholder", "Metadata fallback placeholder." + Environment.NewLine])
+            ],
+            "search" =>
+            [
+                new CorpusFixture(["search", "root-match.txt", "Search root match placeholder." + Environment.NewLine]),
+                new CorpusFixture(["search", "deep", "level01", "level02", "deep-match.txt", "Search deep match placeholder." + Environment.NewLine]),
+                new CorpusFixture(["search", "many", "result-0001.txt", "Search result placeholder 0001." + Environment.NewLine]),
+                new CorpusFixture(["search", "many", "result-0002.txt", "Search result placeholder 0002." + Environment.NewLine])
+            ],
+            "large-folder" =>
+            [
+                new CorpusFixture(["large-folder", "README.txt", "Large-folder profile placeholder. Full scale arrives in later milestones." + Environment.NewLine]),
+                new CorpusFixture(["large-folder", "items", "item-0001.txt", "Large-folder item placeholder 0001." + Environment.NewLine]),
+                new CorpusFixture(["large-folder", "items", "item-0002.txt", "Large-folder item placeholder 0002." + Environment.NewLine])
+            ],
+            _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
+        };
+    }
+
+    private static string[] DirectoriesFor(string profile)
+    {
+        return profile switch
+        {
+            "smoke" => ["small", "preview", "compat", "compat/paths", "operations"],
+            "operations" => ["operations", "operations/collisions"],
+            "preview" => ["preview"],
+            "search" => ["search", "search/deep", "search/deep/level01", "search/deep/level01/level02", "search/many"],
+            "large-folder" => ["large-folder", "large-folder/items"],
+            _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
+        };
+    }
+
+    private static string[] ScopesFor(string profile)
+    {
+        return profile switch
+        {
+            "smoke" => ["generate:smoke", "compat:smoke", "preview:smoke", "benchmarks:non-gating"],
+            _ => [$"generate:{profile}"]
+        };
+    }
+
+    private static CorpusFile WriteFixture(DirectoryInfo root, string[] segmentsAndContent)
     {
         var content = segmentsAndContent[^1];
         var segments = segmentsAndContent[..^1];
@@ -312,6 +383,8 @@ internal static class SmokeCorpusGenerator
         return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 }
+
+internal sealed record CorpusFixture(string[] SegmentsAndContent);
 
 internal sealed record CorpusManifest(
     string DocumentType,

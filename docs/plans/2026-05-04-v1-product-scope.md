@@ -151,10 +151,10 @@ Architectural boundaries to preserve:
   - Document the milestone dependency rule: no milestone may require a validation command unless the script, corpus profile, and fixtures exist from a prior milestone or are created in that same milestone before use.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Corpus`
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root <scratch-root>`
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>`
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root <scratch-root>`
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Later milestones can call corpus/compat/preview/benchmark scripts without depending on nonexistent validation assets, and all generated files stay under an explicit scratch root.
 - Commit message: `M2: add validation tooling and minimal corpus foundations`
@@ -323,7 +323,7 @@ Architectural boundaries to preserve:
   - Wire command-layer routes for rename, normal delete, and permanent delete.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Operations`
-  - `pwsh scripts/run-compat-corpus.ps1 -Scope safe-delete -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope safe-delete -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Rename and delete commands use the operation boundary, normal delete routes to Recycle Bin where supported, and permanent delete cannot occur without explicit confirmation.
 - Commit message: `M8: implement file operation contracts and safe delete`
@@ -351,7 +351,7 @@ Architectural boundaries to preserve:
   - Expand operations corpus with collisions and partial-completion fixtures before validation uses them.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Operations`
-  - `pwsh scripts/run-compat-corpus.ps1 -Scope operations -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope operations -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Copy/move operations expose Windows-correct conflict, progress, cancellation, and undo-eligibility states without silently aborting unaffected work.
 - Commit message: `M9: implement copy move conflicts and undo eligibility`
@@ -379,8 +379,8 @@ Architectural boundaries to preserve:
   - Add manual compatibility checklist for external apps where automation is not stable.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter DragDrop`
-  - `pwsh scripts/run-compat-corpus.ps1 -Scope dragdrop -Root <scratch-root>`
-  - `pwsh scripts/run-compat-corpus.ps1 -Scope paths -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope dragdrop -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope paths -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Drag/drop follows Windows copy/move/shortcut conventions and compatibility corpus covers file-operation/path behaviors required before release.
 - Commit message: `M10: implement drag drop and compatibility corpus`
@@ -408,7 +408,7 @@ Architectural boundaries to preserve:
   - Add diagnostics hooks for preview failures without raw paths/content.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter PreviewContract`
-  - `pwsh scripts/run-preview-corpus.ps1 -Scope contract -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Preview UI and services handle loading, unsupported, failed, metadata fallback, timeouts, and stale selection changes before content decoders exist.
 - Commit message: `M11: add preview contract and metadata fallback`
@@ -436,7 +436,7 @@ Architectural boundaries to preserve:
   - Ensure provider diagnostics use allowed fields only.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders`
-  - `pwsh scripts/run-preview-corpus.ps1 -Scope providers -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Supported images, bounded text/code, and PDFs render through bounded providers; oversized/corrupt/unsupported inputs fall back safely.
 - Commit message: `M12: implement image text and PDF preview providers`
@@ -465,7 +465,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Thumbnails`
   - `dotnet test VeloFile.sln -c Debug --filter PreviewUi`
-  - `pwsh scripts/run-preview-corpus.ps1 -Scope thumbnails -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: File list thumbnails/icons and preview/details UI enrich navigation without blocking or violating concurrency/timeout caps.
 - Commit message: `M13: implement thumbnails icons and preview UI concurrency`
@@ -520,9 +520,9 @@ Architectural boundaries to preserve:
   - Add diagnostics conformance and retention/export checks.
   - Define preview-release triage threshold document owned by release policy.
 - Validation commands:
-  - `pwsh scripts/generate-corpus.ps1`
-  - `pwsh scripts/run-benchmarks.ps1`
-  - `pwsh scripts/run-compat-corpus.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -ScratchRoot <scratch-root>`
   - `dotnet test VeloFile.sln -c Debug --filter Accessibility`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Release readiness can be judged using generated corpus, benchmark reports, diagnostics thresholds, and compatibility checks.
@@ -716,12 +716,25 @@ Each milestone must update validation notes with the commands actually run and a
 - M2 final validation:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 4 tests.
   - `dotnet test VeloFile.sln -c Debug --filter Corpus` passed: 4 corpus tests.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed and wrote `benchmarks\benchmark-smoke-report.json`.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -ScratchRoot <scratch-root>` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -ScratchRoot <scratch-root>` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root>` passed and wrote `benchmarks\benchmark-smoke-report.json`.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: 9 tests across 4 test assemblies.
   - `scripts/select-validation.py` is still not present; M2 used the plan-specified validation commands directly.
+- M2 corpus tooling review-resolution evidence:
+  - Updated T004 tests first; `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` failed as expected because wrappers did not yet support `-ScratchRoot`.
+  - Added scratch-owned tool invocation so script builds, MSBuild intermediates, NuGet caches, `DOTNET_CLI_HOME`, `TEMP`, and `TMP` stay under `<scratch-root>/.velofile-tools`.
+  - Added deterministic placeholder generation for `smoke`, `operations`, `preview`, `search`, and `large-folder` under `<scratch-root>/corpora/<profile>`.
+  - Added `tests/validation/CorpusScriptsIsolation.Tests.ps1` to prove script execution does not create, modify, or delete repository-side files.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File tests/validation/CorpusScriptsIsolation.Tests.ps1 -ScratchRoot <scratch-root>` passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>` passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile operations -ScratchRoot <scratch-root>` passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile preview -ScratchRoot <scratch-root>` passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile search -ScratchRoot <scratch-root>` passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile large-folder -ScratchRoot <scratch-root>` passed.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 4 tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: 9 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

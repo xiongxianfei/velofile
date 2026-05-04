@@ -9,7 +9,7 @@ The benchmark harness becomes release-gating in M15 after the generated corpus, 
 ## Current Command
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root <velofile-corpus-scratch-root>
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -ScratchRoot <velofile-corpus-scratch-root>
 ```
 
 The scratch root must be a dedicated absolute path whose final segment contains both `velofile` and `corpus`. Existing non-empty directories must already contain the `.velofile-corpus-root` marker or the runner refuses to write.

@@ -3,12 +3,11 @@ param(
     [string] $Scope = "smoke",
 
     [Parameter(Mandatory = $true)]
-    [string] $Root
+    [Alias("Root")]
+    [string] $ScratchRoot
 )
 
 $ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
-$project = Join-Path $repoRoot "tools/VeloFile.Corpus/VeloFile.Corpus.csproj"
+. (Join-Path $PSScriptRoot "Invoke-CorpusTool.ps1")
 
-dotnet run --project $project -- compat --scope $Scope --root $Root
-exit $LASTEXITCODE
+exit (Invoke-VeloFileCorpusTool -ScratchRoot $ScratchRoot -CommandArguments @("compat", "--scope", $Scope))
