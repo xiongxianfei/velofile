@@ -588,7 +588,7 @@ Expected post-M1 core commands:
 - `dotnet restore VeloFile.sln`
 - `dotnet build VeloFile.sln -c Debug`
 - `dotnet test VeloFile.sln -c Debug`
-- `pwsh scripts/ci.ps1`
+- `scripts/ci.ps1` invoked with `pwsh` in GitHub Actions, or with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` for local Windows validation when `pwsh` is unavailable.
 
 Expected later commands:
 
