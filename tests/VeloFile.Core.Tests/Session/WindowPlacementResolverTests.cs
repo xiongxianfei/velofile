@@ -121,6 +121,106 @@ public sealed class WindowPlacementResolverTests
     }
 
     [TestMethod]
+    public void Two_hundred_percent_scale_rejects_effective_minimum_as_physical_pixels()
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 3840, Height: 2160, IsPrimary: true, RasterizationScale: 2.0)
+        ]));
+        var requested = new WindowPlacementState(Left: 100, Top: 100, Width: 900, Height: 560, MonitorDeviceName: @"\\.\DISPLAY1");
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, resolved.Status);
+        Assert.IsTrue(resolved.ShouldApply);
+        Assert.AreEqual(1800, resolved.Placement!.Width);
+        Assert.AreEqual(1120, resolved.Placement.Height);
+    }
+
+    [TestMethod]
+    public void Two_hundred_percent_scale_accepts_converted_physical_minimum_when_visible()
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 3840, Height: 2160, IsPrimary: true, RasterizationScale: 2.0)
+        ]));
+        var requested = new WindowPlacementState(Left: 100, Top: 100, Width: 1800, Height: 1120, MonitorDeviceName: @"\\.\DISPLAY1");
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.UseResolvedPlacement, resolved.Status);
+        Assert.IsTrue(resolved.ShouldApply);
+        Assert.AreEqual(requested, resolved.Placement);
+    }
+
+    [TestMethod]
+    [DataRow(900, 560)]
+    [DataRow(1349, 840)]
+    [DataRow(1350, 839)]
+    public void One_hundred_fifty_percent_scale_rejects_sizes_below_converted_physical_minimum(int width, int height)
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 2560, Height: 1440, IsPrimary: true, RasterizationScale: 1.5)
+        ]));
+        var requested = new WindowPlacementState(Left: 100, Top: 100, Width: width, Height: height, MonitorDeviceName: @"\\.\DISPLAY1");
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, resolved.Status);
+        Assert.IsTrue(resolved.ShouldApply);
+        Assert.AreEqual(1350, resolved.Placement!.Width);
+        Assert.AreEqual(840, resolved.Placement.Height);
+    }
+
+    [TestMethod]
+    public void Mixed_dpi_selection_uses_target_monitor_scale_before_validating_minimum()
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 1920, Height: 1080, IsPrimary: true, RasterizationScale: 1.0),
+            new MonitorWorkArea(@"\\.\DISPLAY2", Left: 2000, Top: 0, Width: 3840, Height: 2160, IsPrimary: false, RasterizationScale: 2.0)
+        ]));
+        var requested = new WindowPlacementState(Left: 2100, Top: 100, Width: 900, Height: 560, MonitorDeviceName: null);
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, resolved.Status);
+        Assert.IsTrue(resolved.ShouldApply);
+        Assert.AreEqual(@"\\.\DISPLAY2", resolved.Placement!.MonitorDeviceName);
+        Assert.AreEqual(2000, resolved.Placement.Left);
+        Assert.AreEqual(1800, resolved.Placement.Width);
+        Assert.AreEqual(1120, resolved.Placement.Height);
+    }
+
+    [TestMethod]
+    public void Missing_monitor_fallback_uses_fallback_monitor_scale_for_default_size()
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 3840, Height: 2160, IsPrimary: true, RasterizationScale: 2.0)
+        ]));
+        var requested = new WindowPlacementState(Left: 5000, Top: 5000, Width: 1200, Height: 800, MonitorDeviceName: @"\\.\REMOVED");
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, resolved.Status);
+        Assert.IsTrue(resolved.ShouldApply);
+        Assert.AreEqual(1800, resolved.Placement!.Width);
+        Assert.AreEqual(1120, resolved.Placement.Height);
+    }
+
+    [TestMethod]
+    public void Unknown_monitor_scale_does_not_apply_persisted_placement()
+    {
+        var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+            new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 1920, Height: 1080, IsPrimary: true, RasterizationScale: null)
+        ]));
+        var requested = new WindowPlacementState(Left: 100, Top: 100, Width: 1200, Height: 800, MonitorDeviceName: @"\\.\DISPLAY1");
+
+        var resolved = resolver.Resolve(requested);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseMonitorScaleUnavailable, resolved.Status);
+        Assert.IsFalse(resolved.ShouldApply);
+        Assert.IsNull(resolved.Placement);
+    }
+
+    [TestMethod]
     public void Partially_offscreen_below_minimum_placement_uses_default_instead_of_tiny_clamp()
     {
         var resolver = new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([

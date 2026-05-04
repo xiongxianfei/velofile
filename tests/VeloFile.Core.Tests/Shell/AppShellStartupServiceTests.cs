@@ -113,14 +113,14 @@ public sealed class AppShellStartupServiceTests
         var startup = CreateStartup(
             existingPaths: [@"D:\projects"],
             monitorPlacementResolver: new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
-                new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 1920, Height: 1080, IsPrimary: true)
+                new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 3840, Height: 2160, IsPrimary: true, RasterizationScale: 2.0)
             ])));
         var input = new AppShellStartupInput(
             WindowTitle: "VeloFile",
             Session: new SessionStatePayload(
                 [new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])],
                 ActiveTabIndex: 0,
-                WindowPlacement: new WindowPlacementState(Left: 200, Top: 200, Width: 100, Height: 100, MonitorDeviceName: @"\\.\DISPLAY1")),
+                WindowPlacement: new WindowPlacementState(Left: 200, Top: 200, Width: 900, Height: 560, MonitorDeviceName: @"\\.\DISPLAY1")),
             Settings: SettingsStatePayload.Default,
             Favorites: FavoritesStatePayload.Empty,
             RecentLocations: RecentLocationsStatePayload.Empty,
@@ -130,8 +130,8 @@ public sealed class AppShellStartupServiceTests
 
         Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, state.WindowPlacementResolution.Status);
         Assert.IsTrue(state.WindowPlacementResolution.ShouldApply);
-        Assert.AreEqual(WindowPlacementPolicy.Default.DefaultFallbackWidth, state.WindowPlacement!.Width);
-        Assert.AreEqual(WindowPlacementPolicy.Default.DefaultFallbackHeight, state.WindowPlacement.Height);
+        Assert.AreEqual(1800, state.WindowPlacement!.Width);
+        Assert.AreEqual(1120, state.WindowPlacement.Height);
     }
 
     [TestMethod]

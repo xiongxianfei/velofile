@@ -45,11 +45,15 @@ Resolution:
 - Replaced raw nullable placement handoff with `WindowPlacementResolution`, including status and `ShouldApply`, so the app applier receives a resolved safe placement or an explicit do-not-apply result.
 - Treat positive-but-below-minimum persisted sizes as invalid and fall back to visible default placement.
 - Treat empty or failed monitor enumeration as unable to prove placement safety; stale persisted placement is not applied unchanged.
+- Made the resolver boundary explicitly physical-pixel based for persisted bounds, monitor work areas, resolved placements, and `AppWindow.MoveAndResize` input.
+- Kept the WinUI shell minimum in XAML effective pixels and converted it to physical pixels with the selected target monitor's scale before size validation.
+- Treat unknown monitor scale as unable to prove placement safety; stale persisted placement is not applied when scale is unavailable.
 
 Tests:
 
 - `WindowPlacementResolverTests` verifies valid placement preservation, removed-monitor fallback, offscreen clamping, and invalid-dimension fallback.
 - `WindowPlacementResolverTests` verifies `1x1`, `100x100`, `899x560`, `900x559`, partially offscreen tiny placement, missing-monitor tiny placement, empty monitor enumeration, throwing monitor enumeration, oversized clamping, constrained monitor fallback, and minimum/above-minimum valid sizes.
+- `WindowPlacementResolverTests` verifies 200% scale rejects `900x560` physical pixels, accepts `1800x1120`, uses 150% and mixed-DPI target-monitor scale, uses fallback-monitor scale for removed monitors, and does not apply placement when scale is unknown.
 - `AppShellStartupServiceTests` verifies startup exposes a safe window-placement resolution for the app applier.
 - `AppShellContractTests` verifies production composition uses the real monitor resolver and applies restored placement.
 

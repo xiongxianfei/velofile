@@ -405,7 +405,7 @@ T012. Versioned durable documents and partial-write recovery
 T013. Session restore behavior and crash recovery UI
 - Covers: R21-R24, R27, I6, A11Y7, E6, E12, AC13, EC16, EC17
 - Level: integration | e2e
-- Fixture/setup: Saved sessions with ten tabs, active tab, sort/view state, history, sidebar state, scroll anchor, missing path, removed monitor, stale selection/filter/search/clipboard/operation data, and crash marker.
+- Fixture/setup: Saved sessions with ten tabs, active tab, sort/view state, history, sidebar state, scroll anchor, missing path, removed monitor, scaled and mixed-DPI monitor layouts, stale selection/filter/search/clipboard/operation data, and crash marker.
 - Steps: Restore each session and inspect restored state, missing-location tab, monitor fallback, scroll anchoring, excluded fields, and start-fresh option after repeated failure.
 - Expected result: Included fields restore; scroll anchors by first visible item name; missing paths remain visible with path and close action; excluded fields are not restored; crash recovery offers start fresh.
 - Failure proves: Session restore can surprise users, lose tabs, or create crash loops.

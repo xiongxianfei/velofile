@@ -8,7 +8,8 @@ public sealed record MonitorWorkArea(
     int Top,
     int Width,
     int Height,
-    bool IsPrimary);
+    bool IsPrimary,
+    double? RasterizationScale = 1.0);
 
 public interface IMonitorLayoutSource
 {
@@ -29,34 +30,88 @@ public enum WindowPlacementResolutionStatus
     FallbackBecauseOffscreen,
     FallbackBecauseMonitorEnumerationEmpty,
     FallbackBecauseMonitorEnumerationFailed,
+    FallbackBecauseMonitorScaleUnavailable,
     FallbackBecauseClamped
 }
 
 public sealed record WindowPlacementPolicy(
-    int MinimumRestorableWidth,
-    int MinimumRestorableHeight,
-    int DefaultFallbackWidth,
-    int DefaultFallbackHeight,
-    int MinimumVisibleMargin,
-    string CoordinateUnit)
+    int ShellMinimumWidthEffectivePixels,
+    int ShellMinimumHeightEffectivePixels,
+    int DefaultFallbackWidthEffectivePixels,
+    int DefaultFallbackHeightEffectivePixels,
+    int MinimumVisibleMarginPhysicalPixels,
+    string PersistedBoundsUnit,
+    string MonitorWorkAreaUnit,
+    string ResolvedPlacementUnit,
+    string ShellMinimumUnit)
 {
     public static WindowPlacementPolicy Default { get; } = new(
-        MinimumRestorableWidth: 900,
-        MinimumRestorableHeight: 560,
-        DefaultFallbackWidth: 900,
-        DefaultFallbackHeight: 560,
-        MinimumVisibleMargin: 48,
-        CoordinateUnit: "logical-window-bounds");
+        ShellMinimumWidthEffectivePixels: 900,
+        ShellMinimumHeightEffectivePixels: 560,
+        DefaultFallbackWidthEffectivePixels: 900,
+        DefaultFallbackHeightEffectivePixels: 560,
+        MinimumVisibleMarginPhysicalPixels: 48,
+        PersistedBoundsUnit: "physical-pixels",
+        MonitorWorkAreaUnit: "physical-pixels",
+        ResolvedPlacementUnit: "physical-pixels",
+        ShellMinimumUnit: "effective-pixels-before-monitor-scale-conversion");
+
+    public int MinimumRestorableWidth => ShellMinimumWidthEffectivePixels;
+
+    public int MinimumRestorableHeight => ShellMinimumHeightEffectivePixels;
+
+    public int DefaultFallbackWidth => DefaultFallbackWidthEffectivePixels;
+
+    public int DefaultFallbackHeight => DefaultFallbackHeightEffectivePixels;
 
     public bool HasRestorableSize(WindowPlacementState placement)
     {
-        return placement.Width >= MinimumRestorableWidth
-            && placement.Height >= MinimumRestorableHeight;
+        return placement.Width >= ShellMinimumWidthEffectivePixels
+            && placement.Height >= ShellMinimumHeightEffectivePixels;
+    }
+
+    public bool HasRestorablePhysicalSize(WindowPlacementState placement, MonitorWorkArea monitor)
+    {
+        return placement.Width >= MinimumPhysicalWidth(monitor)
+            && placement.Height >= MinimumPhysicalHeight(monitor);
     }
 
     public bool HasPositiveSize(WindowPlacementState placement)
     {
         return placement.Width > 0 && placement.Height > 0;
+    }
+
+    public bool HasKnownScale(MonitorWorkArea monitor)
+    {
+        return monitor.RasterizationScale is { } scale
+            && !double.IsNaN(scale)
+            && !double.IsInfinity(scale)
+            && scale > 0;
+    }
+
+    public int MinimumPhysicalWidth(MonitorWorkArea monitor)
+    {
+        return ToPhysicalPixels(ShellMinimumWidthEffectivePixels, monitor);
+    }
+
+    public int MinimumPhysicalHeight(MonitorWorkArea monitor)
+    {
+        return ToPhysicalPixels(ShellMinimumHeightEffectivePixels, monitor);
+    }
+
+    public int DefaultFallbackPhysicalWidth(MonitorWorkArea monitor)
+    {
+        return ToPhysicalPixels(DefaultFallbackWidthEffectivePixels, monitor);
+    }
+
+    public int DefaultFallbackPhysicalHeight(MonitorWorkArea monitor)
+    {
+        return ToPhysicalPixels(DefaultFallbackHeightEffectivePixels, monitor);
+    }
+
+    private static int ToPhysicalPixels(int effectivePixels, MonitorWorkArea monitor)
+    {
+        return (int)Math.Ceiling(effectivePixels * monitor.RasterizationScale!.Value);
     }
 }
 
@@ -137,26 +192,27 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
         }
 
         var primary = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
-        if (!_policy.HasPositiveSize(requestedPlacement) || !_policy.HasRestorableSize(requestedPlacement))
+        var candidate = SelectCandidateMonitor(requestedPlacement, monitors, primary);
+        if (!_policy.HasKnownScale(candidate.Monitor))
+        {
+            return WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.FallbackBecauseMonitorScaleUnavailable);
+        }
+
+        if (!_policy.HasPositiveSize(requestedPlacement) || !_policy.HasRestorablePhysicalSize(requestedPlacement, candidate.Monitor))
         {
             return WindowPlacementResolution.Fallback(
                 WindowPlacementResolutionStatus.FallbackBecauseInvalidSize,
-                DefaultPlacement(primary));
+                DefaultPlacement(candidate.Monitor));
         }
 
-        var requestedMonitor = string.IsNullOrWhiteSpace(requestedPlacement.MonitorDeviceName)
-            ? null
-            : monitors.FirstOrDefault(monitor => string.Equals(monitor.DeviceName, requestedPlacement.MonitorDeviceName, StringComparison.OrdinalIgnoreCase));
-
-        if (requestedMonitor is not null)
+        if (candidate.Kind == CandidateMonitorKind.RequestedMonitor)
         {
-            return ResolveOnMonitor(requestedPlacement, requestedMonitor);
+            return ResolveOnMonitor(requestedPlacement, candidate.Monitor);
         }
 
-        var intersectingMonitor = monitors.FirstOrDefault(monitor => Intersects(requestedPlacement, monitor));
-        if (intersectingMonitor is not null)
+        if (candidate.Kind == CandidateMonitorKind.IntersectingMonitor)
         {
-            var clamped = ClampToMonitor(requestedPlacement, intersectingMonitor);
+            var clamped = ClampToMonitor(requestedPlacement, candidate.Monitor);
             return WindowPlacementResolution.Fallback(
                 WindowPlacementResolutionStatus.FallbackBecauseMonitorMissing,
                 clamped);
@@ -166,7 +222,7 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
             string.IsNullOrWhiteSpace(requestedPlacement.MonitorDeviceName)
                 ? WindowPlacementResolutionStatus.FallbackBecauseOffscreen
                 : WindowPlacementResolutionStatus.FallbackBecauseMonitorMissing,
-            DefaultPlacement(primary, requestedPlacement.Width, requestedPlacement.Height));
+            DefaultPlacement(candidate.Monitor, requestedPlacement.Width, requestedPlacement.Height));
     }
 
     private bool TryGetMonitors(
@@ -203,14 +259,39 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
             : WindowPlacementResolution.Fallback(WindowPlacementResolutionStatus.FallbackBecauseClamped, clamped);
     }
 
+    private CandidateMonitor SelectCandidateMonitor(
+        WindowPlacementState requestedPlacement,
+        IReadOnlyList<MonitorWorkArea> monitors,
+        MonitorWorkArea primary)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedPlacement.MonitorDeviceName))
+        {
+            var requestedMonitor = monitors.FirstOrDefault(monitor => string.Equals(monitor.DeviceName, requestedPlacement.MonitorDeviceName, StringComparison.OrdinalIgnoreCase));
+            if (requestedMonitor is not null)
+            {
+                return new CandidateMonitor(CandidateMonitorKind.RequestedMonitor, requestedMonitor);
+            }
+        }
+
+        var intersectingMonitor = monitors.FirstOrDefault(monitor => Intersects(requestedPlacement, monitor));
+        if (intersectingMonitor is not null)
+        {
+            return new CandidateMonitor(CandidateMonitorKind.IntersectingMonitor, intersectingMonitor);
+        }
+
+        return new CandidateMonitor(CandidateMonitorKind.PrimaryFallback, primary);
+    }
+
     private WindowPlacementState DefaultPlacement(MonitorWorkArea monitor, int? requestedWidth = null, int? requestedHeight = null)
     {
-        var width = requestedWidth is { } requestedW && requestedW >= _policy.MinimumRestorableWidth
+        var minimumPhysicalWidth = _policy.MinimumPhysicalWidth(monitor);
+        var minimumPhysicalHeight = _policy.MinimumPhysicalHeight(monitor);
+        var width = requestedWidth is { } requestedW && requestedW >= minimumPhysicalWidth
             ? requestedW
-            : _policy.DefaultFallbackWidth;
-        var height = requestedHeight is { } requestedH && requestedH >= _policy.MinimumRestorableHeight
+            : _policy.DefaultFallbackPhysicalWidth(monitor);
+        var height = requestedHeight is { } requestedH && requestedH >= minimumPhysicalHeight
             ? requestedH
-            : _policy.DefaultFallbackHeight;
+            : _policy.DefaultFallbackPhysicalHeight(monitor);
         var resolvedWidth = Math.Min(Math.Max(1, width), monitor.Width);
         var resolvedHeight = Math.Min(Math.Max(1, height), monitor.Height);
 
@@ -224,8 +305,8 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
 
     private WindowPlacementState ClampToMonitor(WindowPlacementState placement, MonitorWorkArea monitor)
     {
-        var width = Math.Min(Math.Max(placement.Width, _policy.MinimumRestorableWidth), monitor.Width);
-        var height = Math.Min(Math.Max(placement.Height, _policy.MinimumRestorableHeight), monitor.Height);
+        var width = Math.Min(Math.Max(placement.Width, _policy.MinimumPhysicalWidth(monitor)), monitor.Width);
+        var height = Math.Min(Math.Max(placement.Height, _policy.MinimumPhysicalHeight(monitor)), monitor.Height);
         var minLeft = monitor.Left;
         var maxLeft = monitor.Left + monitor.Width - width;
         var minTop = monitor.Top;
@@ -250,5 +331,14 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
             && placementRight > monitor.Left
             && placement.Top < monitorBottom
             && placementBottom > monitor.Top;
+    }
+
+    private sealed record CandidateMonitor(CandidateMonitorKind Kind, MonitorWorkArea Monitor);
+
+    private enum CandidateMonitorKind
+    {
+        RequestedMonitor,
+        IntersectingMonitor,
+        PrimaryFallback
     }
 }

@@ -40,7 +40,8 @@ public sealed class WindowsMonitorLayoutSource : IMonitorLayoutSource
                             workArea.Top,
                             width,
                             height,
-                            (monitorInfo.Flags & MonitorInfoPrimary) == MonitorInfoPrimary));
+                            (monitorInfo.Flags & MonitorInfoPrimary) == MonitorInfoPrimary,
+                            GetMonitorRasterizationScale(monitorHandle)));
                     }
                 }
 
@@ -54,6 +55,21 @@ public sealed class WindowsMonitorLayoutSource : IMonitorLayoutSource
             IntPtr.Zero);
 
         return monitors;
+    }
+
+    private static double? GetMonitorRasterizationScale(IntPtr monitorHandle)
+    {
+        try
+        {
+            var result = GetDpiForMonitor(monitorHandle, MonitorDpiType.Effective, out var dpiX, out _);
+            return result == 0 && dpiX > 0
+                ? dpiX / 96.0
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private delegate bool MonitorEnumProc(
@@ -73,6 +89,18 @@ public sealed class WindowsMonitorLayoutSource : IMonitorLayoutSource
     private static extern bool GetMonitorInfo(
         IntPtr monitorHandle,
         ref MonitorInfoEx monitorInfo);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(
+        IntPtr monitorHandle,
+        MonitorDpiType dpiType,
+        out uint dpiX,
+        out uint dpiY);
+
+    private enum MonitorDpiType
+    {
+        Effective = 0
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Rect

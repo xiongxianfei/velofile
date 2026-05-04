@@ -75,9 +75,9 @@ validation:
   - command: dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"
     result: passed second-pass review-resolution tests with 31 Core tests and 3 App shell contract tests
   - command: dotnet test VeloFile.sln -c Debug --filter Session
-    result: passed window-placement safety regressions with 28 Core session/startup/window placement tests
+    result: passed DPI-aware window-placement safety regressions with 36 Core session/startup/window placement tests
   - command: dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"
-    result: passed window-placement safety review-resolution with 43 Core tests and 3 App shell contract tests
+    result: passed DPI-aware window-placement safety review-resolution with 51 Core tests and 3 App shell contract tests
   - command: dotnet test VeloFile.sln -c Debug --filter Navigation
     result: passed 8 Core navigation tests and 3 App shell contract tests
   - command: dotnet test VeloFile.sln -c Debug --filter Session
@@ -89,12 +89,12 @@ validation:
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build with 0 warnings and 0 errors, and 107 tests across 4 test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 115 tests across 4 test assemblies
 notes:
   - M5 implements core navigation/sidebar/session state, navigation command routing, app launch restore composition, and a compiled WinUI shell surface. It does not implement file selection, file commands, context-menu behavior, filtering/search, or preview behavior; those remain assigned to later milestones.
   - Session restore keeps missing paths visible through a missing-location tab state and close-tab action flag. Actual path existence, monitor availability, scroll-anchor existence, and repeated-crash detection are supplied through explicit interfaces.
   - Review resolution enforces an always-at-least-one-tab workspace invariant and wires app launch through durable session/settings/favorites/recent-location reads before creating the shell view model.
   - Visibility settings now have an application-level service that round-trips through settings persistence and requires confirmation before protected operating-system files are first shown.
   - Second-pass review resolution separates rejected interactive path submissions from restored missing-location tabs, persists visibility toggle changes through the durable settings repository, and applies restored window placement through a production monitor resolver and WinUI applier.
-  - Window-placement safety resolution rejects tiny positive persisted rectangles, avoids applying stale placement when monitor enumeration fails, and hands app windowing an auditable safe placement resolution.
+  - Window-placement safety resolution rejects tiny positive persisted rectangles, converts the XAML effective-pixel shell minimum to physical pixels with the selected monitor scale, avoids applying stale placement when monitor enumeration or scale lookup fails, and hands app windowing an auditable safe placement resolution.
   - App shell tests are file-based contract checks because the repository does not yet have a WinUI UI automation harness.

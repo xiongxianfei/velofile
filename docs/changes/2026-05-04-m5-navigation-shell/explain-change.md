@@ -56,7 +56,7 @@ Interactive raw-path navigation now probes before commit. Missing, empty, unsupp
 
 Visibility toggles now persist through `ISettingsStateWriter`. The production writer wraps the durable settings repository, so toggle changes use the same versioned, partial-write-safe persistence protocol as launch restore. Write failures are handled as recoverable command failures: in-memory state remains updated and diagnostics are best-effort.
 
-Window placement is resolved against the current monitor layout before it reaches the shell. The production path uses `WindowsMonitorLayoutSource` and `MonitorWindowPlacementResolver`, then `MainWindow` applies the resolved placement through a WinUI app-window applier. The resolver now returns `WindowPlacementResolution` with a status and `ShouldApply` flag, so the app applies only a resolved safe placement or no persisted placement. Positive-but-below-minimum persisted sizes are treated as invalid, and empty/throwing monitor enumeration does not apply stale saved bounds. The old pass-through resolver remains available only as a test-style stub, not production composition.
+Window placement is resolved against the current monitor layout before it reaches the shell. The production path uses `WindowsMonitorLayoutSource` and `MonitorWindowPlacementResolver`, then `MainWindow` applies the resolved placement through a WinUI app-window applier. The resolver now returns `WindowPlacementResolution` with a status and `ShouldApply` flag, so the app applies only a resolved safe placement or no persisted placement. Persisted bounds, monitor work areas, resolved placements, and `AppWindow.MoveAndResize` input are treated as physical pixels; the shell minimum remains in XAML effective pixels and is converted with the selected target monitor's scale before validation. Positive-but-below-minimum persisted sizes are treated as invalid, unknown monitor scale prevents persisted placement from being applied, and empty/throwing monitor enumeration does not apply stale saved bounds. The old pass-through resolver remains available only as a test-style stub, not production composition.
 
 The WinUI shell is intentionally a concrete first screen, not a landing page. It exposes the required regions, command routes, and keyboard accelerator invoked handlers, while later milestones will connect file selection, operations, search, and preview surfaces.
 
@@ -98,9 +98,10 @@ Window-placement safety review-resolution validation added the following direct 
 - `900x560` and larger visible placements remain accepted
 - below-minimum offscreen and missing-monitor placements fall back safely
 - empty or throwing monitor enumeration produces a do-not-apply resolution
+- scaled monitor proofs reject `900x560` physical pixels at 200% scale, accept the converted `1800x1120` physical minimum, use target-monitor scale in mixed-DPI selection, and avoid applying placement when scale is unknown
 - the app startup state carries the safe resolution consumed by the WinUI placement applier
 
-After the window-placement safety fix, final CI built with 0 warnings and 0 errors and passed 107 tests across 4 test assemblies.
+After the DPI-aware window-placement safety fix, final CI built with 0 warnings and 0 errors and passed 115 tests across 4 test assemblies.
 
 ## Deferred By Plan
 

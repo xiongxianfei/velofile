@@ -257,7 +257,8 @@ Architectural boundaries to preserve:
   - Visibility toggles now write through a retained durable settings writer and survive restarted bootstrap.
   - Restored window placement is resolved against real production monitor layout data and applied through a WinUI window placement applier; production composition no longer uses the pass-through monitor resolver.
   - Window-placement safety review resolution adds a shared placement policy, rejects positive-but-below-minimum saved rectangles, returns do-not-apply when monitor enumeration is empty or fails, and passes an auditable `WindowPlacementResolution` to the app applier.
-  - Focused validation for the second review resolution passed with `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"`, and final CI passed with `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` (107 tests).
+  - DPI unit review resolution makes persisted and resolved window bounds physical-pixel based, converts the XAML effective-pixel shell minimum through the selected target monitor scale before validation, and rejects persisted placement when scale is unavailable.
+  - Focused validation for the DPI-aware window-placement review resolution passed with `dotnet test VeloFile.sln -c Debug --filter Session` (36 Core tests) and `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"` (51 Core tests and 3 App shell contract tests); final CI passed with `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` (115 tests).
 
 ### M6. Selection, Command Layer, Built-In Context Menu, and Clipboard
 
@@ -823,7 +824,7 @@ M1, M2, M3, M4, and M5 complete. The repository now has a buildable WinUI app sh
 
 ## Readiness
 
-M5 review resolution is ready for `code-review`. Do not start M6 until the M5 review-resolution pass is accepted or remaining findings are explicitly deferred.
+M5 review resolution passed `code-review` with no blocking or required-change findings. M6 is ready to implement.
 
 Implementation resumes after M5 review with:
 
