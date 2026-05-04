@@ -123,7 +123,7 @@ Architectural boundaries to preserve:
   - `dotnet restore VeloFile.sln`
   - `dotnet build VeloFile.sln -c Debug`
   - `dotnet test VeloFile.sln -c Debug`
-  - `pwsh scripts/ci.ps1` or the final M1 CI command recorded in `AGENTS.md`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` or the final M1 CI command recorded in `AGENTS.md`
 - Expected observable result: The repository has a real Windows app solution, a testable service layer, and CI no longer reports template-only validation.
 - Commit message: `M1: scaffold WinUI app foundation and CI`
 - Milestone closeout:
@@ -155,7 +155,7 @@ Architectural boundaries to preserve:
   - `pwsh scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>`
   - `pwsh scripts/run-preview-corpus.ps1 -Root <scratch-root>`
   - `pwsh scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Later milestones can call corpus/compat/preview/benchmark scripts without depending on nonexistent validation assets, and all generated files stay under an explicit scratch root.
 - Commit message: `M2: add validation tooling and minimal corpus foundations`
 - Milestone closeout:
@@ -183,7 +183,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Persistence`
   - `dotnet test VeloFile.sln -c Debug --filter Diagnostics`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: State and diagnostics can be safely read/written locally with redaction and recovery behavior independent of the UI.
 - Commit message: `M3: add safe persistence and local diagnostics foundations`
 - Milestone closeout:
@@ -211,7 +211,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Listing`
   - `dotnet test VeloFile.sln -c Debug --filter Visibility`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Core services can enumerate representative folders and expose stable state for a virtualized UI without blocking unrelated tabs.
 - Commit message: `M4: add asynchronous listing and visibility services`
 - Milestone closeout:
@@ -240,7 +240,7 @@ Architectural boundaries to preserve:
   - `dotnet test VeloFile.sln -c Debug --filter Navigation`
   - `dotnet test VeloFile.sln -c Debug --filter Session`
   - `dotnet test VeloFile.sln -c Debug --filter Sidebar`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: A user can launch VeloFile, open folders, navigate paths, use tabs/sidebar, and restore a session with safe missing-path behavior.
 - Commit message: `M5: implement navigation shell and session restore`
 - Milestone closeout:
@@ -268,7 +268,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Commands`
   - `dotnet test VeloFile.sln -c Debug --filter Selection`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Users can select files with mouse/keyboard, open the built-in context menu, and invoke safe command-layer routes.
 - Commit message: `M6: add selection and built-in command layer`
 - Milestone closeout:
@@ -296,7 +296,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Filtering`
   - `dotnet test VeloFile.sln -c Debug --filter Search`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Users can instantly narrow current-folder items and run bounded cancellable recursive searches with clear cap/skipped states.
 - Commit message: `M7: implement filter and recursive search`
 - Milestone closeout:
@@ -324,7 +324,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Operations`
   - `pwsh scripts/run-compat-corpus.ps1 -Scope safe-delete -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Rename and delete commands use the operation boundary, normal delete routes to Recycle Bin where supported, and permanent delete cannot occur without explicit confirmation.
 - Commit message: `M8: implement file operation contracts and safe delete`
 - Milestone closeout:
@@ -352,7 +352,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Operations`
   - `pwsh scripts/run-compat-corpus.ps1 -Scope operations -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Copy/move operations expose Windows-correct conflict, progress, cancellation, and undo-eligibility states without silently aborting unaffected work.
 - Commit message: `M9: implement copy move conflicts and undo eligibility`
 - Milestone closeout:
@@ -381,7 +381,7 @@ Architectural boundaries to preserve:
   - `dotnet test VeloFile.sln -c Debug --filter DragDrop`
   - `pwsh scripts/run-compat-corpus.ps1 -Scope dragdrop -Root <scratch-root>`
   - `pwsh scripts/run-compat-corpus.ps1 -Scope paths -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Drag/drop follows Windows copy/move/shortcut conventions and compatibility corpus covers file-operation/path behaviors required before release.
 - Commit message: `M10: implement drag drop and compatibility corpus`
 - Milestone closeout:
@@ -409,7 +409,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter PreviewContract`
   - `pwsh scripts/run-preview-corpus.ps1 -Scope contract -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Preview UI and services handle loading, unsupported, failed, metadata fallback, timeouts, and stale selection changes before content decoders exist.
 - Commit message: `M11: add preview contract and metadata fallback`
 - Milestone closeout:
@@ -437,7 +437,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders`
   - `pwsh scripts/run-preview-corpus.ps1 -Scope providers -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Supported images, bounded text/code, and PDFs render through bounded providers; oversized/corrupt/unsupported inputs fall back safely.
 - Commit message: `M12: implement image text and PDF preview providers`
 - Milestone closeout:
@@ -466,7 +466,7 @@ Architectural boundaries to preserve:
   - `dotnet test VeloFile.sln -c Debug --filter Thumbnails`
   - `dotnet test VeloFile.sln -c Debug --filter PreviewUi`
   - `pwsh scripts/run-preview-corpus.ps1 -Scope thumbnails -Root <scratch-root>`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: File list thumbnails/icons and preview/details UI enrich navigation without blocking or violating concurrency/timeout caps.
 - Commit message: `M13: implement thumbnails icons and preview UI concurrency`
 - Milestone closeout:
@@ -494,7 +494,7 @@ Architectural boundaries to preserve:
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Terminal`
   - `dotnet test VeloFile.sln -c Debug --filter FileAssociations`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Users can explicitly open a configured terminal or open files through Windows associations without command injection or state corruption.
 - Commit message: `M14: implement safe terminal and file association integration`
 - Milestone closeout:
@@ -524,7 +524,7 @@ Architectural boundaries to preserve:
   - `pwsh scripts/run-benchmarks.ps1`
   - `pwsh scripts/run-compat-corpus.ps1`
   - `dotnet test VeloFile.sln -c Debug --filter Accessibility`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Release readiness can be judged using generated corpus, benchmark reports, diagnostics thresholds, and compatibility checks.
 - Commit message: `M15: add benchmarks accessibility and release triage gates`
 - Milestone closeout:
@@ -553,7 +553,7 @@ Architectural boundaries to preserve:
   - `dotnet publish src/VeloFile.App/VeloFile.App.csproj -c Release`
   - `pwsh scripts/package-msix.ps1`
   - `pwsh scripts/release-verify.ps1`
-  - `pwsh scripts/ci.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
   - Manual: install, launch, update/rollback where available, uninstall, confirm Explorer and file associations remain usable.
 - Expected observable result: V1 can be packaged, documented, verified, and rolled back without taking ownership of Explorer or system associations.
 - Commit message: `M16: package and document VeloFile V1 release path`
@@ -580,7 +580,8 @@ Current available commands:
 - `dotnet restore VeloFile.sln`
 - `dotnet build VeloFile.sln -c Debug`
 - `dotnet test VeloFile.sln -c Debug`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` as a local fallback only when `pwsh` is unavailable
 - `scripts/ci.sh` wraps `scripts/ci.ps1` when the Bash environment can invoke PowerShell.
 
 Expected post-M1 core commands:
@@ -588,7 +589,7 @@ Expected post-M1 core commands:
 - `dotnet restore VeloFile.sln`
 - `dotnet build VeloFile.sln -c Debug`
 - `dotnet test VeloFile.sln -c Debug`
-- `scripts/ci.ps1` invoked with `pwsh` in GitHub Actions, or with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` for local Windows validation when `pwsh` is unavailable.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` by default; GitHub Actions also invokes `scripts/ci.ps1` under `pwsh`. Use `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` only as a local fallback when `pwsh` is unavailable.
 
 Expected later commands:
 
@@ -666,7 +667,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Split file-operation work into M8-M10. | Safe delete, copy/move/conflicts, and drag/drop compatibility are safety-sensitive and need separate review loops. |
 | 2026-05-04 | Split preview work into M11-M13. | Preview contracts, content providers, and thumbnail/details UI have different risks and validation needs. |
 | 2026-05-04 | Keep the checked-in solution as `VeloFile.sln`. | The .NET 10 SDK created `.slnx` by default, but the approved plan and validation commands name `VeloFile.sln`. |
-| 2026-05-04 | Use Windows PowerShell as the local CI invocation and `pwsh` in GitHub Actions. | The local workstation has Windows PowerShell available but not PowerShell 7 on PATH; GitHub Windows runners support `pwsh`. |
+| 2026-05-04 | Use PowerShell 7 (`pwsh`) as the default CI script host, with Windows PowerShell as a local fallback. | `pwsh` matches GitHub Actions and current PowerShell best practice; the fallback keeps M1 runnable on contributors' Windows machines before PowerShell 7 is installed. |
 
 ## Surprises and Discoveries
 
@@ -676,8 +677,8 @@ Each milestone must update validation notes with the commands actually run and a
 - First-pass `plan-review` found sequencing and milestone-size issues; this revision adds validation tooling early and splits file-operation and preview work.
 - M1 was initially blocked because the installed `dotnet` host had runtimes but no SDK. After the environment was updated, `dotnet --info` reports SDKs `9.0.313` and `10.0.203`.
 - `dotnet new list winui` does not list WinUI templates, but Visual Studio has WinUI C# templates installed and equivalent checked-in project files build successfully with `Microsoft.WindowsAppSDK` `1.7.250401001`.
-- The local workstation does not have `pwsh` on PATH; the M1 CI script is compatible with Windows PowerShell and the GitHub workflow still uses `pwsh`.
-- `bash scripts/ci.sh` was smoke-tested from WSL Bash and cannot run there because that Bash environment cannot invoke Windows PowerShell. This is not the M1 gating command; local validation uses Windows PowerShell directly.
+- PowerShell 7 (`pwsh`) is now installed on PATH and validated with the M1 CI script. The M1 CI script remains compatible with Windows PowerShell as a fallback.
+- `bash scripts/ci.sh` was smoke-tested from WSL Bash before `pwsh` was installed and could not run there because that Bash environment could not invoke Windows PowerShell. This is not the M1 gating command; local validation now uses `pwsh` directly.
 
 ## Validation Notes
 
@@ -701,7 +702,8 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet restore VeloFile.sln` passed.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `dotnet test VeloFile.sln -c Debug` passed: 5 tests across 3 test assemblies.
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and test all green.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and test all green.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` also passed as a fallback route before `pwsh` was installed.
   - Launch smoke passed: `src\VeloFile.App\bin\x86\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` started and stayed alive for 2 seconds before being stopped.
   - `scripts/select-validation.py` is not present in M1; selector-based validation is therefore not available yet.
 

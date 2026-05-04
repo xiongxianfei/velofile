@@ -38,7 +38,8 @@ M1 validation passed with:
 - `dotnet restore VeloFile.sln`
 - `dotnet build VeloFile.sln -c Debug`
 - `dotnet test VeloFile.sln -c Debug`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` as a fallback route before `pwsh` was installed.
 - A launch smoke that started `VeloFile.App.exe`, confirmed it stayed alive for 2 seconds, then stopped it.
 
 `dotnet build` completed with 0 warnings and 0 errors. `dotnet test` passed 5 tests across 3 test assemblies. `scripts/select-validation.py` is not present in M1, so selector-based validation is recorded as unavailable rather than skipped silently.

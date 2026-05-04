@@ -294,7 +294,7 @@ T001. Windows app foundation and CI smoke
 - Covers: R1, C1, M1
 - Level: smoke
 - Fixture/setup: M1 solution skeleton with `VeloFile.sln`, app project, test projects, and Windows CI entrypoint.
-- Steps: Run `dotnet restore`, `dotnet build`, `dotnet test`, and the shared CI entrypoint `scripts/ci.ps1`; GitHub Actions invokes it with `pwsh`, local Windows validation may use `pwsh scripts/ci.ps1` when PowerShell 7 is installed, and local M1 acceptance may use `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` when `pwsh` is unavailable. Launch the app shell on supported Windows.
+- Steps: Run `dotnet restore`, `dotnet build`, `dotnet test`, and the shared CI entrypoint `scripts/ci.ps1`; GitHub Actions invokes it with `pwsh`, local Windows validation defaults to `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`, and local M1 acceptance may use `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` only when `pwsh` is unavailable. Launch the app shell on supported Windows.
 - Expected result: The app restores, builds, tests, and reaches a visible launchable shell without template-only validation.
 - Failure proves: The repository is not ready to host V1 behavior.
 - Automation location: `.github/workflows/ci.yml`, `scripts/ci.ps1`, `tests/VeloFile.App.Tests/`.

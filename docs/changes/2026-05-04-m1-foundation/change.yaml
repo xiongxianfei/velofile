@@ -34,11 +34,13 @@ validation:
     result: passed with 0 warnings and 0 errors
   - command: dotnet test VeloFile.sln -c Debug
     result: passed 5 tests across 3 test assemblies
-  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed as fallback before pwsh was installed
   - command: launch VeloFile.App.exe for 2 seconds, then stop process
     result: passed
 notes:
   - scripts/select-validation.py is not present in M1; the plan establishes real solution-level validation instead.
   - Generated corpus and benchmark scripts are intentionally deferred to M2.
-  - GitHub Actions uses pwsh on windows-latest; local validation used Windows PowerShell because pwsh is not installed on this workstation.
+  - GitHub Actions and local default validation use pwsh. Windows PowerShell remains a fallback when pwsh is unavailable.

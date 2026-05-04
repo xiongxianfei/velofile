@@ -24,10 +24,10 @@ VeloFile V1 is currently in foundation work. The repository now contains the ini
 dotnet restore VeloFile.sln
 dotnet build VeloFile.sln -c Debug
 dotnet test VeloFile.sln -c Debug
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
-The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script with the command above.
+The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script as a fallback when PowerShell 7 is unavailable.
 
 ## Project Layout
 
