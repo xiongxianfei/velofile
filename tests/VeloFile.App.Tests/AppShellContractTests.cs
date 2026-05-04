@@ -140,8 +140,8 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
         StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
         Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
-        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileItems");
-        StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.FileItems)");
+        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.VisibleItems");
+        StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems)");
         Assert.IsFalse(codeBehind.Contains("FileListSurface.SelectedItems.OfType<ListedFileItem>()", StringComparison.Ordinal));
     }
 
@@ -162,12 +162,17 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "Click=\"RecursiveSearchButton_Click\"");
         StringAssert.Contains(xaml, "x:Name=\"CancelSearchButton\"");
         StringAssert.Contains(xaml, "Click=\"CancelSearchButton_Click\"");
+        StringAssert.Contains(xaml, "x:Name=\"ClearSearchButton\"");
+        StringAssert.Contains(xaml, "Click=\"ClearSearchButton_Click\"");
         StringAssert.Contains(xaml, "x:Name=\"RecursiveSearchStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"SkippedLocationsList\"");
 
         StringAssert.Contains(codeBehind, "ViewModel.SetCurrentFolderFilter");
         StringAssert.Contains(codeBehind, "ViewModel.StartRecursiveSearch");
         StringAssert.Contains(codeBehind, "ViewModel.CancelRecursiveSearch");
+        StringAssert.Contains(codeBehind, "ViewModel.ClearRecursiveSearch");
         StringAssert.Contains(codeBehind, "ViewModel.RecursiveSearch.CanCancel");
+        StringAssert.Contains(codeBehind, "ViewModel.SearchSkippedLocations");
     }
 
     [TestMethod]

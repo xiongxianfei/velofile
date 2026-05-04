@@ -19,7 +19,7 @@ public sealed class AppShellViewModel
     private readonly ClipboardCommandService _clipboardCommands;
     private readonly CurrentFolderFilterService _filterService = new();
     private readonly FolderListingCoordinator? _listingCoordinator;
-    private readonly RecursiveSearchService? _recursiveSearchService;
+    private readonly IRecursiveSearchService? _recursiveSearchService;
     private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _activeListingItems = [];
     private IReadOnlyList<ListedFileItem> _fileItems = [];
@@ -31,7 +31,7 @@ public sealed class AppShellViewModel
         AppShellStartupState startupState,
         IClipboardTextWriter? clipboardWriter = null,
         FolderListingCoordinator? listingCoordinator = null,
-        RecursiveSearchService? recursiveSearchService = null,
+        IRecursiveSearchService? recursiveSearchService = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
@@ -81,11 +81,22 @@ public sealed class AppShellViewModel
 
     public IReadOnlyList<ListedFileItem> FileItems => _fileItems;
 
+    public IReadOnlyList<ListedFileItem> VisibleItems =>
+        IsRecursiveSearchDisplayActive ? RecursiveSearch.Results : _fileItems;
+
     public IReadOnlyList<ListedFileItem> SelectedFileItems { get; private set; } = [];
 
     public string CurrentFolderFilterText { get; private set; } = "";
 
     public RecursiveSearchState RecursiveSearch { get; private set; } = RecursiveSearchState.NotStarted;
+
+    public bool IsRecursiveSearchDisplayActive => RecursiveSearch.Status is not RecursiveSearchStatus.NotStarted;
+
+    public IReadOnlyList<RecursiveSearchSkippedLocation> SearchSkippedLocations => RecursiveSearch.SkippedLocations;
+
+    public bool SearchSkippedLocationsVisible => SearchSkippedLocations.Count > 0;
+
+    public string RecursiveSearchStatusText => FormatRecursiveSearchStatus();
 
     public PathSubmissionResult SubmitPath(string path)
     {
@@ -269,6 +280,7 @@ public sealed class AppShellViewModel
         var trimmedQuery = query.Trim();
         var options = new RecursiveSearchOptions(resultLimit, VisibilitySettings);
         RecursiveSearch = RecursiveSearchState.Running(ActivePath, trimmedQuery, resultLimit);
+        SelectedFileItems = [];
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
         _ = CompleteRecursiveSearchAsync(generation, ActivePath, trimmedQuery, options, cancellation.Token);
     }
@@ -284,6 +296,22 @@ public sealed class AppShellViewModel
         _recursiveSearchCancellation = null;
         _recursiveSearchGeneration++;
         RecursiveSearch = RecursiveSearch.Cancelled();
+        SelectedFileItems = [];
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ClearRecursiveSearch()
+    {
+        if (RecursiveSearch.Status is RecursiveSearchStatus.NotStarted)
+        {
+            return;
+        }
+
+        _recursiveSearchCancellation?.Cancel();
+        _recursiveSearchCancellation = null;
+        _recursiveSearchGeneration++;
+        RecursiveSearch = RecursiveSearchState.NotStarted;
+        SelectedFileItems = [];
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -348,7 +376,7 @@ public sealed class AppShellViewModel
         var selectedPaths = items
             .Select(item => item.FullPath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        SelectedFileItems = _fileItems
+        SelectedFileItems = VisibleItems
             .Where(item => selectedPaths.Contains(item.FullPath))
             .ToArray();
     }
@@ -437,6 +465,7 @@ public sealed class AppShellViewModel
             }
 
             RecursiveSearch = RecursiveSearch.Apply(update);
+            SelectedFileItems = [];
             ShellStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -463,12 +492,34 @@ public sealed class AppShellViewModel
         _recursiveSearchCancellation = null;
         _recursiveSearchGeneration++;
         RecursiveSearch = RecursiveSearchState.NotStarted;
+        SelectedFileItems = [];
     }
 
     private void ApplyCurrentFolderFilter()
     {
         _fileItems = _filterService.Apply(_activeListingItems, CurrentFolderFilterText);
         SelectedFileItems = [];
+    }
+
+    private string FormatRecursiveSearchStatus()
+    {
+        if (RecursiveSearch.Status is RecursiveSearchStatus.NotStarted)
+        {
+            return "";
+        }
+
+        var resultText = RecursiveSearch.Status switch
+        {
+            RecursiveSearchStatus.Running => $"Searching... {RecursiveSearch.Results.Count} found",
+            RecursiveSearchStatus.ResultLimitReached => $"Result limit reached: {RecursiveSearch.Results.Count} found; refine or start a new search",
+            RecursiveSearchStatus.Completed => $"{RecursiveSearch.Results.Count} found",
+            RecursiveSearchStatus.Cancelled => $"Cancelled: {RecursiveSearch.Results.Count} found",
+            _ => $"{RecursiveSearch.Results.Count} found"
+        };
+
+        return RecursiveSearch.SkippedLocations.Count > 0
+            ? $"{resultText} - {RecursiveSearch.SkippedLocations.Count} skipped locations"
+            : resultText;
     }
 
     private sealed class NoOpClipboardTextWriter : IClipboardTextWriter

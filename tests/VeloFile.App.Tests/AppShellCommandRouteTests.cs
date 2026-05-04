@@ -323,6 +323,62 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("Search")]
+    public async Task Recursive_search_streams_results_into_visible_items_and_copy_commands_use_search_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        var searchSource = new GateFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects", Item(@"D:\projects\folder-row.txt", "folder-row.txt"));
+        searchSource.SetEntries(@"D:\projects",
+            Item(@"D:\projects\match-1.txt", "match-1.txt"),
+            Item(@"D:\projects\nested\match-2.txt", "match-2.txt"));
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchSource: searchSource);
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "folder-row.txt");
+
+        viewModel.StartRecursiveSearch("match");
+
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "match-1.txt");
+        CollectionAssert.AreEqual(new[] { "match-1.txt" }, viewModel.VisibleItems.Select(item => item.Name).ToArray());
+        viewModel.SetSelectedFileItems([viewModel.VisibleItems[0]]);
+        viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyPath);
+        Assert.AreEqual(@"D:\projects\match-1.txt", clipboard.Text);
+
+        searchSource.Release();
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 2);
+        CollectionAssert.AreEqual(
+            new[] { "match-1.txt", "match-2.txt" },
+            viewModel.VisibleItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_skipped_locations_are_visible_in_status_and_details()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        var searchSource = new FakeFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects", Item(@"D:\projects\folder-row.txt", "folder-row.txt"));
+        searchSource.SetEntries(@"D:\projects",
+            Item(@"D:\projects\denied", "denied", FileSystemEntryKind.Directory),
+            Item(@"D:\projects\loop", "loop", FileSystemEntryKind.Directory, FileAttributes.Directory | FileAttributes.ReparsePoint),
+            Item(@"D:\projects\match.txt", "match.txt"));
+        searchSource.SetException(@"D:\projects\denied", new UnauthorizedAccessException());
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchSource: searchSource);
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1);
+
+        viewModel.StartRecursiveSearch("match");
+
+        await WaitUntilAsync(() => viewModel.RecursiveSearch.Status is RecursiveSearchStatus.Completed);
+        Assert.AreEqual(2, viewModel.SearchSkippedLocations.Count);
+        Assert.IsTrue(viewModel.SearchSkippedLocationsVisible);
+        StringAssert.Contains(viewModel.RecursiveSearchStatusText, "2 skipped locations");
+        CollectionAssert.AreEquivalent(
+            new[] { "access-denied", "reparse-point" },
+            viewModel.SearchSkippedLocations.Select(location => location.ReasonCode).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
     public async Task Recursive_search_can_be_cancelled_after_result_limit_is_reached()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -371,12 +427,66 @@ public sealed class AppShellCommandRouteTests
         Assert.IsFalse(viewModel.RecursiveSearch.CanCancel);
     }
 
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_clear_returns_to_current_folder_visible_items()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        var searchSource = new FakeFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects", Item(@"D:\projects\folder-row.txt", "folder-row.txt"));
+        searchSource.SetEntries(@"D:\projects", Item(@"D:\projects\match.txt", "match.txt"));
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchSource: searchSource);
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "folder-row.txt");
+        viewModel.StartRecursiveSearch("match");
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "match.txt");
+
+        viewModel.ClearRecursiveSearch();
+
+        Assert.AreEqual(RecursiveSearchStatus.NotStarted, viewModel.RecursiveSearch.Status);
+        Assert.AreEqual("", viewModel.RecursiveSearchStatusText);
+        CollectionAssert.AreEqual(new[] { "folder-row.txt" }, viewModel.VisibleItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_new_query_after_cap_replaces_old_results_and_ignores_stale_updates()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects", Item(@"D:\projects\folder-row.txt", "folder-row.txt"));
+        var searchService = new ScriptedRecursiveSearchService();
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchService: searchService);
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1);
+
+        viewModel.StartRecursiveSearch("old", resultLimit: 2);
+        searchService.Emit("old", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\old-1.txt", "old-1.txt"), 1));
+        searchService.Emit("old", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\old-2.txt", "old-2.txt"), 2));
+        searchService.Emit("old", RecursiveSearchUpdate.Skipped(@"D:\projects\old-denied", "access-denied", 2));
+        searchService.Emit("old", RecursiveSearchUpdate.LimitReached(2));
+        await WaitUntilAsync(() => viewModel.RecursiveSearch.Status is RecursiveSearchStatus.ResultLimitReached);
+        CollectionAssert.AreEqual(new[] { "old-1.txt", "old-2.txt" }, viewModel.VisibleItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(1, viewModel.SearchSkippedLocations.Count);
+        StringAssert.Contains(viewModel.RecursiveSearchStatusText, "refine or start a new search");
+
+        viewModel.StartRecursiveSearch("new");
+        searchService.Emit("new", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\new-1.txt", "new-1.txt"), 1));
+        searchService.Emit("old", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\old-late.txt", "old-late.txt"), 3));
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "new-1.txt");
+
+        Assert.AreEqual("new", viewModel.RecursiveSearch.Query);
+        Assert.IsFalse(viewModel.RecursiveSearch.ResultLimitReached);
+        Assert.AreEqual(0, viewModel.SearchSkippedLocations.Count);
+        CollectionAssert.AreEqual(new[] { "new-1.txt" }, viewModel.VisibleItems.Select(item => item.Name).ToArray());
+    }
+
     private static AppShellViewModel CreateViewModel(
         IClipboardTextWriter clipboardWriter,
         string initialPath = @"D:\projects",
         string? defaultPath = null,
         FakeFolderEntrySource? listingSource = null,
         FakeFolderEntrySource? searchSource = null,
+        IRecursiveSearchService? searchService = null,
         IReadOnlyList<string>? existingPaths = null)
     {
         var workspace = NavigationWorkspace.Create(initialPath);
@@ -402,7 +512,7 @@ public sealed class AppShellCommandRouteTests
         var coordinator = listingSource is null
             ? null
             : new FolderListingCoordinator(new FolderListingService(listingSource));
-        var searchService = searchSource is null
+        searchService ??= searchSource is null
             ? null
             : new RecursiveSearchService(searchSource);
 
@@ -412,7 +522,8 @@ public sealed class AppShellCommandRouteTests
     private static ListedFileItem Item(
         string fullPath,
         string name,
-        FileSystemEntryKind kind = FileSystemEntryKind.File)
+        FileSystemEntryKind kind = FileSystemEntryKind.File,
+        FileAttributes attributes = FileAttributes.Normal)
     {
         return new ListedFileItem(
             fullPath,
@@ -421,7 +532,7 @@ public sealed class AppShellCommandRouteTests
             kind,
             Length: null,
             LastWriteTimeUtc: null,
-            FileAttributes.Normal,
+            attributes,
             IsHidden: false,
             IsProtectedOperatingSystemFile: false,
             IsVisuallyDimmed: false);
@@ -505,6 +616,7 @@ public sealed class AppShellCommandRouteTests
     private class FakeFolderEntrySource : IFolderEntrySource
     {
         private readonly Dictionary<string, IReadOnlyList<FileSystemEntrySnapshot>> _entries = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Exception> _exceptions = new(StringComparer.OrdinalIgnoreCase);
 
         public int SearchEnumerationCount { get; private set; }
 
@@ -521,12 +633,22 @@ public sealed class AppShellCommandRouteTests
                 .ToArray();
         }
 
+        public void SetException(string path, Exception exception)
+        {
+            _exceptions[path] = exception;
+        }
+
         public virtual async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await Task.Yield();
             if (path == @"D:\projects")
             {
                 SearchEnumerationCount++;
+            }
+
+            if (_exceptions.TryGetValue(path, out var exception))
+            {
+                throw exception;
             }
 
             if (!_entries.TryGetValue(path, out var entries))
@@ -539,6 +661,41 @@ public sealed class AppShellCommandRouteTests
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return entry;
             }
+        }
+    }
+
+    private sealed class ScriptedRecursiveSearchService : IRecursiveSearchService
+    {
+        private readonly Dictionary<string, System.Threading.Channels.Channel<RecursiveSearchUpdate>> _channels =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        public void Emit(string query, RecursiveSearchUpdate update)
+        {
+            ChannelFor(query).Writer.TryWrite(update);
+        }
+
+        public async IAsyncEnumerable<RecursiveSearchUpdate> SearchAsync(
+            string rootPath,
+            string query,
+            RecursiveSearchOptions options,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var channel = ChannelFor(query);
+            await foreach (var update in channel.Reader.ReadAllAsync(CancellationToken.None))
+            {
+                yield return update;
+            }
+        }
+
+        private System.Threading.Channels.Channel<RecursiveSearchUpdate> ChannelFor(string query)
+        {
+            if (!_channels.TryGetValue(query, out var channel))
+            {
+                channel = System.Threading.Channels.Channel.CreateUnbounded<RecursiveSearchUpdate>();
+                _channels[query] = channel;
+            }
+
+            return channel;
         }
     }
 

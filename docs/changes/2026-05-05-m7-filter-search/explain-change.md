@@ -16,7 +16,9 @@ The governing requirements are:
 
 `RecursiveSearchService` walks folders through the existing `IFolderEntrySource` boundary. It streams result updates, reports skipped locations, skips reparse-point directories, and emits a result-limit state when the configured cap is reached.
 
-`AppShellViewModel` now keeps the unfiltered active listing separately from the filtered visible file rows. The WinUI shell has a current-folder filter box, explicit recursive search box/button, cancel button, and visible search status text.
+`AppShellViewModel` now keeps the unfiltered active listing separately from the filtered current-folder rows and exposes `VisibleItems` as the file-list display mode. Normal browsing and current-folder filtering show folder rows; recursive search shows streamed search results until the search is cleared or replaced.
+
+The WinUI shell has a current-folder filter box, explicit recursive search box/button, cancel button, clear button, visible search status text, and skipped-location details. Search result rows use the same `ListedFileItem` model as normal folder rows, so selection and copy path/name continue to use the normal file-list command path.
 
 ## Tests
 
@@ -29,6 +31,10 @@ The M7 tests cover:
 - cancellation before the cap and after the cap;
 - access-denied skipped locations;
 - reparse-point loop avoidance;
+- search results streaming into the visible file list;
+- skipped-location count/details becoming shell-visible;
+- clearing search returning to current folder rows;
+- starting a new query after the cap and ignoring stale old-run updates;
 - app-shell filter/search wiring and state updates.
 
 ## Boundaries

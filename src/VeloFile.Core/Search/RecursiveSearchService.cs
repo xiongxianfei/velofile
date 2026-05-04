@@ -4,7 +4,16 @@ using VeloFile.Core.Visibility;
 
 namespace VeloFile.Core.Search;
 
-public sealed class RecursiveSearchService
+public interface IRecursiveSearchService
+{
+    IAsyncEnumerable<RecursiveSearchUpdate> SearchAsync(
+        string rootPath,
+        string query,
+        RecursiveSearchOptions options,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed class RecursiveSearchService : IRecursiveSearchService
 {
     private readonly IFolderEntrySource _entrySource;
 

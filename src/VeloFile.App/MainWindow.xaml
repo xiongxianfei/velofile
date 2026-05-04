@@ -378,8 +378,13 @@
                     <ColumnDefinition Width="220" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
                     PlaceholderText="Filter"
@@ -401,11 +406,40 @@
                     Grid.Column="3"
                     Content="Cancel"
                     Click="CancelSearchButton_Click" />
+                <Button
+                    x:Name="ClearSearchButton"
+                    Grid.Column="4"
+                    Content="Clear"
+                    Click="ClearSearchButton_Click" />
                 <TextBlock
                     x:Name="RecursiveSearchStatusText"
-                    Grid.Column="4"
+                    Grid.Column="5"
                     VerticalAlignment="Center"
                     Opacity="0.72" />
+                <ListView
+                    x:Name="SkippedLocationsList"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="6"
+                    Margin="0,6,0,0"
+                    MaxHeight="96"
+                    Visibility="Collapsed"
+                    AutomationProperties.Name="Skipped search locations">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="8" Padding="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ReasonCode}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{Binding Path}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
             </Grid>
 
             <Grid Grid.Row="5" Margin="0,8,0,0">
