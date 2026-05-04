@@ -1,10 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using VeloFile.App.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Commands;
-using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
@@ -14,6 +14,8 @@ namespace VeloFile.App;
 
 public sealed partial class MainWindow : Window
 {
+    private readonly IKeyboardFocusContextProvider _keyboardFocusContextProvider;
+    private readonly AppFileCommandAcceleratorRouter _fileCommandAcceleratorRouter;
     private bool _isRefreshingShellBindings;
 
     public MainWindow(AppShellViewModel viewModel)
@@ -25,6 +27,8 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         ViewModel = viewModel;
+        _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
+        _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
         Title = ViewModel.WindowTitle;
         RootShell.DataContext = ViewModel;
         RootShell.MinWidth = WindowPlacementPolicy.Default.MinimumRestorableWidth;
@@ -142,7 +146,7 @@ public sealed partial class MainWindow : Window
 
     private void FileListSurface_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        ViewModel.SetSelectedFileItems(FileListSurface.SelectedItems.OfType<ListedFileItem>().ToArray());
+        ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems));
     }
 
     private void ShowHiddenFilesToggle_Toggled(object sender, RoutedEventArgs e)
@@ -275,59 +279,60 @@ public sealed partial class MainWindow : Window
 
     private void SelectAllAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        ViewModel.HandleFileListShortcut(KeyGesture.Ctrl("A"));
-        FileListSurface.SelectAll();
-        args.Handled = true;
+        var route = InvokeFileListShortcut(KeyGesture.Ctrl("A"));
+        if (route.Status is KeyboardRouteStatus.Routed)
+        {
+            FileListSurface.SelectAll();
+            args.Handled = true;
+        }
     }
 
     private void ClearSelectionAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        ViewModel.HandleFileListShortcut(KeyGesture.Escape());
-        FileListSurface.SelectedItems.Clear();
-        args.Handled = true;
+        var route = InvokeFileListShortcut(KeyGesture.Escape());
+        if (route.Status is KeyboardRouteStatus.Routed)
+        {
+            FileListSurface.SelectedItems.Clear();
+            args.Handled = true;
+        }
     }
 
     private void OpenAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.Enter());
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.Enter());
     }
 
     private void RenameAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.F2());
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.F2());
     }
 
     private void DeleteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.Delete());
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.Delete());
     }
 
     private void PermanentDeleteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.Delete(shift: true));
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.Delete(shift: true));
     }
 
     private void ParentFolderAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.Backspace());
-        args.Handled = true;
-        RefreshShellBindings();
+        if (HandleFileListShortcutAccelerator(args, KeyGesture.Backspace()))
+        {
+            RefreshShellBindings();
+        }
     }
 
     private void CopyPathAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.CtrlShift("C"));
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.CtrlShift("C"));
     }
 
     private void CopyNameAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        InvokeFileListShortcut(KeyGesture.CtrlShift("N"));
-        args.Handled = true;
+        HandleFileListShortcutAccelerator(args, KeyGesture.CtrlShift("N"));
     }
 
     private void OpenMenuItem_Click(object sender, RoutedEventArgs e)
@@ -385,9 +390,21 @@ public sealed partial class MainWindow : Window
         ExecuteAvailableBuiltInCommand(VeloFileCommandId.OpenTerminalHere);
     }
 
-    private void InvokeFileListShortcut(KeyGesture gesture)
+    private KeyboardRouteResult InvokeFileListShortcut(KeyGesture gesture)
     {
-        ViewModel.HandleFileListShortcut(gesture);
+        return _fileCommandAcceleratorRouter.Route(gesture);
+    }
+
+    private bool HandleFileListShortcutAccelerator(KeyboardAcceleratorInvokedEventArgs args, KeyGesture gesture)
+    {
+        var route = InvokeFileListShortcut(gesture);
+        if (route.Status is not KeyboardRouteStatus.Routed)
+        {
+            return false;
+        }
+
+        args.Handled = true;
+        return true;
     }
 
     private void ExecuteAvailableBuiltInCommand(VeloFileCommandId commandId)
@@ -427,6 +444,7 @@ public sealed partial class MainWindow : Window
             TabList.SelectedIndex = ViewModel.ActiveTabIndex;
             SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
             BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
+            FileListSurface.ItemsSource = ViewModel.FileItems;
             RawPathBox.Text = ViewModel.PathEntryError?.SubmittedPath ?? ViewModel.ActivePath;
             MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
             MissingLocationState.Message = ViewModel.MissingLocationPath is null

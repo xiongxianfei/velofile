@@ -94,10 +94,10 @@ public sealed class DriveEntryServiceTests
         hintSource.SetHint(@"D:\", DriveHint.Available(volumeLabel: "Data", availableFreeSpaceBytes: 20, totalSizeBytes: 200));
         var service = new DriveEntryService(entrySource, hintSource);
 
-        var oldRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromSeconds(5), MaxConcurrentHintOperations: 1));
+        var oldRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromSeconds(5), MaxConcurrentHintOperations: 2));
         entrySource.SetEntries(FastEntry(@"D:\"));
 
-        var newRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromSeconds(1), MaxConcurrentHintOperations: 1));
+        var newRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromSeconds(1), MaxConcurrentHintOperations: 2));
         var newResult = await newRefresh.Completion.WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.IsTrue(newResult.Applied);

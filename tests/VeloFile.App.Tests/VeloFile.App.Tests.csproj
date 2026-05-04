@@ -15,4 +15,15 @@
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\VeloFile.Core\VeloFile.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\VeloFile.App\Input\AppFileCommandAcceleratorRouter.cs" Link="Linked\AppFileCommandAcceleratorRouter.cs" />
+    <Compile Include="..\..\src\VeloFile.App\Input\FileListSelectionMapper.cs" Link="Linked\FileListSelectionMapper.cs" />
+    <Compile Include="..\..\src\VeloFile.App\Input\KeyboardFocusContext.cs" Link="Linked\KeyboardFocusContext.cs" />
+    <Compile Include="..\..\src\VeloFile.App\ViewModels\AppShellViewModel.cs" Link="Linked\AppShellViewModel.cs" />
+  </ItemGroup>
+
 </Project>

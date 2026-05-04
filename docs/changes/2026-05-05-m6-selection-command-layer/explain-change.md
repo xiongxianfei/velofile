@@ -10,6 +10,8 @@ M6 adds the V1 command and selection foundation:
 - Clipboard formatting for Copy path and Copy name through a Core `IClipboardTextWriter` boundary.
 - A Windows clipboard writer that uses Unicode text on the native clipboard.
 - WinUI shell context-menu items and keyboard accelerators that route into `AppShellViewModel`.
+- A bound WinUI file list whose selected visible rows map to canonical `ListedFileItem` values.
+- An app-shell focus-context bridge so file-command accelerators are suppressed while text input owns focus.
 
 The implementation deliberately does not add OS Shell extension context-menu hosting. That remains out of V1 scope after the earlier accepted product decision.
 
@@ -23,6 +25,7 @@ M6 tests were added before the production command and selection namespaces exist
 - `tests/VeloFile.Core.Tests/Commands/ClipboardCommandServiceTests.cs`
 - `tests/VeloFile.Windows.Tests/Clipboard/WindowsClipboardTextWriterTests.cs`
 - `tests/VeloFile.App.Tests/AppShellContractTests.cs`
+- `tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs`
 
 The first focused runs failed for the expected reason: `VeloFile.Core.Selection`, `VeloFile.Core.Commands`, and `VeloFile.Windows.Clipboard` did not exist. The first attempt also exposed that parallel `dotnet test` invocations contend on shared `obj` outputs, matching the M5 validation note; validation was run sequentially after that.
 
@@ -37,6 +40,10 @@ The first focused runs failed for the expected reason: `VeloFile.Core.Selection`
 `ClipboardCommandService` formats paths and names as data, one selected item per line. The Windows adapter owns native clipboard interop; Core tests use a collecting writer so validation does not depend on the real desktop clipboard.
 
 `MainWindow` keeps code-behind thin. XAML buttons, menu items, and keyboard accelerators translate into `AppShellViewModel` calls; the command registry and clipboard formatting live outside the UI layer.
+
+`FileListSurface` is bound to `AppShellViewModel.FileItems`; static placeholder rows are not part of the production file list. The shell selection route uses `FileListSelectionMapper` to turn selected rows, wrappers, or item containers back into `ListedFileItem` values before commands run.
+
+`AppFileCommandAcceleratorRouter` asks `IKeyboardFocusContextProvider` for the current WinUI focus context before routing file commands. Text-input focus is passed into the Core `KeyboardCommandRouter`, and suppressed routes do not mark the accelerator handled as a file command.
 
 WinUI's XAML key name for Backspace is `Back` because `KeyboardAccelerator.Key` uses `Windows.System.VirtualKey`. The app handler still routes it to the V1 Backspace parent-folder command.
 
@@ -57,7 +64,7 @@ Final milestone closeout passed with:
 
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 
-That CI run built with 0 warnings and 0 errors and passed 126 tests across 4 test assemblies.
+The latest CI run built with 0 warnings and 0 errors and passed 134 tests across 4 test assemblies. During final validation, an existing drive-hint stale-generation test was corrected to avoid using a concurrency cap that contradicted the live-underlying-read cap; the focused test and full CI both pass after that setup fix.
 
 ## Deferred By Plan
 

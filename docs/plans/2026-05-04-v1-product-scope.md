@@ -845,6 +845,15 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Commands` passed: 14 Core command tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies.
   - Second-pass `code-review` found no blocking or required-change findings and recommended `verify`.
+  - Third-pass `code-review` found two M6 app-shell blockers: production file-list rows were static placeholders that did not populate `SelectedFileItems`, and WinUI file-command accelerators did not pass text-input focus context into the Core keyboard router.
+  - Added app-shell tests first for selected `ListedFileItem` copy path/name behavior, row/container selection mapping, and accelerator suppression when text input has focus.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` first failed for missing app-shell input bridge types, then passed: 16 App shell contract/route tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --filter Commands` passed: 14 Core command tests and 3 App command-route tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Selection` passed: 8 Core selection/navigation-category tests and 2 App selection tests.
+  - `dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter Slow_hint_completion_updates_only_matching_generation` first exposed an existing test setup conflict with the live-underlying-read cap, then passed after correcting the stale-generation test's hint concurrency setup.
+  - `dotnet test VeloFile.sln -c Debug` passed: 134 tests across 4 test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 134 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
@@ -852,7 +861,7 @@ M1, M2, M3, M4, M5, and M6 complete. The repository now has a buildable WinUI ap
 
 ## Readiness
 
-M6 second-pass `code-review` is clean with notes and is ready for `verify`.
+M6 third-pass app-shell blocker fixes are implemented and ready for follow-up `code-review`.
 
 Implementation resumes after M6 verify with:
 

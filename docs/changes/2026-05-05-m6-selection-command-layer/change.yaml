@@ -28,6 +28,7 @@ artifacts:
   - src/VeloFile.Core/Commands/
   - src/VeloFile.Windows/Clipboard/WindowsClipboardTextWriter.cs
   - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/Input/
   - src/VeloFile.App/AppCompositionRoot.cs
   - src/VeloFile.App/MainWindow.xaml
   - src/VeloFile.App/MainWindow.xaml.cs
@@ -35,6 +36,8 @@ artifacts:
   - tests/VeloFile.Core.Tests/Commands/
   - tests/VeloFile.Windows.Tests/Clipboard/
   - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs
+  - tests/VeloFile.Core.Tests/Listing/DriveEntryServiceTests.cs
 validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Selection
     result: passed 8 Core selection/navigation-category tests after first failing for missing selection and command namespaces
@@ -56,9 +59,25 @@ validation:
     result: passed after review-resolution with 14 Core command tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed after review-resolution with restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
+    result: first failed for missing app-shell input bridge types, then passed 16 App shell contract/route tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed after app-shell blocker fixes with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter Commands
+    result: passed after app-shell blocker fixes with 14 Core command tests and 3 App command-route tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Selection
+    result: passed after app-shell blocker fixes with 8 Core selection/navigation-category tests and 2 App selection tests
+  - command: dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter Slow_hint_completion_updates_only_matching_generation
+    result: first failed because the existing stale-generation test setup conflicted with the live-underlying-read cap, then passed after correcting the test concurrency setup
+  - command: dotnet test VeloFile.sln -c Debug
+    result: passed after app-shell blocker fixes with 134 tests across 4 test assemblies
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed after app-shell blocker fixes with restore, build with 0 warnings and 0 errors, and 134 tests across 4 test assemblies
 notes:
   - M6 adds the command and selection contracts without enumerating or hosting OS Shell extension menu entries.
   - WinUI uses `VirtualKey.Back` for the Backspace key; the command route remains the V1 Backspace parent-folder behavior.
   - Clipboard behavior is implemented through a Core writer interface and a Windows Unicode-text clipboard adapter. Tests do not mutate the real clipboard.
   - File operation verbs are routed as command ids/placeholders here; destructive behavior remains assigned to M8-M10.
   - Review resolution wires the visible WinUI context menu to Core command availability before opening and before command execution.
+  - App-shell blocker resolution binds the production file list to real `ListedFileItem` values and routes file-command accelerators through WinUI focus context before invoking Core commands.
+  - The stale drive-hint generation test now uses enough hint slots to test generation safety without contradicting the existing live-underlying-read concurrency cap.

@@ -318,6 +318,35 @@
                 SelectionMode="Extended"
                 SelectionChanged="FileListSurface_SelectionChanged"
                 AutomationProperties.Name="Files">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid
+                            MinHeight="32"
+                            Padding="8,4"
+                            ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="180" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Text="{Binding DisplayName}"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding Kind}"
+                                Opacity="0.72"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="{Binding LastWriteTimeUtc}"
+                                Opacity="0.72"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
                 <ListView.ContextFlyout>
                     <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
                         <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
@@ -336,9 +365,6 @@
                         <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
                     </MenuFlyout>
                 </ListView.ContextFlyout>
-                <ListViewItem Content="Name     Type      Modified" />
-                <ListViewItem Content="Documents    Folder" />
-                <ListViewItem Content="Downloads    Folder" />
             </ListView>
 
             <Grid Grid.Row="4" Margin="0,8,0,0">

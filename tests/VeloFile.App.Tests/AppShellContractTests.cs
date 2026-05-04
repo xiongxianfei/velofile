@@ -122,9 +122,37 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "Key=\"Delete\"");
         StringAssert.Contains(xaml, "Key=\"C\" Modifiers=\"Control,Shift\"");
         StringAssert.Contains(xaml, "Key=\"N\" Modifiers=\"Control,Shift\"");
-        StringAssert.Contains(codeBehind, "ViewModel.HandleFileListShortcut");
+        StringAssert.Contains(codeBehind, "AppFileCommandAcceleratorRouter");
         StringAssert.Contains(codeBehind, "RefreshFileContextMenuAvailability");
         StringAssert.Contains(codeBehind, "ViewModel.IsBuiltInCommandAvailable");
+    }
+
+    [TestMethod]
+    public void Main_window_file_list_binds_real_items_and_maps_selection_to_listed_file_models()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
+        StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
+        Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
+        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileItems");
+        StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems");
+        Assert.IsFalse(codeBehind.Contains("FileListSurface.SelectedItems.OfType<ListedFileItem>()", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void Main_window_file_command_accelerators_use_focus_context_before_routing()
+    {
+        var codeBehind = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(codeBehind, "IKeyboardFocusContextProvider");
+        StringAssert.Contains(codeBehind, "WinUiKeyboardFocusContextProvider");
+        StringAssert.Contains(codeBehind, "AppFileCommandAcceleratorRouter");
+        StringAssert.Contains(codeBehind, "InvokeFileListShortcut");
+        StringAssert.Contains(codeBehind, "KeyboardRouteStatus.Routed");
+        Assert.IsFalse(codeBehind.Contains("ViewModel.HandleFileListShortcut(gesture);", StringComparison.Ordinal));
     }
 
     private static DirectoryInfo FindRepoRoot()
