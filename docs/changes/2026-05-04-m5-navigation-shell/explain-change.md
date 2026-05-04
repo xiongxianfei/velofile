@@ -15,7 +15,7 @@ M5 connects the non-UI listing and persistence foundations to core browsing stat
 - A launch composition path that reads durable session, settings, favorites, and recent-location documents before creating the WinUI shell view model.
 - A path-entry failure state that keeps invalid typed/pasted path attempts separate from restored missing-location tabs.
 - A durable settings writer path for visibility toggles.
-- A production monitor placement resolver and WinUI window placement applier for restored window bounds.
+- A production monitor placement resolver, auditable placement-resolution status, and WinUI window placement applier for restored window bounds.
 - WinUI main-window shell regions and event routes for tabs, sidebar, breadcrumb/raw path, navigation buttons, visibility controls, keyboard accelerators, file list states, crash recovery, and missing-location state.
 
 M5 does not implement file selection, file operations, context-menu verbs, filtering/search, preview providers, drag/drop, or benchmarked UI automation. Those remain assigned to later milestones. M5 now includes navigation command routing because it is required for the shell to satisfy AC2.
@@ -56,7 +56,7 @@ Interactive raw-path navigation now probes before commit. Missing, empty, unsupp
 
 Visibility toggles now persist through `ISettingsStateWriter`. The production writer wraps the durable settings repository, so toggle changes use the same versioned, partial-write-safe persistence protocol as launch restore. Write failures are handled as recoverable command failures: in-memory state remains updated and diagnostics are best-effort.
 
-Window placement is resolved against the current monitor layout before it reaches the shell. The production path uses `WindowsMonitorLayoutSource` and `MonitorWindowPlacementResolver`, then `MainWindow` applies the resolved placement through a WinUI app-window applier. The old pass-through resolver remains available only as a test-style stub, not production composition.
+Window placement is resolved against the current monitor layout before it reaches the shell. The production path uses `WindowsMonitorLayoutSource` and `MonitorWindowPlacementResolver`, then `MainWindow` applies the resolved placement through a WinUI app-window applier. The resolver now returns `WindowPlacementResolution` with a status and `ShouldApply` flag, so the app applies only a resolved safe placement or no persisted placement. Positive-but-below-minimum persisted sizes are treated as invalid, and empty/throwing monitor enumeration does not apply stale saved bounds. The old pass-through resolver remains available only as a test-style stub, not production composition.
 
 The WinUI shell is intentionally a concrete first screen, not a landing page. It exposes the required regions, command routes, and keyboard accelerator invoked handlers, while later milestones will connect file selection, operations, search, and preview surfaces.
 
@@ -91,6 +91,16 @@ Second-pass review-resolution focused validation passed with:
 That run passed 31 Core tests and 3 App shell contract tests after first failing on the intentionally missing settings-writer and window-placement resolver seams.
 
 The final second-pass CI run built with 0 warnings and 0 errors and passed 94 tests across 4 test assemblies.
+
+Window-placement safety review-resolution validation added the following direct proofs:
+
+- below-minimum positive sizes (`1x1`, `100x100`, `899x560`, `900x559`) fall back instead of applying tiny rectangles
+- `900x560` and larger visible placements remain accepted
+- below-minimum offscreen and missing-monitor placements fall back safely
+- empty or throwing monitor enumeration produces a do-not-apply resolution
+- the app startup state carries the safe resolution consumed by the WinUI placement applier
+
+After the window-placement safety fix, final CI built with 0 warnings and 0 errors and passed 107 tests across 4 test assemblies.
 
 ## Deferred By Plan
 

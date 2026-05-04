@@ -9,9 +9,7 @@
     Title="VeloFile">
     <Grid
         x:Name="RootShell"
-        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-        MinWidth="900"
-        MinHeight="560">
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
             <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />

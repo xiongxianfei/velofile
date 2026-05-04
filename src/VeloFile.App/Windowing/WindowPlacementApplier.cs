@@ -1,7 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using VeloFile.Core.Persistence;
+using VeloFile.Core.Session;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -9,14 +9,14 @@ namespace VeloFile.App.Windowing;
 
 public interface IWindowPlacementApplier
 {
-    void Apply(Window window, WindowPlacementState? placement);
+    void Apply(Window window, WindowPlacementResolution placementResolution);
 }
 
 public sealed class WinUiWindowPlacementApplier : IWindowPlacementApplier
 {
-    public void Apply(Window window, WindowPlacementState? placement)
+    public void Apply(Window window, WindowPlacementResolution placementResolution)
     {
-        if (placement is null || placement.Width <= 0 || placement.Height <= 0)
+        if (!placementResolution.ShouldApply || placementResolution.Placement is not { } placement)
         {
             return;
         }

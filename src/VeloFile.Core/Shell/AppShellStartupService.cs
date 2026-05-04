@@ -18,7 +18,10 @@ public sealed record AppShellStartupInput(
 public sealed record AppShellStartupState(
     string WindowTitle,
     AppShellCommandSurface CommandSurface,
-    WindowPlacementState? WindowPlacement);
+    WindowPlacementResolution WindowPlacementResolution)
+{
+    public WindowPlacementState? WindowPlacement => WindowPlacementResolution.Placement;
+}
 
 public sealed class AppShellStartupService
 {
@@ -66,6 +69,6 @@ public sealed class AppShellStartupService
             _utcNow,
             _diagnostics);
 
-        return new AppShellStartupState(input.WindowTitle, commandSurface, restore.WindowPlacement);
+        return new AppShellStartupState(input.WindowTitle, commandSurface, restore.WindowPlacementResolution);
     }
 }

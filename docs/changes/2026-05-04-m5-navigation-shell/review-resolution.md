@@ -41,10 +41,16 @@ Resolution:
 - Added `WindowsMonitorLayoutSource` for production monitor/work-area enumeration.
 - Replaced the production pass-through resolver in `AppCompositionRoot` with the real resolver.
 - Added `IWindowPlacementApplier` / `WinUiWindowPlacementApplier` and wired `MainWindow` launch to apply resolved placement through WinUI app-window APIs.
+- Added `WindowPlacementPolicy` so app shell minimum size and resolver fallback behavior use one policy source.
+- Replaced raw nullable placement handoff with `WindowPlacementResolution`, including status and `ShouldApply`, so the app applier receives a resolved safe placement or an explicit do-not-apply result.
+- Treat positive-but-below-minimum persisted sizes as invalid and fall back to visible default placement.
+- Treat empty or failed monitor enumeration as unable to prove placement safety; stale persisted placement is not applied unchanged.
 
 Tests:
 
 - `WindowPlacementResolverTests` verifies valid placement preservation, removed-monitor fallback, offscreen clamping, and invalid-dimension fallback.
+- `WindowPlacementResolverTests` verifies `1x1`, `100x100`, `899x560`, `900x559`, partially offscreen tiny placement, missing-monitor tiny placement, empty monitor enumeration, throwing monitor enumeration, oversized clamping, constrained monitor fallback, and minimum/above-minimum valid sizes.
+- `AppShellStartupServiceTests` verifies startup exposes a safe window-placement resolution for the app applier.
 - `AppShellContractTests` verifies production composition uses the real monitor resolver and applies restored placement.
 
 ### WinUI shell command wiring

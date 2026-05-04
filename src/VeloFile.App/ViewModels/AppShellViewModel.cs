@@ -13,12 +13,14 @@ public sealed class AppShellViewModel
     public AppShellViewModel(AppShellStartupState startupState)
     {
         CommandSurface = startupState.CommandSurface;
-        WindowPlacement = startupState.WindowPlacement;
+        WindowPlacementResolution = startupState.WindowPlacementResolution;
     }
 
     public AppShellCommandSurface CommandSurface { get; }
 
-    public WindowPlacementState? WindowPlacement { get; }
+    public WindowPlacementResolution WindowPlacementResolution { get; }
+
+    public WindowPlacementState? WindowPlacement => WindowPlacementResolution.Placement;
 
     public string WindowTitle => CommandSurface.WindowTitle;
 

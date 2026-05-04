@@ -17,19 +17,96 @@ public interface IMonitorLayoutSource
 
 public interface IWindowPlacementResolver
 {
-    WindowPlacementState? Resolve(WindowPlacementState? requestedPlacement);
+    WindowPlacementResolution Resolve(WindowPlacementState? requestedPlacement);
+}
+
+public enum WindowPlacementResolutionStatus
+{
+    DoNotApplyPersistedPlacement,
+    UseResolvedPlacement,
+    FallbackBecauseInvalidSize,
+    FallbackBecauseMonitorMissing,
+    FallbackBecauseOffscreen,
+    FallbackBecauseMonitorEnumerationEmpty,
+    FallbackBecauseMonitorEnumerationFailed,
+    FallbackBecauseClamped
+}
+
+public sealed record WindowPlacementPolicy(
+    int MinimumRestorableWidth,
+    int MinimumRestorableHeight,
+    int DefaultFallbackWidth,
+    int DefaultFallbackHeight,
+    int MinimumVisibleMargin,
+    string CoordinateUnit)
+{
+    public static WindowPlacementPolicy Default { get; } = new(
+        MinimumRestorableWidth: 900,
+        MinimumRestorableHeight: 560,
+        DefaultFallbackWidth: 900,
+        DefaultFallbackHeight: 560,
+        MinimumVisibleMargin: 48,
+        CoordinateUnit: "logical-window-bounds");
+
+    public bool HasRestorableSize(WindowPlacementState placement)
+    {
+        return placement.Width >= MinimumRestorableWidth
+            && placement.Height >= MinimumRestorableHeight;
+    }
+
+    public bool HasPositiveSize(WindowPlacementState placement)
+    {
+        return placement.Width > 0 && placement.Height > 0;
+    }
+}
+
+public sealed class WindowPlacementResolution
+{
+    private WindowPlacementResolution(
+        WindowPlacementResolutionStatus status,
+        WindowPlacementState? placement,
+        bool isSafeToApply)
+    {
+        Status = status;
+        Placement = placement;
+        IsSafeToApply = isSafeToApply;
+    }
+
+    public WindowPlacementResolutionStatus Status { get; }
+
+    public WindowPlacementState? Placement { get; }
+
+    public bool IsSafeToApply { get; }
+
+    public bool ShouldApply => IsSafeToApply && Placement is not null;
+
+    public static WindowPlacementResolution DoNotApply(WindowPlacementResolutionStatus status)
+    {
+        return new WindowPlacementResolution(status, placement: null, isSafeToApply: false);
+    }
+
+    public static WindowPlacementResolution Use(WindowPlacementState placement)
+    {
+        return new WindowPlacementResolution(WindowPlacementResolutionStatus.UseResolvedPlacement, placement, isSafeToApply: true);
+    }
+
+    public static WindowPlacementResolution Fallback(WindowPlacementResolutionStatus status, WindowPlacementState placement)
+    {
+        return new WindowPlacementResolution(status, placement, isSafeToApply: true);
+    }
 }
 
 public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, IWindowPlacementResolver
 {
-    public const int DefaultWidth = 900;
-    public const int DefaultHeight = 560;
-
     private readonly IMonitorLayoutSource _monitorLayoutSource;
+    private readonly WindowPlacementPolicy _policy;
 
-    public MonitorWindowPlacementResolver(IMonitorLayoutSource monitorLayoutSource)
+    public MonitorWindowPlacementResolver(
+        IMonitorLayoutSource monitorLayoutSource,
+        WindowPlacementPolicy? policy = null)
     {
         _monitorLayoutSource = monitorLayoutSource;
+        _policy = policy ?? WindowPlacementPolicy.Default;
     }
 
     public bool IsAvailable(string? monitorDeviceName)
@@ -39,31 +116,32 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
             return true;
         }
 
-        return GetMonitors().Any(monitor => string.Equals(monitor.DeviceName, monitorDeviceName, StringComparison.OrdinalIgnoreCase));
+        return TryGetMonitors(out var monitors, out _) && monitors.Any(monitor => string.Equals(monitor.DeviceName, monitorDeviceName, StringComparison.OrdinalIgnoreCase));
     }
 
     public WindowPlacementState? Fallback(WindowPlacementState? requestedPlacement)
     {
-        return Resolve(requestedPlacement);
+        return Resolve(requestedPlacement).Placement;
     }
 
-    public WindowPlacementState? Resolve(WindowPlacementState? requestedPlacement)
+    public WindowPlacementResolution Resolve(WindowPlacementState? requestedPlacement)
     {
         if (requestedPlacement is null)
         {
-            return null;
+            return WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement);
         }
 
-        var monitors = GetMonitors();
-        if (monitors.Count == 0)
+        if (!TryGetMonitors(out var monitors, out var monitorFailureStatus))
         {
-            return HasValidDimensions(requestedPlacement) ? requestedPlacement : null;
+            return WindowPlacementResolution.DoNotApply(monitorFailureStatus);
         }
 
         var primary = monitors.FirstOrDefault(monitor => monitor.IsPrimary) ?? monitors[0];
-        if (!HasValidDimensions(requestedPlacement))
+        if (!_policy.HasPositiveSize(requestedPlacement) || !_policy.HasRestorableSize(requestedPlacement))
         {
-            return DefaultPlacement(primary);
+            return WindowPlacementResolution.Fallback(
+                WindowPlacementResolutionStatus.FallbackBecauseInvalidSize,
+                DefaultPlacement(primary));
         }
 
         var requestedMonitor = string.IsNullOrWhiteSpace(requestedPlacement.MonitorDeviceName)
@@ -72,39 +150,70 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
 
         if (requestedMonitor is not null)
         {
-            return ClampToMonitor(requestedPlacement, requestedMonitor);
+            return ResolveOnMonitor(requestedPlacement, requestedMonitor);
         }
 
         var intersectingMonitor = monitors.FirstOrDefault(monitor => Intersects(requestedPlacement, monitor));
         if (intersectingMonitor is not null)
         {
-            return ClampToMonitor(requestedPlacement, intersectingMonitor);
+            var clamped = ClampToMonitor(requestedPlacement, intersectingMonitor);
+            return WindowPlacementResolution.Fallback(
+                WindowPlacementResolutionStatus.FallbackBecauseMonitorMissing,
+                clamped);
         }
 
-        return DefaultPlacement(primary, requestedPlacement.Width, requestedPlacement.Height);
+        return WindowPlacementResolution.Fallback(
+            string.IsNullOrWhiteSpace(requestedPlacement.MonitorDeviceName)
+                ? WindowPlacementResolutionStatus.FallbackBecauseOffscreen
+                : WindowPlacementResolutionStatus.FallbackBecauseMonitorMissing,
+            DefaultPlacement(primary, requestedPlacement.Width, requestedPlacement.Height));
     }
 
-    private IReadOnlyList<MonitorWorkArea> GetMonitors()
+    private bool TryGetMonitors(
+        out IReadOnlyList<MonitorWorkArea> monitors,
+        out WindowPlacementResolutionStatus failureStatus)
     {
         try
         {
-            return _monitorLayoutSource.GetCurrentWorkAreas();
+            monitors = _monitorLayoutSource.GetCurrentWorkAreas()
+                .Where(monitor => monitor.Width > 0 && monitor.Height > 0)
+                .ToArray();
+            if (monitors.Count == 0)
+            {
+                failureStatus = WindowPlacementResolutionStatus.FallbackBecauseMonitorEnumerationEmpty;
+                return false;
+            }
+
+            failureStatus = WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement;
+            return true;
         }
         catch
         {
-            return [];
+            monitors = [];
+            failureStatus = WindowPlacementResolutionStatus.FallbackBecauseMonitorEnumerationFailed;
+            return false;
         }
     }
 
-    private static bool HasValidDimensions(WindowPlacementState placement)
+    private WindowPlacementResolution ResolveOnMonitor(WindowPlacementState requestedPlacement, MonitorWorkArea monitor)
     {
-        return placement.Width > 0 && placement.Height > 0;
+        var clamped = ClampToMonitor(requestedPlacement, monitor);
+        return clamped == requestedPlacement
+            ? WindowPlacementResolution.Use(clamped)
+            : WindowPlacementResolution.Fallback(WindowPlacementResolutionStatus.FallbackBecauseClamped, clamped);
     }
 
-    private static WindowPlacementState DefaultPlacement(MonitorWorkArea monitor, int width = DefaultWidth, int height = DefaultHeight)
+    private WindowPlacementState DefaultPlacement(MonitorWorkArea monitor, int? requestedWidth = null, int? requestedHeight = null)
     {
+        var width = requestedWidth is { } requestedW && requestedW >= _policy.MinimumRestorableWidth
+            ? requestedW
+            : _policy.DefaultFallbackWidth;
+        var height = requestedHeight is { } requestedH && requestedH >= _policy.MinimumRestorableHeight
+            ? requestedH
+            : _policy.DefaultFallbackHeight;
         var resolvedWidth = Math.Min(Math.Max(1, width), monitor.Width);
         var resolvedHeight = Math.Min(Math.Max(1, height), monitor.Height);
+
         return new WindowPlacementState(
             monitor.Left,
             monitor.Top,
@@ -113,10 +222,10 @@ public sealed class MonitorWindowPlacementResolver : IMonitorPlacementResolver, 
             monitor.DeviceName);
     }
 
-    private static WindowPlacementState ClampToMonitor(WindowPlacementState placement, MonitorWorkArea monitor)
+    private WindowPlacementState ClampToMonitor(WindowPlacementState placement, MonitorWorkArea monitor)
     {
-        var width = Math.Min(placement.Width, monitor.Width);
-        var height = Math.Min(placement.Height, monitor.Height);
+        var width = Math.Min(Math.Max(placement.Width, _policy.MinimumRestorableWidth), monitor.Width);
+        var height = Math.Min(Math.Max(placement.Height, _policy.MinimumRestorableHeight), monitor.Height);
         var minLeft = monitor.Left;
         var maxLeft = monitor.Left + monitor.Width - width;
         var minTop = monitor.Top;

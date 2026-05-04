@@ -58,9 +58,11 @@ public sealed record SessionRestoreResult(
     NavigationWorkspace Workspace,
     SidebarState Sidebar,
     VisibilitySettings Visibility,
-    WindowPlacementState? WindowPlacement,
+    WindowPlacementResolution WindowPlacementResolution,
     CrashRecoveryState CrashRecovery)
 {
+    public WindowPlacementState? WindowPlacement => WindowPlacementResolution.Placement;
+
     public bool RestoresSelection => false;
 
     public bool RestoresFilterText => false;
@@ -141,11 +143,11 @@ public sealed class SessionRestoreService
             missingLocation: !pathExists);
     }
 
-    private WindowPlacementState? RestoreWindowPlacement(WindowPlacementState? placement)
+    private WindowPlacementResolution RestoreWindowPlacement(WindowPlacementState? placement)
     {
         if (placement is null)
         {
-            return null;
+            return WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement);
         }
 
         if (_monitorPlacementResolver is IWindowPlacementResolver windowPlacementResolver)
@@ -153,12 +155,17 @@ public sealed class SessionRestoreService
             return windowPlacementResolver.Resolve(placement);
         }
 
-        if (placement.MonitorDeviceName is null || _monitorPlacementResolver.IsAvailable(placement.MonitorDeviceName))
+        if ((placement.MonitorDeviceName is null || _monitorPlacementResolver.IsAvailable(placement.MonitorDeviceName))
+            && WindowPlacementPolicy.Default.HasPositiveSize(placement)
+            && WindowPlacementPolicy.Default.HasRestorableSize(placement))
         {
-            return placement;
+            return WindowPlacementResolution.Use(placement);
         }
 
-        return _monitorPlacementResolver.Fallback(placement);
+        var fallback = _monitorPlacementResolver.Fallback(placement);
+        return fallback is null
+            ? WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement)
+            : WindowPlacementResolution.Fallback(WindowPlacementResolutionStatus.FallbackBecauseMonitorMissing, fallback);
     }
 
     private static FileListViewMode ParseViewMode(string viewMode)

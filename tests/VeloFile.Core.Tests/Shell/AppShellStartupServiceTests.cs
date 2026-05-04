@@ -108,6 +108,33 @@ public sealed class AppShellStartupServiceTests
     }
 
     [TestMethod]
+    public void Startup_state_exposes_safe_window_placement_resolution_for_app_applier()
+    {
+        var startup = CreateStartup(
+            existingPaths: [@"D:\projects"],
+            monitorPlacementResolver: new MonitorWindowPlacementResolver(new FakeMonitorLayoutSource([
+                new MonitorWorkArea(@"\\.\DISPLAY1", Left: 0, Top: 0, Width: 1920, Height: 1080, IsPrimary: true)
+            ])));
+        var input = new AppShellStartupInput(
+            WindowTitle: "VeloFile",
+            Session: new SessionStatePayload(
+                [new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])],
+                ActiveTabIndex: 0,
+                WindowPlacement: new WindowPlacementState(Left: 200, Top: 200, Width: 100, Height: 100, MonitorDeviceName: @"\\.\DISPLAY1")),
+            Settings: SettingsStatePayload.Default,
+            Favorites: FavoritesStatePayload.Empty,
+            RecentLocations: RecentLocationsStatePayload.Empty,
+            Drives: []);
+
+        var state = startup.CreateStartupState(input);
+
+        Assert.AreEqual(WindowPlacementResolutionStatus.FallbackBecauseInvalidSize, state.WindowPlacementResolution.Status);
+        Assert.IsTrue(state.WindowPlacementResolution.ShouldApply);
+        Assert.AreEqual(WindowPlacementPolicy.Default.DefaultFallbackWidth, state.WindowPlacement!.Width);
+        Assert.AreEqual(WindowPlacementPolicy.Default.DefaultFallbackHeight, state.WindowPlacement.Height);
+    }
+
+    [TestMethod]
     public void Visibility_settings_survive_durable_write_and_restart_bootstrap()
     {
         var storage = new InMemoryDurableDocumentStorage();
@@ -155,12 +182,13 @@ public sealed class AppShellStartupServiceTests
         IReadOnlyList<string> existingPaths,
         string defaultPath = @"C:\Users\alice",
         bool crashRecovery = false,
-        ISettingsStateWriter? settingsStateWriter = null)
+        ISettingsStateWriter? settingsStateWriter = null,
+        IMonitorPlacementResolver? monitorPlacementResolver = null)
     {
         return new AppShellStartupService(
             new SessionRestoreService(
                 new SetPathExistenceProbe(existingPaths),
-                new TestMonitorPlacementResolver(),
+                monitorPlacementResolver ?? new TestMonitorPlacementResolver(),
                 new NoScrollAnchorResolver(),
                 new TestCrashRecoverySignal(crashRecovery),
                 new TestDefaultLaunchPathProvider(defaultPath)),
@@ -257,6 +285,21 @@ public sealed class AppShellStartupServiceTests
 
             Files[canonicalPath] = content;
             Files[BackupPath(canonicalPath)] = content;
+        }
+    }
+
+    private sealed class FakeMonitorLayoutSource : IMonitorLayoutSource
+    {
+        private readonly IReadOnlyList<MonitorWorkArea> _monitors;
+
+        public FakeMonitorLayoutSource(IReadOnlyList<MonitorWorkArea> monitors)
+        {
+            _monitors = monitors;
+        }
+
+        public IReadOnlyList<MonitorWorkArea> GetCurrentWorkAreas()
+        {
+            return _monitors;
         }
     }
 }

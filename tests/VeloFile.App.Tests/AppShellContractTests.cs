@@ -86,7 +86,9 @@ public sealed class AppShellContractTests
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
         StringAssert.Contains(appCode, "AppCompositionRoot.CreateWindowPlacementApplier()");
-        StringAssert.Contains(mainWindowCode, "windowPlacementApplier.Apply(this, ViewModel.WindowPlacement)");
+        StringAssert.Contains(mainWindowCode, "RootShell.MinWidth = WindowPlacementPolicy.Default.MinimumRestorableWidth");
+        StringAssert.Contains(mainWindowCode, "RootShell.MinHeight = WindowPlacementPolicy.Default.MinimumRestorableHeight");
+        StringAssert.Contains(mainWindowCode, "windowPlacementApplier.Apply(this, ViewModel.WindowPlacementResolution)");
         StringAssert.Contains(compositionCode, "WindowsMonitorLayoutSource");
         StringAssert.Contains(compositionCode, "MonitorWindowPlacementResolver");
         Assert.IsFalse(compositionCode.Contains("new PassThroughMonitorPlacementResolver()", StringComparison.Ordinal));

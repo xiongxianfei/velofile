@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Navigation;
+using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using Windows.System;
 
@@ -24,8 +25,10 @@ public sealed partial class MainWindow : Window
         ViewModel = viewModel;
         Title = ViewModel.WindowTitle;
         RootShell.DataContext = ViewModel;
+        RootShell.MinWidth = WindowPlacementPolicy.Default.MinimumRestorableWidth;
+        RootShell.MinHeight = WindowPlacementPolicy.Default.MinimumRestorableHeight;
         RefreshShellBindings();
-        windowPlacementApplier.Apply(this, ViewModel.WindowPlacement);
+        windowPlacementApplier.Apply(this, ViewModel.WindowPlacementResolution);
     }
 
     public AppShellViewModel ViewModel { get; }
