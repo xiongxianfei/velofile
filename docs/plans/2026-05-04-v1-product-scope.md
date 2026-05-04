@@ -640,7 +640,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M1 complete.
 - [x] M2 complete.
 - [x] M3 complete.
-- [ ] M4 complete.
+- [x] M4 complete.
 - [ ] M5 complete.
 - [ ] M6 complete.
 - [ ] M7 complete.
@@ -671,6 +671,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Put corpus generation and runner dispatch in `tools/VeloFile.Corpus`. | Keeping scratch-root validation and deterministic corpus writes in one testable console tool prevents script-only logic from diverging across runners. |
 | 2026-05-04 | Make M2 benchmark output non-gating with null timing values. | ADR 0003 and P16 prohibit public performance claims before the benchmark harness and reference corpus exist; M2 only establishes report shape. |
 | 2026-05-04 | Split M3 persistence decisions between Core schema/recovery and Windows file replacement. | Core owns durable document contracts and recovery policy; Windows owns same-directory temp, flush, and atomic replacement behavior. |
+| 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
 
 ## Surprises and Discoveries
 
@@ -685,6 +686,8 @@ Each milestone must update validation notes with the commands actually run and a
 - M2 corpus tests initially ran in parallel and contended on the generated corpus tool build output. `tests/VeloFile.Corpus.Tests` disables parallelism so script smoke tests execute like normal command-line validation.
 - M2 scratch-root safety uses a marker file plus path-leaf requirements: the root must be absolute, dedicated to VeloFile corpus work, and either empty/new or already marked with `.velofile-corpus-root`.
 - M3 implementation found that UI session restore and numeric preview-release thresholds are later milestone concerns. M3 supplies durable schema/recovery and local diagnostic primitives that M5 and M15 consume.
+- M4 implementation found that `scripts/select-validation.py` is still absent, so M4 used the plan-specified `dotnet test` filters and `scripts/ci.ps1` directly rather than selector-selected checks.
+- M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
 
 ## Validation Notes
 
@@ -759,15 +762,22 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 14 tests across Core and Windows test assemblies.
   - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 7 Core diagnostics tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 30 tests across 4 test assemblies.
+- M4 test-first implementation evidence:
+  - Added listing, visibility, and Windows file-system tests before production namespaces existed.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Listing|TestCategory=Visibility"` failed as expected because `VeloFile.Core.Listing`, `VeloFile.Core.Visibility`, and `VeloFile.Windows.FileSystem` were missing.
+- M4 final validation:
+  - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 7 Core listing tests and 4 Windows listing/file-system tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 4 Core visibility tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 45 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, and M3 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, and local redacted diagnostics foundations. Later V1 user-facing browsing behavior remains assigned to M4-M16.
+M1, M2, M3, and M4 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, and non-UI folder listing/visibility services. Later V1 user-facing browsing behavior remains assigned to M5-M16.
 
 ## Readiness
 
-M3 is ready for `code-review`. Do not start M4 until M3 review findings are resolved or explicitly deferred.
+M4 is ready for `code-review`. Do not start M5 until M4 review findings are resolved or explicitly deferred.
 
-Implementation resumes after M3 review with:
+Implementation resumes after M4 review with:
 
-- M4 adding folder enumeration, file models, and the virtualized listing feed.
+- M5 connecting the UI shell to navigation, tabs, sidebar, breadcrumb/path bar, visibility settings, and session restore.

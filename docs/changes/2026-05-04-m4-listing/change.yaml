@@ -1,0 +1,54 @@
+id: 2026-05-04-m4-listing
+title: M4 folder listing, visibility, and Windows file-system adapters
+status: implemented
+feature: v1-product-scope
+milestone: M4
+requirements:
+  - R5
+  - R7
+  - R8
+  - R9
+  - R10
+  - R11
+  - R12
+  - R13
+  - R17
+  - R73
+  - R74
+  - R75
+  - R76
+  - R78
+  - C5
+  - EC1
+  - EC2
+  - EC3
+  - EC4
+  - EC5
+  - EC8
+  - EC23
+test_spec:
+  - specs/v1-product-scope.test.md#T007
+  - specs/v1-product-scope.test.md#T008
+  - specs/v1-product-scope.test.md#T009
+architecture:
+  - docs/architecture/system/architecture.md#desktop-app-components
+  - docs/architecture/system/architecture.md#responsiveness
+  - docs/architecture/system/architecture.md#windows-compatibility
+artifacts:
+  - src/VeloFile.Core/Listing/
+  - src/VeloFile.Core/Visibility/
+  - src/VeloFile.Windows/FileSystem/
+  - tests/VeloFile.Core.Tests/Listing/
+  - tests/VeloFile.Core.Tests/Visibility/
+  - tests/VeloFile.Windows.Tests/FileSystem/
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter Listing
+    result: passed 7 Core listing tests and 4 Windows listing/file-system tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Visibility
+    result: passed 4 Core visibility tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build, and 45 tests across 4 test assemblies
+notes:
+  - M4 implements non-UI listing and visibility foundations only; WinUI folder open entry points, breadcrumb, sidebar rendering, and view-mode controls remain assigned to M5.
+  - Thumbnail and nonessential metadata enrichment remain assigned to preview/thumbnail milestones; M4 keeps the first viewport feed independent from those later adapters.
+  - Protected operating-system-file first-use confirmation is UI behavior and remains assigned to later visibility UI work; M4 enforces the default hidden state and projection flags.
