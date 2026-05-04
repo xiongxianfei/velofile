@@ -142,6 +142,7 @@ function Invoke-VeloFileCorpusTool {
         "TEMP",
         "TMP",
         "DOTNET_CLI_TELEMETRY_OPTOUT",
+        "DOTNET_ADD_GLOBAL_TOOLS_TO_PATH",
         "DOTNET_NOLOGO",
         "DOTNET_SKIP_FIRST_TIME_EXPERIENCE"
     )
@@ -159,6 +160,7 @@ function Invoke-VeloFileCorpusTool {
         Set-VeloFileEnvironmentValue -Name "TEMP" -Value $tempRoot
         Set-VeloFileEnvironmentValue -Name "TMP" -Value $tempRoot
         Set-VeloFileEnvironmentValue -Name "DOTNET_CLI_TELEMETRY_OPTOUT" -Value "1"
+        Set-VeloFileEnvironmentValue -Name "DOTNET_ADD_GLOBAL_TOOLS_TO_PATH" -Value "0"
         Set-VeloFileEnvironmentValue -Name "DOTNET_NOLOGO" -Value "1"
         Set-VeloFileEnvironmentValue -Name "DOTNET_SKIP_FIRST_TIME_EXPERIENCE" -Value "1"
 

@@ -95,6 +95,34 @@ public sealed class CorpusToolingSmokeTests
         Assert.IsTrue(measurement.ContainsKey("p99Ms"));
     }
 
+    [TestMethod]
+    public void Corpus_tool_wrapper_disables_dotnet_global_tools_path_mutation()
+    {
+        var repoRoot = FindRepoRoot();
+        var wrapperPath = Path.Combine(repoRoot.FullName, "scripts", "Invoke-CorpusTool.ps1");
+        var wrapper = File.ReadAllText(wrapperPath);
+
+        StringAssert.Contains(wrapper, "\"DOTNET_ADD_GLOBAL_TOOLS_TO_PATH\"");
+        StringAssert.Contains(wrapper, "Set-VeloFileEnvironmentValue -Name \"DOTNET_ADD_GLOBAL_TOOLS_TO_PATH\" -Value \"0\"");
+    }
+
+    [TestMethod]
+    public void Corpus_scripts_do_not_add_scratch_dotnet_tools_to_user_path()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var before = UserPathEntries().ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var result = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", scratch.Root);
+
+        AssertCommandSucceeded(result);
+        var addedScratchPaths = UserPathEntries()
+            .Where(entry => !before.Contains(entry))
+            .Where(IsVeloFileScratchDotnetToolsPath)
+            .ToArray();
+
+        Assert.IsEmpty(addedScratchPaths, string.Join(Environment.NewLine, addedScratchPaths));
+    }
+
     private static void AssertCommandSucceeded(CommandResult result)
     {
         Assert.AreEqual(0, result.ExitCode, result.AllOutput);
@@ -148,6 +176,22 @@ public sealed class CorpusToolingSmokeTests
 
         Assert.Fail("Could not find repository root from test output directory.");
         throw new InvalidOperationException("Could not find repository root from test output directory.");
+    }
+
+    private static IReadOnlyList<string> UserPathEntries()
+    {
+        var path = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User) ?? string.Empty;
+        return path.Split(
+            Path.PathSeparator,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static bool IsVeloFileScratchDotnetToolsPath(string path)
+    {
+        return path.Contains("velofile-corpus-tests", StringComparison.OrdinalIgnoreCase)
+            && path.Contains(".velofile-tools", StringComparison.OrdinalIgnoreCase)
+            && path.Contains("dotnet-cli-home", StringComparison.OrdinalIgnoreCase)
+            && path.EndsWith(Path.Combine(".dotnet", "tools"), StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError)

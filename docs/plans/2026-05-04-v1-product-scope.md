@@ -685,6 +685,7 @@ Each milestone must update validation notes with the commands actually run and a
 - `bash scripts/ci.sh` was smoke-tested from WSL Bash before `pwsh` was installed and could not run there because that Bash environment could not invoke Windows PowerShell. This is not the M1 gating command; local validation now uses `pwsh` directly.
 - M2 corpus tests initially ran in parallel and contended on the generated corpus tool build output. `tests/VeloFile.Corpus.Tests` disables parallelism so script smoke tests execute like normal command-line validation.
 - M2 scratch-root safety uses a marker file plus path-leaf requirements: the root must be absolute, dedicated to VeloFile corpus work, and either empty/new or already marked with `.velofile-corpus-root`.
+- M2 scratch-owned `DOTNET_CLI_HOME` caused current .NET SDK first-run behavior to append per-run scratch `.dotnet\tools` paths to the persistent User PATH. `Invoke-CorpusTool.ps1` now sets `DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=0` for corpus tool invocations.
 - M3 implementation found that UI session restore and numeric preview-release thresholds are later milestone concerns. M3 supplies durable schema/recovery and local diagnostic primitives that M5 and M15 consume.
 - M4 implementation found that `scripts/select-validation.py` is still absent, so M4 used the plan-specified `dotnet test` filters and `scripts/ci.ps1` directly rather than selector-selected checks.
 - M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
@@ -740,6 +741,10 @@ Each milestone must update validation notes with the commands actually run and a
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile large-folder -ScratchRoot <scratch-root>` passed.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 4 tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: 9 tests across 4 test assemblies.
+- M2 corpus PATH pollution bugfix evidence:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Corpus_tool_wrapper_disables_dotnet_global_tools_path_mutation` failed before the wrapper set `DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=0`, then passed after the fix.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Corpus_scripts_do_not_add_scratch_dotnet_tools_to_user_path` passed and proved `generate-corpus.ps1` does not add scratch `.dotnet\tools` paths to persistent User PATH.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 tests.
 - M3 test-first implementation evidence:
   - Added persistence, diagnostics, and Windows storage tests before production namespaces existed.
   - `dotnet test VeloFile.sln -c Debug --filter "Persistence|Diagnostics"` failed as expected because `VeloFile.Core.Persistence`, `VeloFile.Core.Diagnostics`, and `VeloFile.Windows.Storage` were missing.
