@@ -1,0 +1,44 @@
+id: 2026-05-04-m2-validation-tooling
+title: M2 validation tooling and minimal corpus foundations
+status: implemented
+feature: v1-product-scope
+milestone: M2
+requirements:
+  - R46
+  - R67
+  - R68
+  - R83
+  - O5
+  - P1-P16
+  - AC9
+  - AC10
+  - AC15
+test_spec:
+  - specs/v1-product-scope.test.md#T004
+  - specs/v1-product-scope.test.md#T035
+artifacts:
+  - tools/VeloFile.Corpus/
+  - tests/VeloFile.Corpus.Tests/
+  - scripts/generate-corpus.ps1
+  - scripts/run-compat-corpus.ps1
+  - scripts/run-preview-corpus.ps1
+  - scripts/run-benchmarks.ps1
+  - docs/release/benchmark-baseline.md
+validation:
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed 9 tests across 4 test assemblies
+notes:
+  - M2 implements smoke corpus and non-gating benchmark shape only.
+  - Non-smoke compat and preview scopes fail fast until their owning milestones implement them.
+  - Scratch roots must be explicit, absolute, dedicated VeloFile corpus workspaces.
+  - scripts/select-validation.py is not present; M2 used the plan-specified validation commands directly.

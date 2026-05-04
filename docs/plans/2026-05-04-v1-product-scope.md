@@ -151,10 +151,10 @@ Architectural boundaries to preserve:
   - Document the milestone dependency rule: no milestone may require a validation command unless the script, corpus profile, and fixtures exist from a prior milestone or are created in that same milestone before use.
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter Corpus`
-  - `pwsh scripts/generate-corpus.ps1 -Profile smoke -Root <scratch-root>`
-  - `pwsh scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>`
-  - `pwsh scripts/run-preview-corpus.ps1 -Root <scratch-root>`
-  - `pwsh scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root <scratch-root>`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root <scratch-root>`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Later milestones can call corpus/compat/preview/benchmark scripts without depending on nonexistent validation assets, and all generated files stay under an explicit scratch root.
 - Commit message: `M2: add validation tooling and minimal corpus foundations`
@@ -638,7 +638,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] Test spec active.
 - [x] M1 unblocked in local toolchain.
 - [x] M1 complete.
-- [ ] M2 complete.
+- [x] M2 complete.
 - [ ] M3 complete.
 - [ ] M4 complete.
 - [ ] M5 complete.
@@ -668,6 +668,8 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Split preview work into M11-M13. | Preview contracts, content providers, and thumbnail/details UI have different risks and validation needs. |
 | 2026-05-04 | Keep the checked-in solution as `VeloFile.sln`. | The .NET 10 SDK created `.slnx` by default, but the approved plan and validation commands name `VeloFile.sln`. |
 | 2026-05-04 | Use PowerShell 7 (`pwsh`) as the default CI script host, with Windows PowerShell as a local fallback. | `pwsh` matches GitHub Actions and current PowerShell best practice; the fallback keeps M1 runnable on contributors' Windows machines before PowerShell 7 is installed. |
+| 2026-05-04 | Put corpus generation and runner dispatch in `tools/VeloFile.Corpus`. | Keeping scratch-root validation and deterministic corpus writes in one testable console tool prevents script-only logic from diverging across runners. |
+| 2026-05-04 | Make M2 benchmark output non-gating with null timing values. | ADR 0003 and P16 prohibit public performance claims before the benchmark harness and reference corpus exist; M2 only establishes report shape. |
 
 ## Surprises and Discoveries
 
@@ -679,6 +681,8 @@ Each milestone must update validation notes with the commands actually run and a
 - `dotnet new list winui` does not list WinUI templates, but Visual Studio has WinUI C# templates installed and equivalent checked-in project files build successfully with `Microsoft.WindowsAppSDK` `1.7.250401001`.
 - PowerShell 7 (`pwsh`) is now installed on PATH and validated with the M1 CI script. The M1 CI script remains compatible with Windows PowerShell as a fallback.
 - `bash scripts/ci.sh` was smoke-tested from WSL Bash before `pwsh` was installed and could not run there because that Bash environment could not invoke Windows PowerShell. This is not the M1 gating command; local validation now uses `pwsh` directly.
+- M2 corpus tests initially ran in parallel and contended on the generated corpus tool build output. `tests/VeloFile.Corpus.Tests` disables parallelism so script smoke tests execute like normal command-line validation.
+- M2 scratch-root safety uses a marker file plus path-leaf requirements: the root must be absolute, dedicated to VeloFile corpus work, and either empty/new or already marked with `.velofile-corpus-root`.
 
 ## Validation Notes
 
@@ -706,15 +710,27 @@ Each milestone must update validation notes with the commands actually run and a
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` also passed as a fallback route before `pwsh` was installed.
   - Launch smoke passed: `src\VeloFile.App\bin\x86\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` started and stayed alive for 2 seconds before being stopped.
   - `scripts/select-validation.py` is not present in M1; selector-based validation is therefore not available yet.
+- M2 test-first implementation evidence:
+  - Added `tests/VeloFile.Corpus.Tests` before the corpus scripts and tool existed.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` failed as expected because `scripts/generate-corpus.ps1` and `scripts/run-benchmarks.ps1` were missing.
+- M2 final validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 4 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Corpus` passed: 4 corpus tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/generate-corpus.ps1 -Profile smoke -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope smoke -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-benchmarks.ps1 -NonGating -Root C:\Users\XIONGX~1\AppData\Local\Temp\velofile-corpus-m2-fe1c564ddd1349d9bd41409434298473` passed and wrote `benchmarks\benchmark-smoke-report.json`.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: 9 tests across 4 test assemblies.
+  - `scripts/select-validation.py` is still not present; M2 used the plan-specified validation commands directly.
 
 ## Outcome and Retrospective
 
-M1 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, and contributor-facing build/test commands. Later V1 product behavior remains assigned to M2-M16.
+M1 and M2 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, and a non-gating benchmark report stub. Later V1 product behavior remains assigned to M3-M16.
 
 ## Readiness
 
-M1 is ready for `code-review`. Do not start M2 until M1 review findings are resolved or explicitly deferred.
+M2 is ready for `code-review`. Do not start M3 until M2 review findings are resolved or explicitly deferred.
 
-Implementation resumes after M1 review with:
+Implementation resumes after M2 review with:
 
-- M2 establishing validation tooling and minimal corpus foundations.
+- M3 establishing safe persistence and local diagnostics foundations.
