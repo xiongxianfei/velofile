@@ -13,7 +13,9 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow(AppCompositionRoot.CreateShellViewModel());
+        _window = new MainWindow(
+            AppCompositionRoot.CreateShellViewModel(),
+            AppCompositionRoot.CreateWindowPlacementApplier());
         _window.Activate();
     }
 }

@@ -148,6 +148,11 @@ public sealed class SessionRestoreService
             return null;
         }
 
+        if (_monitorPlacementResolver is IWindowPlacementResolver windowPlacementResolver)
+        {
+            return windowPlacementResolver.Resolve(placement);
+        }
+
         if (placement.MonitorDeviceName is null || _monitorPlacementResolver.IsAvailable(placement.MonitorDeviceName))
         {
             return placement;

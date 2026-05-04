@@ -4,6 +4,22 @@ using VeloFile.Core.Sidebar;
 
 namespace VeloFile.Core.Navigation;
 
+public sealed record NavigationAttemptResult(
+    bool Accepted,
+    string? SubmittedPath,
+    string? ReasonCode)
+{
+    public static NavigationAttemptResult AcceptedNavigation(string path)
+    {
+        return new NavigationAttemptResult(Accepted: true, SubmittedPath: path, ReasonCode: null);
+    }
+
+    public static NavigationAttemptResult Rejected(string? path, string reasonCode)
+    {
+        return new NavigationAttemptResult(Accepted: false, SubmittedPath: path, reasonCode);
+    }
+}
+
 public sealed class NavigationEntryPointService
 {
     private readonly NavigationWorkspace _workspace;
@@ -23,46 +39,89 @@ public sealed class NavigationEntryPointService
         _pathExists = pathExists;
     }
 
-    public void OpenTypedPath(string path)
+    public NavigationAttemptResult OpenTypedPath(string path)
     {
-        NavigateAndRecord(path);
+        return NavigateAndRecord(path);
     }
 
-    public void OpenPastedPath(string path)
+    public NavigationAttemptResult OpenPastedPath(string path)
     {
-        NavigateAndRecord(path);
+        return NavigateAndRecord(path);
     }
 
-    public void OpenBreadcrumbSegment(BreadcrumbSegment segment)
+    public NavigationAttemptResult OpenBreadcrumbSegment(BreadcrumbSegment segment)
     {
-        NavigateAndRecord(segment.FullPath);
+        return NavigateAndRecord(segment.FullPath);
     }
 
-    public void OpenSidebarLocation(string path)
+    public NavigationAttemptResult OpenSidebarLocation(string path)
     {
-        NavigateAndRecord(path);
+        return NavigateAndRecord(path);
     }
 
-    public void OpenFavorite(PinnedLocationState favorite)
+    public NavigationAttemptResult OpenFavorite(PinnedLocationState favorite)
     {
-        NavigateAndRecord(favorite.Path);
+        return NavigateAndRecord(favorite.Path);
     }
 
-    public void OpenRecent(RecentLocationState recentLocation)
+    public NavigationAttemptResult OpenRecent(RecentLocationState recentLocation)
     {
-        NavigateAndRecord(recentLocation.Path);
+        return NavigateAndRecord(recentLocation.Path);
     }
 
-    public void OpenDrive(DriveEntry drive)
+    public NavigationAttemptResult OpenDrive(DriveEntry drive)
     {
-        NavigateAndRecord(drive.RootPath);
+        return NavigateAndRecord(drive.RootPath);
     }
 
-    private void NavigateAndRecord(string path)
+    private NavigationAttemptResult NavigateAndRecord(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return NavigationAttemptResult.Rejected(path, "empty-path");
+        }
+
         var normalizedPath = path.Trim();
-        var missingLocation = _pathExists is not null && !_pathExists(normalizedPath);
-        _workspace.NavigateActive(normalizedPath, missingLocation);
+        var validationReason = ValidatePathInput(normalizedPath);
+        if (validationReason is not null)
+        {
+            return NavigationAttemptResult.Rejected(normalizedPath, validationReason);
+        }
+
+        if (_pathExists is not null && !_pathExists(normalizedPath))
+        {
+            return NavigationAttemptResult.Rejected(normalizedPath, "missing");
+        }
+
+        _workspace.NavigateActive(normalizedPath);
         _sidebar.RecordRecent(_workspace.ActiveTab.Path, _utcNow());
+        return NavigationAttemptResult.AcceptedNavigation(normalizedPath);
+    }
+
+    private static string? ValidatePathInput(string path)
+    {
+        if (Uri.TryCreate(path, UriKind.Absolute, out var uri) && !uri.IsFile)
+        {
+            return "unsupported-path";
+        }
+
+        if (!Path.IsPathFullyQualified(path))
+        {
+            return "invalid-path";
+        }
+
+        try
+        {
+            _ = Path.GetFullPath(path);
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return "invalid-path";
+        }
+        catch (NotSupportedException)
+        {
+            return "invalid-path";
+        }
     }
 }

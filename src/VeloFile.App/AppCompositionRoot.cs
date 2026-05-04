@@ -1,12 +1,15 @@
 using VeloFile.App.ViewModels;
+using VeloFile.App.Windowing;
 using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Persistence;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
+using VeloFile.Core.Visibility;
 using VeloFile.Windows.FileSystem;
 using VeloFile.Windows.Storage;
+using VeloFile.Windows.Windowing;
 
 namespace VeloFile.App;
 
@@ -52,17 +55,19 @@ public static class AppCompositionRoot
 
         var defaultLaunchPathProvider = new DefaultLaunchPathProvider();
         var pathProbe = new FileSystemPathExistenceProbe();
+        var monitorPlacementResolver = new MonitorWindowPlacementResolver(new WindowsMonitorLayoutSource());
         var startupService = new AppShellStartupService(
             new SessionRestoreService(
                 pathProbe,
-                new PassThroughMonitorPlacementResolver(),
+                monitorPlacementResolver,
                 new FileSystemScrollAnchorResolver(),
                 new CrashRecoverySignal(() => diagnostics.HasRepeatedCrashMarkers("startup", threshold: 1)),
                 defaultLaunchPathProvider),
             defaultLaunchPathProvider,
             pathProbe,
             diagnostics,
-            () => DateTimeOffset.UtcNow);
+            () => DateTimeOffset.UtcNow,
+            new DurableSettingsStateWriter(settingsRepository, "1.0.0-dev", () => DateTimeOffset.UtcNow));
 
         var startupState = startupService.CreateStartupState(new AppShellStartupInput(
             initialState.WindowTitle,
@@ -74,6 +79,11 @@ public static class AppCompositionRoot
 
         diagnostics.RecordLastActionMarker("startup", "session", DateTimeOffset.UtcNow);
         return new AppShellViewModel(startupState);
+    }
+
+    public static IWindowPlacementApplier CreateWindowPlacementApplier()
+    {
+        return new WinUiWindowPlacementApplier();
     }
 
     private static IReadOnlyList<DriveEntry> ReadDriveEntries()

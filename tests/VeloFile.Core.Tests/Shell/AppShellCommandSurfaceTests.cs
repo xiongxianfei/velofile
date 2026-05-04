@@ -86,16 +86,81 @@ public sealed class AppShellCommandSurfaceTests
     }
 
     [TestMethod]
-    public void Missing_path_navigation_surfaces_recoverable_active_tab_state()
+    public void Typed_missing_path_preserves_active_tab_history_listing_and_recents()
+    {
+        var shell = CreateShell(
+            initialPath: @"D:\start",
+            recents: [new RecentLocationState(@"D:\start", DateTimeOffset.Parse("2026-05-03T00:00:00Z"))],
+            existingPaths: [@"D:\start"]);
+
+        var historyBefore = shell.ActiveTab.BackHistory.ToArray();
+        var recentsBefore = shell.RecentLocations.Select(item => item.Path).ToArray();
+        var result = shell.SubmitPath(@"Z:\missing");
+
+        Assert.IsFalse(result.Accepted);
+        Assert.AreEqual(@"D:\start", shell.ActivePath);
+        CollectionAssert.AreEqual(historyBefore, shell.ActiveTab.BackHistory.ToArray());
+        CollectionAssert.AreEqual(recentsBefore, shell.RecentLocations.Select(item => item.Path).ToArray());
+        Assert.AreEqual(NavigationTabLocationState.Available, shell.ActiveTab.LocationState);
+        Assert.IsFalse(shell.MissingLocationVisible);
+        Assert.IsNotNull(shell.PathEntryError);
+        Assert.AreEqual(@"Z:\missing", shell.PathEntryError!.SubmittedPath);
+        Assert.AreEqual("missing", shell.PathEntryError.ReasonCode);
+    }
+
+    [TestMethod]
+    public void Typed_invalid_or_empty_path_preserves_active_tab_and_history()
     {
         var shell = CreateShell(initialPath: @"D:\start", existingPaths: [@"D:\start"]);
 
-        shell.SubmitPath(@"Z:\missing");
+        var emptyResult = shell.SubmitPath("   ");
 
-        Assert.AreEqual(@"Z:\missing", shell.ActivePath);
-        Assert.AreEqual(NavigationTabLocationState.MissingLocation, shell.ActiveTab.LocationState);
-        Assert.AreEqual(@"Z:\missing", shell.MissingLocationPath);
-        Assert.IsTrue(shell.MissingLocationVisible);
+        Assert.IsFalse(emptyResult.Accepted);
+        Assert.AreEqual(@"D:\start", shell.ActivePath);
+        Assert.AreEqual(0, shell.ActiveTab.BackHistory.Count);
+        Assert.AreEqual(NavigationTabLocationState.Available, shell.ActiveTab.LocationState);
+        Assert.AreEqual("empty-path", shell.PathEntryError!.ReasonCode);
+
+        var invalidResult = shell.SubmitPath("relative-folder");
+
+        Assert.IsFalse(invalidResult.Accepted);
+        Assert.AreEqual(@"D:\start", shell.ActivePath);
+        Assert.AreEqual(0, shell.ActiveTab.BackHistory.Count);
+        Assert.AreEqual(NavigationTabLocationState.Available, shell.ActiveTab.LocationState);
+        Assert.AreEqual("invalid-path", shell.PathEntryError!.ReasonCode);
+    }
+
+    [TestMethod]
+    public void Visibility_toggles_write_durable_settings_without_resetting_unrelated_flags()
+    {
+        var writer = new CollectingSettingsStateWriter();
+        var shell = CreateShell(
+            initialPath: @"D:\start",
+            existingPaths: [@"D:\start"],
+            settingsWriter: writer);
+
+        shell.SetShowHiddenFiles(true);
+        shell.SetShowProtectedOperatingSystemFiles(true, confirmed: true);
+        shell.SetShowFileExtensions(false);
+
+        Assert.AreEqual(3, writer.Writes.Count);
+        Assert.AreEqual(new SettingsStatePayload(true, false, true), writer.Writes[0]);
+        Assert.AreEqual(new SettingsStatePayload(true, true, true), writer.Writes[1]);
+        Assert.AreEqual(new SettingsStatePayload(true, true, false), writer.Writes[2]);
+        Assert.AreEqual(new VisibilitySettings(true, true, false), shell.VisibilitySettings);
+    }
+
+    [TestMethod]
+    public void Visibility_toggle_write_failure_does_not_crash_or_revert_current_session()
+    {
+        var shell = CreateShell(
+            initialPath: @"D:\start",
+            existingPaths: [@"D:\start"],
+            settingsWriter: new ThrowingSettingsStateWriter());
+
+        shell.SetShowHiddenFiles(true);
+
+        Assert.IsTrue(shell.VisibilitySettings.ShowHiddenFiles);
     }
 
     [TestMethod]
@@ -121,7 +186,8 @@ public sealed class AppShellCommandSurfaceTests
         IReadOnlyList<RecentLocationState>? recents = null,
         IReadOnlyList<DriveEntry>? drives = null,
         CrashRecoveryState? crashRecovery = null,
-        IReadOnlyList<string>? existingPaths = null)
+        IReadOnlyList<string>? existingPaths = null,
+        ISettingsStateWriter? settingsWriter = null)
     {
         var workspace = NavigationWorkspace.Create(initialPath);
         var sidebar = SidebarStateService.Create(
@@ -139,6 +205,7 @@ public sealed class AppShellCommandSurfaceTests
             crashRecovery ?? CrashRecoveryState.None,
             new TestDefaultLaunchPathProvider(defaultPath ?? initialPath),
             pathProbe,
+            settingsWriter ?? NoOpSettingsStateWriter.Instance,
             utcNow: () => DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
     }
 
@@ -169,6 +236,24 @@ public sealed class AppShellCommandSurfaceTests
         public string GetDefaultLaunchPath()
         {
             return _path;
+        }
+    }
+
+    private sealed class CollectingSettingsStateWriter : ISettingsStateWriter
+    {
+        public List<SettingsStatePayload> Writes { get; } = [];
+
+        public void Write(SettingsStatePayload payload)
+        {
+            Writes.Add(payload);
+        }
+    }
+
+    private sealed class ThrowingSettingsStateWriter : ISettingsStateWriter
+    {
+        public void Write(SettingsStatePayload payload)
+        {
+            throw new IOException("settings storage unavailable");
         }
     }
 }

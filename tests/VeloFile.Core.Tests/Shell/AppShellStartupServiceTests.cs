@@ -107,10 +107,55 @@ public sealed class AppShellStartupServiceTests
         Assert.IsTrue(state.CommandSurface.ActiveTab.CloseTabActionAvailable);
     }
 
+    [TestMethod]
+    public void Visibility_settings_survive_durable_write_and_restart_bootstrap()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var diagnostics = new CollectingDiagnosticSink();
+        var settingsRepository = new DurableDocumentRepository<SettingsStatePayload>(
+            "settings.json",
+            SettingsStateDocumentCodec.Instance,
+            storage,
+            () => SettingsStatePayload.Default,
+            diagnostics);
+        var writer = new DurableSettingsStateWriter(
+            settingsRepository,
+            "1.0.0-test",
+            () => DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+        var initialStartup = CreateStartup(
+            existingPaths: [@"D:\projects"],
+            settingsStateWriter: writer);
+        var initialState = initialStartup.CreateStartupState(new AppShellStartupInput(
+            WindowTitle: "VeloFile",
+            Session: new SessionStatePayload([new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])], 0, null),
+            Settings: SettingsStatePayload.Default,
+            Favorites: FavoritesStatePayload.Empty,
+            RecentLocations: RecentLocationsStatePayload.Empty,
+            Drives: []));
+
+        initialState.CommandSurface.SetShowHiddenFiles(true);
+        initialState.CommandSurface.SetShowFileExtensions(false);
+
+        var restoredSettings = settingsRepository.Read().Payload;
+        var restartedStartup = CreateStartup(existingPaths: [@"D:\projects"]);
+        var restartedState = restartedStartup.CreateStartupState(new AppShellStartupInput(
+            WindowTitle: "VeloFile",
+            Session: new SessionStatePayload([new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])], 0, null),
+            Settings: restoredSettings,
+            Favorites: FavoritesStatePayload.Empty,
+            RecentLocations: RecentLocationsStatePayload.Empty,
+            Drives: []));
+
+        Assert.IsTrue(restartedState.CommandSurface.VisibilitySettings.ShowHiddenFiles);
+        Assert.IsFalse(restartedState.CommandSurface.VisibilitySettings.ShowFileExtensions);
+        Assert.IsFalse(restartedState.CommandSurface.VisibilitySettings.ShowProtectedOperatingSystemFiles);
+    }
+
     private static AppShellStartupService CreateStartup(
         IReadOnlyList<string> existingPaths,
         string defaultPath = @"C:\Users\alice",
-        bool crashRecovery = false)
+        bool crashRecovery = false,
+        ISettingsStateWriter? settingsStateWriter = null)
     {
         return new AppShellStartupService(
             new SessionRestoreService(
@@ -122,7 +167,8 @@ public sealed class AppShellStartupServiceTests
             new TestDefaultLaunchPathProvider(defaultPath),
             new SetPathExistenceProbe(existingPaths),
             new CollectingDiagnosticSink(),
-            utcNow: () => DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+            utcNow: () => DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            settingsStateWriter);
     }
 
     private sealed class SetPathExistenceProbe : IPathExistenceProbe
@@ -183,6 +229,34 @@ public sealed class AppShellStartupServiceTests
         public string GetDefaultLaunchPath()
         {
             return _path;
+        }
+    }
+
+    private sealed class InMemoryDurableDocumentStorage : IDurableDocumentStorage
+    {
+        public Dictionary<string, string> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public string BackupPath(string canonicalPath)
+        {
+            return canonicalPath + ".bak";
+        }
+
+        public DurableDocumentStorageReadResult ReadText(string path)
+        {
+            return Files.TryGetValue(path, out var content)
+                ? DurableDocumentStorageReadResult.Found(content)
+                : DurableDocumentStorageReadResult.Missing();
+        }
+
+        public void WriteAtomic(string canonicalPath, string content)
+        {
+            if (Files.TryGetValue(canonicalPath, out var previous))
+            {
+                Files[BackupPath(canonicalPath)] = previous;
+            }
+
+            Files[canonicalPath] = content;
+            Files[BackupPath(canonicalPath)] = content;
         }
     }
 }

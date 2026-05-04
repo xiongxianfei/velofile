@@ -263,6 +263,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -291,9 +292,21 @@
                 </InfoBar.ActionButton>
             </InfoBar>
 
+            <InfoBar
+                x:Name="PathEntryFailureState"
+                Grid.Row="2"
+                IsOpen="False"
+                Severity="Warning"
+                Title="Path not opened"
+                Message="The submitted path could not be opened.">
+                <InfoBar.ActionButton>
+                    <Button Content="Clear" Click="ClearPathEntryErrorButton_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
             <ListView
                 x:Name="FileListSurface"
-                Grid.Row="2"
+                Grid.Row="3"
                 Margin="0,8,0,0"
                 SelectionMode="Extended"
                 AutomationProperties.Name="Files">
@@ -302,7 +315,7 @@
                 <ListViewItem Content="Downloads    Folder" />
             </ListView>
 
-            <Grid Grid.Row="3" Margin="0,8,0,0">
+            <Grid Grid.Row="4" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />

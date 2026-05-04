@@ -27,19 +27,22 @@ public sealed class AppShellStartupService
     private readonly IPathExistenceProbe _pathExistenceProbe;
     private readonly IDiagnosticSink _diagnostics;
     private readonly Func<DateTimeOffset> _utcNow;
+    private readonly ISettingsStateWriter _settingsStateWriter;
 
     public AppShellStartupService(
         SessionRestoreService sessionRestoreService,
         IDefaultLaunchPathProvider defaultLaunchPathProvider,
         IPathExistenceProbe pathExistenceProbe,
         IDiagnosticSink diagnostics,
-        Func<DateTimeOffset> utcNow)
+        Func<DateTimeOffset> utcNow,
+        ISettingsStateWriter? settingsStateWriter = null)
     {
         _sessionRestoreService = sessionRestoreService;
         _defaultLaunchPathProvider = defaultLaunchPathProvider;
         _pathExistenceProbe = pathExistenceProbe;
         _diagnostics = diagnostics;
         _utcNow = utcNow;
+        _settingsStateWriter = settingsStateWriter ?? NoOpSettingsStateWriter.Instance;
     }
 
     public AppShellStartupState CreateStartupState(AppShellStartupInput input)
@@ -59,9 +62,10 @@ public sealed class AppShellStartupService
             restore.CrashRecovery,
             _defaultLaunchPathProvider,
             _pathExistenceProbe,
-            _utcNow);
+            _settingsStateWriter,
+            _utcNow,
+            _diagnostics);
 
-        _ = _diagnostics;
         return new AppShellStartupState(input.WindowTitle, commandSurface, restore.WindowPlacement);
     }
 }

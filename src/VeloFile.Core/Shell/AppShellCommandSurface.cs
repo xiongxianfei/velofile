@@ -1,3 +1,4 @@
+using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Persistence;
@@ -20,10 +21,28 @@ public sealed record ShellNavigationTarget(
     string DisplayName,
     string Path);
 
+public sealed record PathEntryError(
+    string SubmittedPath,
+    string ReasonCode);
+
+public sealed record PathSubmissionResult(
+    bool Accepted,
+    PathEntryError? Error)
+{
+    public static PathSubmissionResult AcceptedNavigation { get; } = new(Accepted: true, Error: null);
+
+    public static PathSubmissionResult Rejected(PathEntryError error)
+    {
+        return new PathSubmissionResult(Accepted: false, error);
+    }
+}
+
 public sealed class AppShellCommandSurface
 {
     private readonly IDefaultLaunchPathProvider _defaultLaunchPathProvider;
     private readonly IPathExistenceProbe _pathExistenceProbe;
+    private readonly ISettingsStateWriter _settingsStateWriter;
+    private readonly IDiagnosticSink? _diagnostics;
     private readonly Func<DateTimeOffset> _utcNow;
     private NavigationEntryPointService _entryPoints;
 
@@ -36,6 +55,31 @@ public sealed class AppShellCommandSurface
         IDefaultLaunchPathProvider defaultLaunchPathProvider,
         IPathExistenceProbe pathExistenceProbe,
         Func<DateTimeOffset> utcNow)
+        : this(
+            windowTitle,
+            workspace,
+            sidebar,
+            visibility,
+            crashRecovery,
+            defaultLaunchPathProvider,
+            pathExistenceProbe,
+            NoOpSettingsStateWriter.Instance,
+            utcNow,
+            diagnostics: null)
+    {
+    }
+
+    public AppShellCommandSurface(
+        string windowTitle,
+        NavigationWorkspace workspace,
+        SidebarStateService sidebar,
+        VisibilitySettingsService visibility,
+        CrashRecoveryState crashRecovery,
+        IDefaultLaunchPathProvider defaultLaunchPathProvider,
+        IPathExistenceProbe pathExistenceProbe,
+        ISettingsStateWriter settingsStateWriter,
+        Func<DateTimeOffset> utcNow,
+        IDiagnosticSink? diagnostics = null)
     {
         WindowTitle = windowTitle;
         Workspace = workspace;
@@ -44,6 +88,8 @@ public sealed class AppShellCommandSurface
         CrashRecovery = crashRecovery;
         _defaultLaunchPathProvider = defaultLaunchPathProvider;
         _pathExistenceProbe = pathExistenceProbe;
+        _settingsStateWriter = settingsStateWriter;
+        _diagnostics = diagnostics;
         _utcNow = utcNow;
         _entryPoints = CreateEntryPointService();
     }
@@ -76,6 +122,10 @@ public sealed class AppShellCommandSurface
 
     public string? MissingLocationPath => ActiveTab.MissingPath;
 
+    public PathEntryError? PathEntryError { get; private set; }
+
+    public bool PathEntryErrorVisible => PathEntryError is not null;
+
     public IReadOnlyList<PinnedLocationState> Favorites => Sidebar.State.Favorites;
 
     public IReadOnlyList<RecentLocationState> RecentLocations => Sidebar.State.RecentLocations;
@@ -96,24 +146,36 @@ public sealed class AppShellCommandSurface
         }
     }
 
-    public void SubmitPath(string path)
+    public PathSubmissionResult SubmitPath(string path)
     {
-        _entryPoints.OpenTypedPath(path);
+        return ApplyNavigationAttempt(_entryPoints.OpenTypedPath(path));
     }
 
-    public void ActivateSidebarTarget(ShellNavigationTarget target)
+    public PathSubmissionResult ActivateSidebarTarget(ShellNavigationTarget target)
     {
-        _entryPoints.OpenSidebarLocation(target.Path);
+        return ApplyNavigationAttempt(_entryPoints.OpenSidebarLocation(target.Path));
     }
 
     public bool NavigateBack()
     {
-        return Workspace.NavigateBack();
+        var navigated = Workspace.NavigateBack();
+        if (navigated)
+        {
+            PathEntryError = null;
+        }
+
+        return navigated;
     }
 
     public bool NavigateForward()
     {
-        return Workspace.NavigateForward();
+        var navigated = Workspace.NavigateForward();
+        if (navigated)
+        {
+            PathEntryError = null;
+        }
+
+        return navigated;
     }
 
     public bool NavigateToParent()
@@ -124,37 +186,42 @@ public sealed class AppShellCommandSurface
             return false;
         }
 
-        SubmitPath(parent);
-        return true;
+        return SubmitPath(parent).Accepted;
     }
 
     public void RefreshActiveTab()
     {
+        PathEntryError = null;
         Workspace.RefreshActive();
     }
 
     public NavigationTab NewTab()
     {
+        PathEntryError = null;
         return Workspace.OpenTab(_defaultLaunchPathProvider.GetDefaultLaunchPath());
     }
 
     public NavigationTab DuplicateActiveTab()
     {
+        PathEntryError = null;
         return Workspace.DuplicateTab(Workspace.ActiveTab.Id);
     }
 
     public void CloseActiveTab()
     {
+        PathEntryError = null;
         Workspace.CloseTab(Workspace.ActiveTab.Id);
     }
 
     public NavigationTab? ReopenClosedTab()
     {
+        PathEntryError = null;
         return Workspace.ReopenClosedTab();
     }
 
     public void SwitchToTab(int index)
     {
+        PathEntryError = null;
         Workspace.SwitchToTab(index);
     }
 
@@ -176,28 +243,100 @@ public sealed class AppShellCommandSurface
     public void SetShowHiddenFiles(bool show)
     {
         Visibility.SetShowHiddenFiles(show);
+        PersistVisibilitySettings();
     }
 
     public void SetShowFileExtensions(bool show)
     {
         Visibility.SetShowFileExtensions(show);
+        PersistVisibilitySettings();
     }
 
     public VisibilityChangeStatus SetShowProtectedOperatingSystemFiles(bool show, bool confirmed)
     {
-        return Visibility.SetShowProtectedOperatingSystemFiles(show, confirmed);
+        var status = Visibility.SetShowProtectedOperatingSystemFiles(show, confirmed);
+        if (status is VisibilityChangeStatus.Applied)
+        {
+            PersistVisibilitySettings();
+        }
+
+        return status;
     }
 
     public void StartFresh()
     {
         Workspace = NavigationWorkspace.Create(_defaultLaunchPathProvider.GetDefaultLaunchPath());
         CrashRecovery = CrashRecoveryState.None;
+        PathEntryError = null;
         _entryPoints = CreateEntryPointService();
+    }
+
+    public void ClearPathEntryError()
+    {
+        PathEntryError = null;
     }
 
     private NavigationEntryPointService CreateEntryPointService()
     {
         return new NavigationEntryPointService(Workspace, Sidebar, _utcNow, _pathExistenceProbe.Exists);
+    }
+
+    private PathSubmissionResult ApplyNavigationAttempt(NavigationAttemptResult attempt)
+    {
+        if (attempt.Accepted)
+        {
+            PathEntryError = null;
+            return PathSubmissionResult.AcceptedNavigation;
+        }
+
+        var error = new PathEntryError(
+            attempt.SubmittedPath ?? string.Empty,
+            attempt.ReasonCode ?? "unknown");
+        PathEntryError = error;
+        return PathSubmissionResult.Rejected(error);
+    }
+
+    private void PersistVisibilitySettings()
+    {
+        try
+        {
+            _settingsStateWriter.Write(Visibility.ToPayload());
+        }
+        catch (Exception ex)
+        {
+            TryWriteSettingsPersistenceDiagnostic(ex);
+        }
+    }
+
+    private void TryWriteSettingsPersistenceDiagnostic(Exception exception)
+    {
+        if (_diagnostics is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _diagnostics.Write(new DiagnosticEvent
+            {
+                EventId = Guid.NewGuid().ToString("N"),
+                EventType = "operation.failure",
+                UtcTimestamp = _utcNow(),
+                SequenceNumber = 0,
+                Severity = "warning",
+                Component = "persistence",
+                OperationKind = "write",
+                ResultState = "failed",
+                ReasonCode = ExpectedFileSystemExceptions.IsExpected(exception)
+                    ? ExpectedFileSystemExceptions.ReasonCode(exception)
+                    : "unknown",
+                DocumentType = DurableDocumentTypes.Settings
+            });
+        }
+        catch
+        {
+            // Diagnostics are best-effort and must not break shell commands.
+        }
     }
 
     private static string? TryGetParentPath(string path)

@@ -251,6 +251,12 @@ Architectural boundaries to preserve:
   - milestone committed
 - Risks: Restored state can create confusing UI or crash loops.
 - Rollback/recovery: Start-fresh recovery remains available; corrupt session fields fall back per M3.
+- Review-resolution notes:
+  - First review resolution wired the WinUI shell to `AppShellCommandSurface`, moved app launch through durable session/settings/favorites/recent-location restore, and enforced the always-at-least-one-tab workspace invariant.
+  - Second review resolution keeps typed/pasted invalid paths out of the active tab path/history/recents, while preserving restore-specific missing-location tabs.
+  - Visibility toggles now write through a retained durable settings writer and survive restarted bootstrap.
+  - Restored window placement is resolved against real production monitor layout data and applied through a WinUI window placement applier; production composition no longer uses the pass-through monitor resolver.
+  - Focused validation for the second review resolution passed with `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"`, and final CI passed with `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`.
 
 ### M6. Selection, Command Layer, Built-In Context Menu, and Clipboard
 

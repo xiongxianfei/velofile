@@ -18,6 +18,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"FileViewModeSelector\"");
         StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
         StringAssert.Contains(xaml, "x:Name=\"MissingLocationState\"");
+        StringAssert.Contains(xaml, "x:Name=\"PathEntryFailureState\"");
         StringAssert.Contains(xaml, "x:Name=\"VisibilityControls\"");
     }
 
@@ -74,6 +75,21 @@ public sealed class AppShellContractTests
         StringAssert.Contains(compositionCode, "SessionRestoreService");
         StringAssert.Contains(compositionCode, "WindowsDurableDocumentStorage");
         StringAssert.Contains(compositionCode, "LocalDiagnosticLogStore");
+    }
+
+    [TestMethod]
+    public void App_launch_uses_real_monitor_resolver_and_applies_restored_window_placement()
+    {
+        var repoRoot = FindRepoRoot();
+        var appCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
+        var mainWindowCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+        var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
+
+        StringAssert.Contains(appCode, "AppCompositionRoot.CreateWindowPlacementApplier()");
+        StringAssert.Contains(mainWindowCode, "windowPlacementApplier.Apply(this, ViewModel.WindowPlacement)");
+        StringAssert.Contains(compositionCode, "WindowsMonitorLayoutSource");
+        StringAssert.Contains(compositionCode, "MonitorWindowPlacementResolver");
+        Assert.IsFalse(compositionCode.Contains("new PassThroughMonitorPlacementResolver()", StringComparison.Ordinal));
     }
 
     private static DirectoryInfo FindRepoRoot()

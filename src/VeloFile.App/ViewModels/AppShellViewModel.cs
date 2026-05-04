@@ -42,19 +42,28 @@ public sealed class AppShellViewModel
 
     public string? MissingLocationPath => CommandSurface.MissingLocationPath;
 
-    public void SubmitPath(string path)
+    public bool PathEntryErrorVisible => CommandSurface.PathEntryErrorVisible;
+
+    public PathEntryError? PathEntryError => CommandSurface.PathEntryError;
+
+    public PathSubmissionResult SubmitPath(string path)
     {
-        CommandSurface.SubmitPath(path);
+        return CommandSurface.SubmitPath(path);
     }
 
-    public void ActivateSidebarTarget(ShellNavigationTarget target)
+    public PathSubmissionResult ActivateSidebarTarget(ShellNavigationTarget target)
     {
-        CommandSurface.ActivateSidebarTarget(target);
+        return CommandSurface.ActivateSidebarTarget(target);
     }
 
     public void OpenBreadcrumbSegment(BreadcrumbSegment segment)
     {
         SubmitPath(segment.FullPath);
+    }
+
+    public void ClearPathEntryError()
+    {
+        CommandSurface.ClearPathEntryError();
     }
 
     public bool NavigateBack()

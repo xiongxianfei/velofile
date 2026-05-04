@@ -13,6 +13,9 @@ M5 connects the non-UI listing and persistence foundations to core browsing stat
 - Visibility settings service for hidden files, protected operating-system files, and file extensions.
 - A Core shell command surface for typed path navigation, sidebar targets, breadcrumb navigation, back/forward/up/refresh, tab lifecycle, keyboard-style tab switching, visibility toggles, missing-location close, and crash-recovery start-fresh.
 - A launch composition path that reads durable session, settings, favorites, and recent-location documents before creating the WinUI shell view model.
+- A path-entry failure state that keeps invalid typed/pasted path attempts separate from restored missing-location tabs.
+- A durable settings writer path for visibility toggles.
+- A production monitor placement resolver and WinUI window placement applier for restored window bounds.
 - WinUI main-window shell regions and event routes for tabs, sidebar, breadcrumb/raw path, navigation buttons, visibility controls, keyboard accelerators, file list states, crash recovery, and missing-location state.
 
 M5 does not implement file selection, file operations, context-menu verbs, filtering/search, preview providers, drag/drop, or benchmarked UI automation. Those remain assigned to later milestones. M5 now includes navigation command routing because it is required for the shell to satisfy AC2.
@@ -49,6 +52,12 @@ Review-resolution tests were also added before production fixes for the three re
 
 `NavigationWorkspace` now enforces the V1 invariant that a usable shell always has at least one tab. Empty restored sessions and close-last-tab behavior normalize to a default active tab rather than leaving `ActiveTab` unsafe.
 
+Interactive raw-path navigation now probes before commit. Missing, empty, unsupported, or invalid user-submitted paths do not replace the active valid tab, do not enter tab history, and do not update recents. Session restore still uses the restore-specific missing-location policy so missing restored tabs remain visible and closable.
+
+Visibility toggles now persist through `ISettingsStateWriter`. The production writer wraps the durable settings repository, so toggle changes use the same versioned, partial-write-safe persistence protocol as launch restore. Write failures are handled as recoverable command failures: in-memory state remains updated and diagnostics are best-effort.
+
+Window placement is resolved against the current monitor layout before it reaches the shell. The production path uses `WindowsMonitorLayoutSource` and `MonitorWindowPlacementResolver`, then `MainWindow` applies the resolved placement through a WinUI app-window applier. The old pass-through resolver remains available only as a test-style stub, not production composition.
+
 The WinUI shell is intentionally a concrete first screen, not a landing page. It exposes the required regions, command routes, and keyboard accelerator invoked handlers, while later milestones will connect file selection, operations, search, and preview surfaces.
 
 ## Validation
@@ -68,7 +77,20 @@ Final milestone closeout also passed:
 
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 
-The review-resolution closeout run built with 0 warnings and 0 errors and passed 85 tests across 4 test assemblies.
+The first review-resolution closeout run built with 0 warnings and 0 errors and passed 85 tests across 4 test assemblies.
+
+Second-pass review-resolution focused validation passed with:
+
+- `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Visibility"`
+- `dotnet test VeloFile.sln -c Debug --filter Navigation`
+- `dotnet test VeloFile.sln -c Debug --filter Session`
+- `dotnet test VeloFile.sln -c Debug --filter Visibility`
+- `dotnet build VeloFile.sln -c Debug`
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+
+That run passed 31 Core tests and 3 App shell contract tests after first failing on the intentionally missing settings-writer and window-placement resolver seams.
+
+The final second-pass CI run built with 0 warnings and 0 errors and passed 94 tests across 4 test assemblies.
 
 ## Deferred By Plan
 

@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using VeloFile.App.ViewModels;
+using VeloFile.App.Windowing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Shell;
 using Windows.System;
@@ -10,13 +11,21 @@ namespace VeloFile.App;
 
 public sealed partial class MainWindow : Window
 {
+    private bool _isRefreshingShellBindings;
+
     public MainWindow(AppShellViewModel viewModel)
+        : this(viewModel, new WinUiWindowPlacementApplier())
+    {
+    }
+
+    public MainWindow(AppShellViewModel viewModel, IWindowPlacementApplier windowPlacementApplier)
     {
         InitializeComponent();
         ViewModel = viewModel;
         Title = ViewModel.WindowTitle;
         RootShell.DataContext = ViewModel;
         RefreshShellBindings();
+        windowPlacementApplier.Apply(this, ViewModel.WindowPlacement);
     }
 
     public AppShellViewModel ViewModel { get; }
@@ -128,16 +137,31 @@ public sealed partial class MainWindow : Window
 
     private void ShowHiddenFilesToggle_Toggled(object sender, RoutedEventArgs e)
     {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
         ViewModel.SetShowHiddenFiles(ShowHiddenFilesToggle.IsOn);
     }
 
     private void ShowSystemFilesToggle_Toggled(object sender, RoutedEventArgs e)
     {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
         ViewModel.SetShowProtectedOperatingSystemFiles(ShowSystemFilesToggle.IsOn, confirmed: true);
     }
 
     private void ShowExtensionsToggle_Toggled(object sender, RoutedEventArgs e)
     {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
         ViewModel.SetShowFileExtensions(ShowExtensionsToggle.IsOn);
     }
 
@@ -150,6 +174,12 @@ public sealed partial class MainWindow : Window
     private void StartFreshButton_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.StartFresh();
+        RefreshShellBindings();
+    }
+
+    private void ClearPathEntryErrorButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ClearPathEntryError();
         RefreshShellBindings();
     }
 
@@ -230,18 +260,30 @@ public sealed partial class MainWindow : Window
 
     private void RefreshShellBindings()
     {
-        TabList.ItemsSource = ViewModel.Tabs;
-        TabList.SelectedIndex = ViewModel.ActiveTabIndex;
-        SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
-        BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
-        RawPathBox.Text = ViewModel.ActivePath;
-        MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
-        MissingLocationState.Message = ViewModel.MissingLocationPath is null
-            ? "The restored path is no longer available."
-            : $"The restored path is no longer available: {ViewModel.MissingLocationPath}";
-        CrashRecoveryState.IsOpen = ViewModel.CrashRecovery.StartFreshOffered;
-        ShowHiddenFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowHiddenFiles;
-        ShowSystemFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowProtectedOperatingSystemFiles;
-        ShowExtensionsToggle.IsOn = ViewModel.VisibilitySettings.ShowFileExtensions;
+        _isRefreshingShellBindings = true;
+        try
+        {
+            TabList.ItemsSource = ViewModel.Tabs;
+            TabList.SelectedIndex = ViewModel.ActiveTabIndex;
+            SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
+            BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
+            RawPathBox.Text = ViewModel.PathEntryError?.SubmittedPath ?? ViewModel.ActivePath;
+            MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
+            MissingLocationState.Message = ViewModel.MissingLocationPath is null
+                ? "The restored path is no longer available."
+                : $"The restored path is no longer available: {ViewModel.MissingLocationPath}";
+            PathEntryFailureState.IsOpen = ViewModel.PathEntryErrorVisible;
+            PathEntryFailureState.Message = ViewModel.PathEntryError is null
+                ? "The submitted path could not be opened."
+                : $"The submitted path could not be opened: {ViewModel.PathEntryError.SubmittedPath}";
+            CrashRecoveryState.IsOpen = ViewModel.CrashRecovery.StartFreshOffered;
+            ShowHiddenFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowHiddenFiles;
+            ShowSystemFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowProtectedOperatingSystemFiles;
+            ShowExtensionsToggle.IsOn = ViewModel.VisibilitySettings.ShowFileExtensions;
+        }
+        finally
+        {
+            _isRefreshingShellBindings = false;
+        }
     }
 }
