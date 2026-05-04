@@ -1,39 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "This is a template CI script."
-echo "Replace scripts/ci.sh with the real commands for your repository."
-echo
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_file="$repo_root/scripts/ci.ps1"
 
-if [[ -f package.json ]]; then
-  echo "Detected package.json. Example commands:"
-  echo "  npm ci && npm run lint && npm test && npm run build"
-  exit 0
+if command -v pwsh >/dev/null 2>&1; then
+  powershell_bin="pwsh"
+elif command -v powershell.exe >/dev/null 2>&1; then
+  powershell_bin="powershell.exe"
+elif command -v powershell >/dev/null 2>&1; then
+  powershell_bin="powershell"
+elif [[ -x "/c/Program Files/PowerShell/7/pwsh.exe" ]]; then
+  powershell_bin="/c/Program Files/PowerShell/7/pwsh.exe"
+elif [[ -x "/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ]]; then
+  powershell_bin="/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+elif [[ -x "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ]]; then
+  powershell_bin="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+else
+  echo "PowerShell is required to run VeloFile CI."
+  exit 1
 fi
 
-if [[ -f pyproject.toml ]]; then
-  echo "Detected pyproject.toml. Example commands:"
-  echo "  uv sync --frozen && pytest"
-  echo "  # or your project-specific equivalent"
-  exit 0
+if command -v wslpath >/dev/null 2>&1 && [[ "$powershell_bin" == *powershell.exe ]]; then
+  script_file="$(wslpath -w "$script_file")"
+elif command -v cygpath >/dev/null 2>&1 && [[ "$powershell_bin" == *powershell.exe ]]; then
+  script_file="$(cygpath -w "$script_file")"
 fi
 
-if [[ -f Cargo.toml ]]; then
-  echo "Detected Cargo.toml. Example commands:"
-  echo "  cargo fmt --check && cargo test"
-  exit 0
-fi
-
-if [[ -f go.mod ]]; then
-  echo "Detected go.mod. Example commands:"
-  echo "  go test ./..."
-  exit 0
-fi
-
-if [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]]; then
-  echo "Detected Java or Gradle build files. Example commands:"
-  echo "  ./gradlew test"
-  exit 0
-fi
-
-echo "No known build system detected. Replace this script before requiring the CI check."
+"$powershell_bin" -NoProfile -ExecutionPolicy Bypass -File "$script_file"

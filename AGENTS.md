@@ -77,9 +77,17 @@ If the work changes externally observable behavior and no relevant spec exists, 
 
 ## Verification expectations
 
-Replace this section with the real commands for your repository.
+Use the M1 Windows/.NET validation commands for the current repository foundation:
 
-Until this file is customized, inspect the existing task runner, package manager, Makefile, and `.github/workflows` files to find the real commands. Do not report success without naming the commands actually run.
+- `dotnet --info`
+- `dotnet restore VeloFile.sln`
+- `dotnet build VeloFile.sln -c Debug`
+- `dotnet test VeloFile.sln -c Debug`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
+
+The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script with the command above. `scripts/ci.sh` is a PowerShell wrapper for environments that enter CI through Bash.
+
+Do not report success without naming the commands actually run.
 
 ## Change management
 

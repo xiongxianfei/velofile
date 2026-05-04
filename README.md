@@ -1,60 +1,45 @@
-# <PROJECT_NAME>
+# VeloFile
 
-Replace this README with a project-specific introduction as soon as the repository has a real public purpose.
+<!-- vision:start -->
+VeloFile is a fast, lightweight, open-source file explorer for Windows 10 and 11. It is for everyday browsing and file management when Windows File Explorer feels slow, unpredictable, or buried under legacy behavior.
 
-## Why this template exists
+VeloFile chooses a narrow, Windows-native daily workflow instead of becoming a full power-user suite. It keeps hot paths like folder navigation, current-folder filtering, tabs, preview, and common file operations responsive while still respecting Windows expectations.
 
-This template is designed for repositories that use Codex regularly and want less repeated setup work. It gives you:
+It serves everyday Windows users who want reliable browsing, developers who live in project folders and terminals, and power users who value tabs, preview, keyboard flow, and clear behavior.
 
-- one place for durable repo instructions (`AGENTS.md`)
-- a lightweight planning + spec structure for behavior-changing work
-- GitHub community files so new repos start contributor-friendly
-- CI and release workflows that are easy to adapt
-- repo-local Codex skills for verification and release preparation
+See [VISION.md](VISION.md) for goals, non-goals, and falsifiability.
+<!-- vision:end -->
 
-## First 15 minutes after creating a repo from this template
+VeloFile V1 is currently in foundation work. The repository now contains the initial WinUI 3 / Windows App SDK app shell, core and Windows boundary projects, MSTest smoke tests, and Windows CI entry point.
 
-1. Rename the project and replace placeholder text.
-2. Update `AGENTS.md` with the actual build, test, lint, and release commands.
-3. Update `LICENSE`, `SECURITY.md`, and maintainer contact details.
-4. Edit `docs/workflows.md` so it matches how your team actually works.
-5. Replace `scripts/ci.sh` and `scripts/release-verify.sh` with repo-specific commands if needed.
-6. Enable branch protection or rulesets for `main` and require the CI job from `.github/workflows/ci.yml`.
-7. Delete any files you do not actually want to maintain.
+## Requirements
 
-## Template layout
+- Windows 10 or Windows 11.
+- .NET SDK 10.x.
+- Visual Studio 2022 with WinUI / Windows App SDK C# tooling.
 
-```text
-.
-├── AGENTS.md
-├── .codex/PLANS.md
-├── .agents/skills/
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   ├── pull_request_template.md
-│   └── workflows/
-├── docs/
-│   ├── plan.md
-│   ├── roadmap.md
-│   ├── workflows.md
-│   └── plans/
-├── scripts/
-└── specs/
+## Build And Test
+
+```powershell
+dotnet restore VeloFile.sln
+dotnet build VeloFile.sln -c Debug
+dotnet test VeloFile.sln -c Debug
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
-## Suggested repository settings
+The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script with the command above.
 
-- default branch: `main`
-- require pull requests before merge
-- require the `ci` status check
-- require one approval for external-facing changes
-- disable force pushes to protected branches
-- use squash merge unless your project has a strong reason not to
+## Project Layout
 
-## Suggested follow-up for organizations
-
-If you own many repositories, also create a public `.github` repository with default community health files and workflow templates, then keep only repo-specific differences here.
+```text
+src/VeloFile.App       WinUI desktop app shell
+src/VeloFile.Core      Product-neutral core foundation
+src/VeloFile.Windows   Windows integration boundary
+tests/                 MSTest smoke and contract tests
+specs/                 Approved product and test specifications
+docs/                  Plans, architecture, ADRs, and change notes
+```
 
 ## License
 
-This template ships with the MIT license text as a placeholder. Change it if your project needs a different license.
+VeloFile is licensed under the MIT license.

@@ -1,0 +1,24 @@
+C4Container
+  title VeloFile V1 - Container View
+
+  Person(user, "Windows user", "Browses, previews, searches, and operates on files.")
+
+  System_Boundary(velofile, "VeloFile V1") {
+    Container(app, "VeloFile desktop app", "WinUI 3 / Windows App SDK / C#", "Interactive desktop application. Hosts UI, commands, search/filter orchestration, preview orchestration, Shell interop adapters, and file-operation orchestration.")
+    ContainerDb(localData, "Local app data", "Versioned JSON + local diagnostic log files", "Stores settings, favorites, recent locations, session state, local crash markers, and redacted diagnostics. Written with same-directory temp files, Windows-safe atomic replacement, last-known-good backups, and diagnostics retention limits.")
+    Container(benchmarkHarness, "Benchmark harness", "Test executable", "Runs generated-corpus app benchmarks outside normal user runtime and emits benchmark reports for release gating.")
+    Container(releaseChannel, "MSIX package and stable release channel", "Signed MSIX + release metadata", "Distributes V1 side by side with Explorer, records signing identity, versioning policy, update cadence expectation, and rollback/uninstall instructions.")
+  }
+
+  System_Ext(windowsPlatform, "Windows platform", "File system, Shell APIs, Recycle Bin, thumbnails/icons, file associations, terminal processes, WSL, drag/drop, DPI, and accessibility services.")
+  System_Ext(otherApps, "Other desktop apps", "Explorer, browsers, IDEs, Office, and other drag/drop or file-association participants.")
+  System_Ext(userFileLocations, "User file locations", "Local disks, removable media, mapped/network drives, cloud-placeholder folders, and protected locations.")
+
+  Rel(user, app, "Uses")
+  Rel(app, localData, "Reads/writes versioned local state and local-only diagnostics")
+  Rel(app, windowsPlatform, "Uses Shell, Win32, Windows App SDK, terminal, accessibility, and packaging APIs")
+  Rel(app, userFileLocations, "Enumerates, previews, searches, and operates on files")
+  Rel(app, otherApps, "Exchanges drag/drop data and opens files through associations")
+  Rel(benchmarkHarness, app, "Starts and drives measured workflows")
+  Rel(benchmarkHarness, userFileLocations, "Creates and uses deterministic generated corpus")
+  Rel(releaseChannel, app, "Installs, updates, and uninstalls")

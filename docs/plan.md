@@ -1,15 +1,29 @@
-# Plan index
+# Execution Plan Index
 
-This file tracks active, blocked, done, and superseded plans.
+`docs/plan.md` is the lifecycle index for execution plans. Plan bodies live under `docs/plans/`.
+
+## Draft
+
+| Plan | Scope | Status | Next step |
+|---|---|---|---|
+| None. | | | |
 
 ## Active
-- none yet
+
+| Plan | Scope | Status | Next step |
+|---|---|---|---|
+| [2026-05-04 V1 product scope](plans/2026-05-04-v1-product-scope.md) | Implement the approved VeloFile V1 product scope from empty/template-stage repository through MSIX preview readiness. | M1 implemented | Run `code-review` for M1 before starting M2. |
 
 ## Blocked
-- none yet
+
+| Plan | Scope | Status | Next step |
+|---|---|---|---|
+| None. | | | |
 
 ## Done
-- none yet
+
+None.
 
 ## Superseded
-- none yet
+
+None.

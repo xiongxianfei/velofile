@@ -1,0 +1,44 @@
+id: 2026-05-04-m1-foundation
+title: M1 product foundation, solution layout, and real CI
+status: implemented
+feature: v1-product-scope
+milestone: M1
+requirements:
+  - R1
+  - R2
+  - R3
+  - R4
+  - C1
+  - C2
+test_spec:
+  - specs/v1-product-scope.test.md#T001
+artifacts:
+  - VeloFile.sln
+  - src/VeloFile.App/
+  - src/VeloFile.Core/
+  - src/VeloFile.Windows/
+  - tests/VeloFile.App.Tests/
+  - tests/VeloFile.Core.Tests/
+  - tests/VeloFile.Windows.Tests/
+  - scripts/ci.ps1
+  - scripts/ci.sh
+  - .github/workflows/ci.yml
+  - README.md
+  - AGENTS.md
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --no-restore
+    result: failed as expected before production foundation was added
+  - command: dotnet restore VeloFile.sln
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug
+    result: passed 5 tests across 3 test assemblies
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed
+  - command: launch VeloFile.App.exe for 2 seconds, then stop process
+    result: passed
+notes:
+  - scripts/select-validation.py is not present in M1; the plan establishes real solution-level validation instead.
+  - Generated corpus and benchmark scripts are intentionally deferred to M2.
+  - GitHub Actions uses pwsh on windows-latest; local validation used Windows PowerShell because pwsh is not installed on this workstation.

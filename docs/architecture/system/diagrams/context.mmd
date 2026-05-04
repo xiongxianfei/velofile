@@ -1,0 +1,21 @@
+C4Context
+  title VeloFile V1 - System Context
+
+  Person(user, "Windows user", "Browses, searches, previews, and manages files")
+  Person(contributor, "Contributor", "Builds and reviews VeloFile")
+
+  System(velofile, "VeloFile", "Fast Windows-native open-source file explorer")
+
+  System_Ext(filesystem, "Windows file system", "Local, removable, mapped, unavailable, and long-path locations")
+  System_Ext(shell, "Windows Shell APIs", "Recycle Bin, file associations, icons, thumbnails, drag/drop, Shell COM")
+  System_Ext(terminals, "Terminal targets", "Windows Terminal, PowerShell, cmd, Git Bash, WSL")
+  System_Ext(msix, "MSIX install/update channel", "Signed package distribution and rollback")
+  System_Ext(peers, "Drag/drop peer apps", "Explorer, browsers, IDEs, Office")
+
+  Rel(user, velofile, "Uses for daily file management")
+  Rel(contributor, velofile, "Contributes code, tests, docs, and architecture")
+  Rel(velofile, filesystem, "Enumerates and operates on files")
+  Rel(velofile, shell, "Uses Windows-native behavior")
+  Rel(velofile, terminals, "Launches explicit terminal sessions")
+  Rel(velofile, msix, "Ships and updates through")
+  Rel(velofile, peers, "Interoperates through OLE drag/drop")

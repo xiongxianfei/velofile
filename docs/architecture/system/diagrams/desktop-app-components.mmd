@@ -1,0 +1,39 @@
+C4Component
+  title VeloFile V1 - Desktop App Component View
+
+  Container_Boundary(app, "VeloFile desktop app") {
+    Component(ui, "UI shell", "WinUI 3", "Windows, tabs, sidebar, breadcrumb/path bar, virtualized file list, preview/details panes, dialogs, keyboard and accessibility flow.")
+    Component(commandLayer, "Command layer", "C#", "Built-in context menu, keyboard shortcuts, command availability, clipboard commands, Open/Open With, terminal command routing.")
+    Component(sessionService, "Session service", "C#", "Tab lifecycle, per-tab history, active tab, missing-location state, crash recovery flow, and restore orchestration.")
+    Component(persistenceService, "Persistence service", "C#", "Versioned settings, favorites, recent locations, session state, crash markers, last-action markers, atomic local writes, and last-known-good recovery.")
+    Component(diagnosticsService, "Diagnostics service", "C#", "Local crash markers, workflow markers, diagnostic logs, benchmark metadata, redaction, retention/rotation, export conformance, and preview-release triage evidence.")
+    Component(fileListing, "File listing service", "C#", "Directory enumeration, sorting, view-model projection, virtualization feed, and visibility settings.")
+    Component(searchFilter, "Search and filter service", "C#", "Current-folder filter and cancellable recursive search with result cap and skipped-location reporting.")
+    Component(previewProviders, "Preview providers", "C# / WIC / WinRT PDF", "Image, text/code, PDF, metadata fallback, timeout budgets, and thumbnail concurrency.")
+    Component(fileOperations, "File operation service", "C# + Shell interop", "Copy, move, rename, Recycle Bin delete, permanent delete confirmation, conflicts, progress, and undo eligibility.")
+    Component(shellInterop, "Shell interop adapters", "COM / Win32 / WinRT / OLE", "Shell-owned operations, file associations, drag/drop, thumbnails/icons, terminal launch, long paths, DPI, and accessibility platform calls.")
+  }
+
+  ContainerDb(localData, "Local app data", "Versioned JSON + diagnostic logs", "Session, settings, favorites, recents, crash markers, and redacted diagnostics.")
+  System_Ext(windowsPlatform, "Windows platform", "File system, Shell APIs, terminals, file associations, drag/drop peers, Recycle Bin, icons/thumbnails, DPI, accessibility.")
+  System_Ext(userFileLocations, "User file locations", "Local, removable, network, protected, and placeholder-backed paths.")
+
+  Rel(ui, commandLayer, "Invokes")
+  Rel(ui, sessionService, "Navigates and restores tabs")
+  Rel(ui, fileListing, "Displays current folder")
+  Rel(ui, previewProviders, "Requests selected item preview")
+  Rel(commandLayer, fileOperations, "Runs file commands")
+  Rel(commandLayer, shellInterop, "Open/Open With, terminal launch, drag/drop")
+  Rel(sessionService, persistenceService, "Reads/writes session state")
+  Rel(fileListing, shellInterop, "Enumerates folders and resolves icons")
+  Rel(fileListing, userFileLocations, "Reads directory contents")
+  Rel(searchFilter, fileListing, "Filters current listing")
+  Rel(searchFilter, shellInterop, "Walks file system")
+  Rel(previewProviders, shellInterop, "Uses thumbnails/icons and platform preview APIs")
+  Rel(previewProviders, userFileLocations, "Reads bounded file content")
+  Rel(fileOperations, shellInterop, "Delegates Windows-correct operations")
+  Rel(fileOperations, userFileLocations, "Mutates files through Shell-owned behavior")
+  Rel(persistenceService, localData, "Reads/writes")
+  Rel(diagnosticsService, localData, "Writes local-only diagnostics")
+  Rel(diagnosticsService, persistenceService, "Records crash and workflow markers")
+  Rel(shellInterop, windowsPlatform, "Calls")
