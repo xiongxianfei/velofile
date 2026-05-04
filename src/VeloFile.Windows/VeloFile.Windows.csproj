@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\VeloFile.Core\VeloFile.Core.csproj" />
+  </ItemGroup>
+
 </Project>
