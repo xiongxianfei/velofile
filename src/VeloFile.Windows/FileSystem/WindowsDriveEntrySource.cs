@@ -3,7 +3,7 @@ using VeloFile.Core.Listing;
 
 namespace VeloFile.Windows.FileSystem;
 
-public sealed class WindowsDriveEntrySource : IDriveEntrySource
+public sealed class WindowsDriveEntrySource : IDriveEntrySource, IDriveHintSource
 {
     public IReadOnlyList<DriveEntry> GetDrives()
     {
@@ -15,6 +15,11 @@ public sealed class WindowsDriveEntrySource : IDriveEntrySource
         }
 
         return drives;
+    }
+
+    public Task<DriveHint> GetHintAsync(string rootPath, CancellationToken cancellationToken)
+    {
+        return Task.Run(() => ReadHint(rootPath, cancellationToken), cancellationToken);
     }
 
     private static DriveInfo[] GetDriveInfos()
@@ -31,53 +36,47 @@ public sealed class WindowsDriveEntrySource : IDriveEntrySource
 
     private static DriveEntry CreateDriveEntry(DriveInfo drive)
     {
-        var isReady = IsReady(drive);
-        var name = isReady ? TryReadName(drive) : drive.Name;
-        var availableFreeSpace = isReady ? TryReadSpace(drive, static item => item.AvailableFreeSpace) : null;
-        var totalSize = isReady ? TryReadSpace(drive, static item => item.TotalSize) : null;
-
         return new DriveEntry(
-            Name: name,
+            Name: drive.Name,
             RootPath: drive.Name,
             DriveType: drive.DriveType,
-            IsReady: isReady,
-            AvailableFreeSpaceBytes: availableFreeSpace,
-            TotalSizeBytes: totalSize);
+            IsReady: false,
+            AvailableFreeSpaceBytes: null,
+            TotalSizeBytes: null);
     }
 
-    private static bool IsReady(DriveInfo drive)
+    private static DriveHint ReadHint(string rootPath, CancellationToken cancellationToken)
     {
         try
         {
-            return drive.IsReady;
-        }
-        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
-        {
-            return false;
-        }
-    }
+            cancellationToken.ThrowIfCancellationRequested();
+            var drive = new DriveInfo(rootPath);
+            if (!drive.IsReady)
+            {
+                return DriveHint.Unavailable();
+            }
 
-    private static string TryReadName(DriveInfo drive)
-    {
-        try
+            var label = string.IsNullOrWhiteSpace(drive.VolumeLabel) ? null : drive.VolumeLabel;
+            return DriveHint.Available(
+                volumeLabel: label,
+                availableFreeSpaceBytes: drive.AvailableFreeSpace,
+                totalSizeBytes: drive.TotalSize);
+        }
+        catch (OperationCanceledException)
         {
-            return string.IsNullOrWhiteSpace(drive.VolumeLabel) ? drive.Name : drive.VolumeLabel;
+            return DriveHint.Cancelled();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return DriveHint.AccessDenied();
         }
         catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
         {
-            return drive.Name;
+            return DriveHint.Unavailable();
         }
-    }
-
-    private static long? TryReadSpace(DriveInfo drive, Func<DriveInfo, long> read)
-    {
-        try
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
         {
-            return read(drive);
-        }
-        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
-        {
-            return null;
+            return DriveHint.Unavailable();
         }
     }
 }

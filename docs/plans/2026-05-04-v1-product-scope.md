@@ -689,6 +689,7 @@ Each milestone must update validation notes with the commands actually run and a
 - M3 implementation found that UI session restore and numeric preview-release thresholds are later milestone concerns. M3 supplies durable schema/recovery and local diagnostic primitives that M5 and M15 consume.
 - M4 implementation found that `scripts/select-validation.py` is still absent, so M4 used the plan-specified `dotnet test` filters and `scripts/ci.ps1` directly rather than selector-selected checks.
 - M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
+- M4 review found two correctness gaps: request-token tests did not prove slow-tab isolation, and drive free-space hints were loaded synchronously. M4 now has a tab listing coordinator with per-tab cancellation/stale-result protection and a drive hint enrichment service that keeps entries separate from timeout-bounded hints.
 
 ## Validation Notes
 
@@ -774,14 +775,22 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 7 Core listing tests and 4 Windows listing/file-system tests.
   - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 4 Core visibility tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 45 tests across 4 test assemblies.
+- M4 review-resolution evidence:
+  - Added regression tests first for direct concurrent slow-vs-healthy tab isolation, stale slow completion after same-tab navigation, tab close cancellation, slow/hanging drive hints, stale drive hint generations, hint failures, and hint cancellation.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Slow_tab_listing|Drive_entries_are_returned"` failed first because `FolderListingCoordinator`, `DriveEntryService`, `IDriveHintSource`, `DriveHint`, and `DriveHintStatus` did not exist.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Slow_tab_listing|Stale_slow_listing|Closing_tab_cancels|Drive_entries_are_returned|Slow_hint_completion|Hint_failure|Cancelling_hint"` passed: 8 tests.
+  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Listing` passed: 4 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 15 Core listing tests and 4 Windows listing/file-system tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 4 Core visibility tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 55 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, and M4 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, and non-UI folder listing/visibility services. Later V1 user-facing browsing behavior remains assigned to M5-M16.
+M1, M2, M3, and M4 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, and non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs. Later V1 user-facing browsing behavior remains assigned to M5-M16.
 
 ## Readiness
 
-M4 is ready for `code-review`. Do not start M5 until M4 review findings are resolved or explicitly deferred.
+M4 review fixes are ready for `code-review`. Do not start M5 until the M4 review-resolution pass is accepted or remaining findings are explicitly deferred.
 
 Implementation resumes after M4 review with:
 

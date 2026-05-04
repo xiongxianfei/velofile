@@ -43,12 +43,13 @@ artifacts:
   - tests/VeloFile.Windows.Tests/FileSystem/
 validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Listing
-    result: passed 7 Core listing tests and 4 Windows listing/file-system tests
+    result: passed 15 Core listing tests and 4 Windows listing/file-system tests
   - command: dotnet test VeloFile.sln -c Debug --filter Visibility
     result: passed 4 Core visibility tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build, and 45 tests across 4 test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 55 tests across 4 test assemblies
 notes:
   - M4 implements non-UI listing and visibility foundations only; WinUI folder open entry points, breadcrumb, sidebar rendering, and view-mode controls remain assigned to M5.
   - Thumbnail and nonessential metadata enrichment remain assigned to preview/thumbnail milestones; M4 keeps the first viewport feed independent from those later adapters.
   - Protected operating-system-file first-use confirmation is UI behavior and remains assigned to later visibility UI work; M4 enforces the default hidden state and projection flags.
+  - Review-resolution added direct slow-tab isolation proofs and split drive discovery from timeout-bounded free-space hint enrichment.

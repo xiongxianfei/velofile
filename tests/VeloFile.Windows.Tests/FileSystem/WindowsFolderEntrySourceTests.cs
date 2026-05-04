@@ -73,8 +73,9 @@ public sealed class WindowsListingFolderEntrySourceTests
 
         Assert.IsTrue(drives.Count > 0);
         Assert.IsTrue(drives.All(drive => !string.IsNullOrWhiteSpace(drive.RootPath)));
-        Assert.IsTrue(drives.All(drive => !drive.IsReady || drive.AvailableFreeSpaceBytes is null || drive.AvailableFreeSpaceBytes >= 0));
-        Assert.IsTrue(drives.All(drive => !drive.IsReady || drive.TotalSizeBytes is null || drive.TotalSizeBytes >= 0));
+        Assert.IsTrue(drives.All(drive => drive.HintStatus == DriveHintStatus.NotRequested));
+        Assert.IsTrue(drives.All(drive => drive.AvailableFreeSpaceBytes is null));
+        Assert.IsTrue(drives.All(drive => drive.TotalSizeBytes is null));
     }
 
     private static async Task<List<T>> ToListAsync<T>(IAsyncEnumerable<T> source)
