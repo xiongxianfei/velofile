@@ -271,6 +271,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -313,7 +314,7 @@
 
             <ListView
                 x:Name="FileListSurface"
-                Grid.Row="3"
+                Grid.Row="4"
                 Margin="0,8,0,0"
                 SelectionMode="Extended"
                 SelectionChanged="FileListSurface_SelectionChanged"
@@ -367,7 +368,47 @@
                 </ListView.ContextFlyout>
             </ListView>
 
-            <Grid Grid.Row="4" Margin="0,8,0,0">
+            <Grid
+                x:Name="FilterSearchSurface"
+                Grid.Row="3"
+                Margin="0,8,0,0"
+                ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBox
+                    x:Name="CurrentFolderFilterBox"
+                    PlaceholderText="Filter"
+                    TextChanged="CurrentFolderFilterBox_TextChanged"
+                    AutomationProperties.Name="Current folder filter" />
+                <TextBox
+                    x:Name="RecursiveSearchBox"
+                    Grid.Column="1"
+                    PlaceholderText="Search"
+                    KeyDown="RecursiveSearchBox_KeyDown"
+                    AutomationProperties.Name="Recursive search" />
+                <Button
+                    x:Name="RecursiveSearchButton"
+                    Grid.Column="2"
+                    Content="Search"
+                    Click="RecursiveSearchButton_Click" />
+                <Button
+                    x:Name="CancelSearchButton"
+                    Grid.Column="3"
+                    Content="Cancel"
+                    Click="CancelSearchButton_Click" />
+                <TextBlock
+                    x:Name="RecursiveSearchStatusText"
+                    Grid.Column="4"
+                    VerticalAlignment="Center"
+                    Opacity="0.72" />
+            </Grid>
+
+            <Grid Grid.Row="5" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />

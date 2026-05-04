@@ -4,10 +4,13 @@ using VeloFile.Core.Commands;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Persistence;
+using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using VeloFile.Core.Sidebar;
 using VeloFile.Core.Visibility;
+
+#pragma warning disable MSTEST0037
 
 namespace VeloFile.App.Tests;
 
@@ -254,11 +257,126 @@ public sealed class AppShellCommandRouteTests
             clipboard.Text);
     }
 
+    [TestMethod]
+    [TestCategory("Filtering")]
+    public async Task Filtering_current_folder_narrows_visible_file_items_and_clear_restores_listing()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var readme = Item(@"D:\projects\README.md", "README.md");
+        var report = Item(@"D:\projects\report.pdf", "report.pdf");
+        var src = Item(@"D:\projects\src", "src", FileSystemEntryKind.Directory);
+        source.SetEntries(@"D:\projects", readme, report, src);
+        var viewModel = CreateViewModel(clipboard, listingSource: source);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 3);
+
+        viewModel.SetCurrentFolderFilter("read");
+
+        CollectionAssert.AreEqual(new[] { "README.md" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+
+        viewModel.SetCurrentFolderFilter("");
+
+        CollectionAssert.AreEqual(
+            new[] { "README.md", "report.pdf", "src" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Filtering")]
+    public async Task Filtering_current_folder_does_not_start_recursive_search()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var searchSource = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects", Item(@"D:\projects\README.md", "README.md"));
+        var viewModel = CreateViewModel(clipboard, listingSource: source, searchSource: searchSource);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1);
+
+        viewModel.SetCurrentFolderFilter("read");
+
+        Assert.AreEqual(RecursiveSearchStatus.NotStarted, viewModel.RecursiveSearch.Status);
+        Assert.AreEqual(0, searchSource.SearchEnumerationCount);
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_is_explicit_and_updates_limit_reached_state()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects",
+            Item(@"D:\projects\match-1.txt", "match-1.txt"),
+            Item(@"D:\projects\match-2.txt", "match-2.txt"),
+            Item(@"D:\projects\match-3.txt", "match-3.txt"));
+        var viewModel = CreateViewModel(clipboard, listingSource: source, searchSource: source);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 3);
+
+        viewModel.StartRecursiveSearch("match", resultLimit: 2);
+
+        await WaitUntilAsync(() => viewModel.RecursiveSearch.Status is RecursiveSearchStatus.ResultLimitReached);
+        CollectionAssert.AreEqual(
+            new[] { "match-1.txt", "match-2.txt" },
+            viewModel.RecursiveSearch.Results.Select(item => item.Name).ToArray());
+        Assert.IsTrue(viewModel.RecursiveSearch.ResultLimitReached);
+        Assert.IsTrue(viewModel.RecursiveSearch.CanCancel);
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_can_be_cancelled_after_result_limit_is_reached()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects",
+            Item(@"D:\projects\match-1.txt", "match-1.txt"),
+            Item(@"D:\projects\match-2.txt", "match-2.txt"),
+            Item(@"D:\projects\match-3.txt", "match-3.txt"));
+        var viewModel = CreateViewModel(clipboard, listingSource: source, searchSource: source);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 3);
+        viewModel.StartRecursiveSearch("match", resultLimit: 2);
+        await WaitUntilAsync(() => viewModel.RecursiveSearch.Status is RecursiveSearchStatus.ResultLimitReached);
+
+        viewModel.CancelRecursiveSearch();
+
+        Assert.AreEqual(RecursiveSearchStatus.Cancelled, viewModel.RecursiveSearch.Status);
+        CollectionAssert.AreEqual(
+            new[] { "match-1.txt", "match-2.txt" },
+            viewModel.RecursiveSearch.Results.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
+    public async Task Recursive_search_cancel_preserves_streamed_results()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        var searchSource = new GateFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects",
+            Item(@"D:\projects\match-1.txt", "match-1.txt"),
+            Item(@"D:\projects\match-2.txt", "match-2.txt"));
+        searchSource.SetEntries(@"D:\projects",
+            Item(@"D:\projects\match-1.txt", "match-1.txt"),
+            Item(@"D:\projects\match-2.txt", "match-2.txt"));
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchSource: searchSource);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+
+        viewModel.StartRecursiveSearch("match");
+        await WaitUntilAsync(() => viewModel.RecursiveSearch.Results.Count >= 1);
+
+        viewModel.CancelRecursiveSearch();
+        searchSource.Release();
+
+        Assert.AreEqual(RecursiveSearchStatus.Cancelled, viewModel.RecursiveSearch.Status);
+        Assert.IsTrue(viewModel.RecursiveSearch.Results.Count >= 1);
+        Assert.IsFalse(viewModel.RecursiveSearch.CanCancel);
+    }
+
     private static AppShellViewModel CreateViewModel(
         IClipboardTextWriter clipboardWriter,
         string initialPath = @"D:\projects",
         string? defaultPath = null,
         FakeFolderEntrySource? listingSource = null,
+        FakeFolderEntrySource? searchSource = null,
         IReadOnlyList<string>? existingPaths = null)
     {
         var workspace = NavigationWorkspace.Create(initialPath);
@@ -284,8 +402,11 @@ public sealed class AppShellCommandRouteTests
         var coordinator = listingSource is null
             ? null
             : new FolderListingCoordinator(new FolderListingService(listingSource));
+        var searchService = searchSource is null
+            ? null
+            : new RecursiveSearchService(searchSource);
 
-        return new AppShellViewModel(startupState, clipboardWriter, coordinator, viewportItemCount: 100);
+        return new AppShellViewModel(startupState, clipboardWriter, coordinator, searchService, viewportItemCount: 100);
     }
 
     private static ListedFileItem Item(
@@ -381,9 +502,11 @@ public sealed class AppShellCommandRouteTests
         public object DataContext { get; }
     }
 
-    private sealed class FakeFolderEntrySource : IFolderEntrySource
+    private class FakeFolderEntrySource : IFolderEntrySource
     {
         private readonly Dictionary<string, IReadOnlyList<FileSystemEntrySnapshot>> _entries = new(StringComparer.OrdinalIgnoreCase);
+
+        public int SearchEnumerationCount { get; private set; }
 
         public void SetEntries(string path, params ListedFileItem[] items)
         {
@@ -398,9 +521,14 @@ public sealed class AppShellCommandRouteTests
                 .ToArray();
         }
 
-        public async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        public virtual async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await Task.Yield();
+            if (path == @"D:\projects")
+            {
+                SearchEnumerationCount++;
+            }
+
             if (!_entries.TryGetValue(path, out var entries))
             {
                 yield break;
@@ -409,6 +537,33 @@ public sealed class AppShellCommandRouteTests
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                yield return entry;
+            }
+        }
+    }
+
+    private sealed class GateFolderEntrySource : FakeFolderEntrySource
+    {
+        private readonly TaskCompletionSource _gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private bool _yieldedFirst;
+
+        public void Release()
+        {
+            _gate.TrySetResult();
+        }
+
+        public override async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(
+            string path,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var entry in base.EnumerateAsync(path, cancellationToken))
+            {
+                if (_yieldedFirst)
+                {
+                    await _gate.Task.ConfigureAwait(false);
+                }
+
+                _yieldedFirst = true;
                 yield return entry;
             }
         }

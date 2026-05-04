@@ -76,6 +76,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(compositionCode, "WindowsDurableDocumentStorage");
         StringAssert.Contains(compositionCode, "LocalDiagnosticLogStore");
         StringAssert.Contains(compositionCode, "new FolderListingCoordinator");
+        StringAssert.Contains(compositionCode, "new RecursiveSearchService");
         StringAssert.Contains(compositionCode, "new WindowsFolderEntrySource()");
     }
 
@@ -142,6 +143,31 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileItems");
         StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.FileItems)");
         Assert.IsFalse(codeBehind.Contains("FileListSurface.SelectedItems.OfType<ListedFileItem>()", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    [TestCategory("Filtering")]
+    [TestCategory("Search")]
+    public void Main_window_shell_wires_current_filter_and_recursive_search_routes()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"CurrentFolderFilterBox\"");
+        StringAssert.Contains(xaml, "TextChanged=\"CurrentFolderFilterBox_TextChanged\"");
+        StringAssert.Contains(xaml, "x:Name=\"RecursiveSearchBox\"");
+        StringAssert.Contains(xaml, "KeyDown=\"RecursiveSearchBox_KeyDown\"");
+        StringAssert.Contains(xaml, "x:Name=\"RecursiveSearchButton\"");
+        StringAssert.Contains(xaml, "Click=\"RecursiveSearchButton_Click\"");
+        StringAssert.Contains(xaml, "x:Name=\"CancelSearchButton\"");
+        StringAssert.Contains(xaml, "Click=\"CancelSearchButton_Click\"");
+        StringAssert.Contains(xaml, "x:Name=\"RecursiveSearchStatusText\"");
+
+        StringAssert.Contains(codeBehind, "ViewModel.SetCurrentFolderFilter");
+        StringAssert.Contains(codeBehind, "ViewModel.StartRecursiveSearch");
+        StringAssert.Contains(codeBehind, "ViewModel.CancelRecursiveSearch");
+        StringAssert.Contains(codeBehind, "ViewModel.RecursiveSearch.CanCancel");
     }
 
     [TestMethod]

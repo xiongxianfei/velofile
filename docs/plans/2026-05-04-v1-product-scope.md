@@ -658,7 +658,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M4 complete.
 - [x] M5 complete.
 - [x] M6 complete.
-- [ ] M7 complete.
+- [x] M7 complete.
 - [ ] M8 complete.
 - [ ] M9 complete.
 - [ ] M10 complete.
@@ -864,15 +864,29 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 19 Core listing tests, 4 Windows listing tests, and 1 App listing-route test.
   - `dotnet test VeloFile.sln -c Debug` passed: 141 tests across 4 test assemblies.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 141 tests across 4 test assemblies.
+- M6 follow-up review evidence:
+  - Follow-up `code-review` for commit `9931839` returned `clean-with-notes`; no blocking or required-change findings remained for the listing-feed and view-ordered selection fixes.
+- M7 test-first implementation evidence:
+  - Added Core filtering/search tests and App shell route tests before production M7 namespaces and methods existed.
+  - `dotnet test VeloFile.sln -c Debug --filter "Filtering|Search"` first failed because `VeloFile.Core.Filtering`, `VeloFile.Core.Search`, recursive search updates, and app view-model filter/search methods were missing.
+  - The first implementation pass then exposed an app cancellation test race; the test seam was corrected to keep recursive search live while cancellation is asserted.
+  - Added `CurrentFolderFilterService`, recursive search models/service, app-shell filter/search controls, app view-model filter/search state, and production composition through `RecursiveSearchService`.
+- M7 validation:
+  - `dotnet test VeloFile.sln -c Debug --filter "Filtering|Search"` passed: 7 Core filtering/search tests and 5 App filtering/search tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Filtering` passed: 3 Core filtering tests and 2 App filtering tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Search` passed: 5 Core search tests and 5 App search tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 29 App shell contract/route tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 154 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, and M6 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, and clipboard copy path/name boundaries. Later V1 search, operation, preview, benchmark, and packaging behavior remains assigned to M7-M16.
+M1, M2, M3, M4, M5, M6, and M7 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, and explicit bounded recursive search. Later V1 operation, preview, benchmark, and packaging behavior remains assigned to M8-M16.
 
 ## Readiness
 
-M6 fourth-pass review-resolution fixes are implemented and ready for follow-up `code-review`.
+M7 current-folder filter and recursive search are implemented and ready for follow-up `code-review`.
 
-Implementation resumes after M6 verify with:
+Implementation resumes after M7 review/verify with:
 
-- M7 current-folder filter and recursive search.
+- M8 file operation contracts, safe delete, and rename.

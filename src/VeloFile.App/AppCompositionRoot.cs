@@ -4,6 +4,7 @@ using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Persistence;
+using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using VeloFile.Core.Visibility;
@@ -79,9 +80,11 @@ public static class AppCompositionRoot
             ReadDriveEntries()));
 
         diagnostics.RecordLastActionMarker("startup", "session", DateTimeOffset.UtcNow);
+        var folderEntrySource = new WindowsFolderEntrySource();
         var listingCoordinator = new FolderListingCoordinator(
-            new FolderListingService(new WindowsFolderEntrySource()));
-        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator);
+            new FolderListingService(folderEntrySource));
+        var searchService = new RecursiveSearchService(folderEntrySource);
+        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator, searchService);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

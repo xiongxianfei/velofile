@@ -1,0 +1,52 @@
+id: 2026-05-05-m7-filter-search
+title: M7 current-folder filter and recursive search
+status: implemented
+feature: v1-product-scope
+milestone: M7
+requirements:
+  - R28
+  - R29
+  - R30
+  - R31
+  - R32
+  - R33
+  - R34
+  - R35
+  - I4
+  - AC4
+  - AC5
+test_spec:
+  - specs/v1-product-scope.test.md#T014
+  - specs/v1-product-scope.test.md#T015
+  - specs/v1-product-scope.test.md#T016
+architecture:
+  - docs/architecture/system/architecture.md#desktop-app-components
+  - docs/architecture/system/architecture.md#building-block-view
+artifacts:
+  - src/VeloFile.Core/Filtering/CurrentFolderFilterService.cs
+  - src/VeloFile.Core/Search/
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tests/VeloFile.Core.Tests/Filtering/
+  - tests/VeloFile.Core.Tests/Search/
+  - tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter "Filtering|Search"
+    result: first failed for missing filtering/search namespaces and app shell methods, then failed for an app cancellation test race, then passed with 7 Core filtering/search tests and 5 App filtering/search tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Filtering
+    result: passed 3 Core filtering tests and 2 App filtering tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Search
+    result: passed 5 Core search tests and 5 App search tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
+    result: passed 29 App shell contract/route tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build with 0 warnings and 0 errors, and 154 tests across Windows, App, Core, and Corpus test assemblies
+notes:
+  - Current-folder filtering is literal substring matching over the active visible listing and does not invoke recursive search or Windows Search indexing.
+  - Recursive search is explicit, walks through the existing folder-entry source boundary, streams result updates, skips reparse-point directories, reports skipped locations, and stops adding results at the configured cap.
+  - The app shell exposes filter/search controls and keeps cancellation available after the result cap is reached.

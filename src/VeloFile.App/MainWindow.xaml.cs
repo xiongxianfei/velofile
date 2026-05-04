@@ -150,6 +150,39 @@ public sealed partial class MainWindow : Window
         ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.FileItems));
     }
 
+    private void CurrentFolderFilterBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
+        ViewModel.SetCurrentFolderFilter(CurrentFolderFilterBox.Text);
+        RefreshShellBindings();
+    }
+
+    private void RecursiveSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.StartRecursiveSearch(RecursiveSearchBox.Text);
+        RefreshShellBindings();
+    }
+
+    private void RecursiveSearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is VirtualKey.Enter)
+        {
+            ViewModel.StartRecursiveSearch(RecursiveSearchBox.Text);
+            e.Handled = true;
+            RefreshShellBindings();
+        }
+    }
+
+    private void CancelSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CancelRecursiveSearch();
+        RefreshShellBindings();
+    }
+
     private void ViewModel_ShellStateChanged(object? sender, EventArgs e)
     {
         DispatcherQueue.TryEnqueue(RefreshShellBindings);
@@ -451,6 +484,9 @@ public sealed partial class MainWindow : Window
             SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
             BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
             FileListSurface.ItemsSource = ViewModel.FileItems;
+            CurrentFolderFilterBox.Text = ViewModel.CurrentFolderFilterText;
+            CancelSearchButton.IsEnabled = ViewModel.RecursiveSearch.CanCancel;
+            RecursiveSearchStatusText.Text = RecursiveSearchStatusTextForViewModel();
             RawPathBox.Text = ViewModel.PathEntryError?.SubmittedPath ?? ViewModel.ActivePath;
             MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
             MissingLocationState.Message = ViewModel.MissingLocationPath is null
@@ -469,5 +505,18 @@ public sealed partial class MainWindow : Window
         {
             _isRefreshingShellBindings = false;
         }
+    }
+
+    private string RecursiveSearchStatusTextForViewModel()
+    {
+        var state = ViewModel.RecursiveSearch;
+        return state.Status switch
+        {
+            VeloFile.Core.Search.RecursiveSearchStatus.Running => $"{state.Results.Count} found",
+            VeloFile.Core.Search.RecursiveSearchStatus.ResultLimitReached => $"Result limit reached: {state.Results.Count}",
+            VeloFile.Core.Search.RecursiveSearchStatus.Completed => $"{state.Results.Count} found",
+            VeloFile.Core.Search.RecursiveSearchStatus.Cancelled => $"Cancelled: {state.Results.Count} found",
+            _ => ""
+        };
     }
 }
