@@ -1,57 +1,238 @@
-using System.Security.Cryptography;
-using System.Text;
+using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace VeloFile.Core.Diagnostics;
 
 public static class DiagnosticStringSanitizer
 {
-    public static string Sanitize(string value)
+    private static readonly Regex GuidN = new("^[0-9a-fA-F]{32}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex GuidD = new("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Ulid = new("^[0-9A-HJKMNP-TV-Z]{26}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex PathFingerprint = new("^[0-9a-f]{64}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly HashSet<string> EventTypes = new(StringComparer.Ordinal)
     {
-        if (string.IsNullOrEmpty(value) || IsCodeLike(value))
+        "operation.failure",
+        "persistence.fallback",
+        "persistence.field-fallback",
+        "crash.marker",
+        "last-action.marker"
+    };
+
+    private static readonly HashSet<string> Severities = new(StringComparer.Ordinal)
+    {
+        "info",
+        "warning",
+        "error"
+    };
+
+    private static readonly HashSet<string> Components = new(StringComparer.Ordinal)
+    {
+        "app",
+        "benchmark",
+        "diagnostics",
+        "file-operation",
+        "navigation",
+        "persistence",
+        "preview",
+        "search",
+        "session",
+        "storage",
+        "terminal"
+    };
+
+    private static readonly HashSet<string> OperationKinds = new(StringComparer.Ordinal)
+    {
+        "benchmark",
+        "copy",
+        "delete",
+        "file-operation",
+        "move",
+        "navigation",
+        "preview",
+        "read",
+        "rename",
+        "search",
+        "session-restore",
+        "terminal-launch",
+        "write"
+    };
+
+    private static readonly HashSet<string> ResultStates = new(StringComparer.Ordinal)
+    {
+        "cancelled",
+        "crashed",
+        "failed",
+        "fallback",
+        "field-fallback",
+        "recorded",
+        "recovered",
+        "skipped",
+        "succeeded",
+        "timed-out"
+    };
+
+    private static readonly HashSet<string> ReasonCodes = new(StringComparer.Ordinal)
+    {
+        "access-denied",
+        "canonical-and-backup-unreadable",
+        "canonical-unreadable",
+        "field-fallback",
+        "io-error",
+        "last-known-good-used",
+        "migration-fallback",
+        "missing",
+        "primary-read-failed",
+        "safe-defaults-used",
+        "security-denied",
+        "unknown"
+    };
+
+    private static readonly HashSet<string> DocumentTypes = new(StringComparer.Ordinal)
+    {
+        "favorites",
+        "recentLocations",
+        "session",
+        "settings",
+        "unknown"
+    };
+
+    private static readonly HashSet<string> MigrationResults = new(StringComparer.Ordinal)
+    {
+        "degraded",
+        "failed",
+        "migrated",
+        "not-needed"
+    };
+
+    private static readonly HashSet<string> FallbackSources = new(StringComparer.Ordinal)
+    {
+        "canonical",
+        "lastKnownGood",
+        "safeDefaults"
+    };
+
+    private static readonly HashSet<string> SchemaFieldCodes = new(StringComparer.Ordinal)
+    {
+        "activeTabIndex",
+        "entries",
+        "entries[]",
+        "pinnedLocations",
+        "pinnedLocations[]",
+        "showFileExtensions",
+        "showHiddenFiles",
+        "showProtectedOperatingSystemFiles",
+        "tabs",
+        "tabs[]",
+        "windowPlacement"
+    };
+
+    private static readonly HashSet<string> LastActionCategories = new(StringComparer.Ordinal)
+    {
+        "diagnostics",
+        "file-operation",
+        "navigation",
+        "preview",
+        "preview-generation",
+        "search",
+        "session-restore",
+        "startup",
+        "terminal-launch"
+    };
+
+    private static readonly HashSet<string> PathClassifications = new(StringComparer.Ordinal)
+    {
+        "cloud-placeholder",
+        "local",
+        "mapped",
+        "network",
+        "protected",
+        "removable",
+        "unavailable",
+        "unknown"
+    };
+
+    private static readonly HashSet<string> ExtensionClasses = new(StringComparer.Ordinal)
+    {
+        ".7z",
+        ".bmp",
+        ".cs",
+        ".csv",
+        ".doc",
+        ".docx",
+        ".exe",
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".json",
+        ".md",
+        ".pdf",
+        ".png",
+        ".ppt",
+        ".pptx",
+        ".ps1",
+        ".rar",
+        ".tif",
+        ".tiff",
+        ".txt",
+        ".xls",
+        ".xlsx",
+        ".xml",
+        ".zip"
+    };
+
+    private static readonly IReadOnlyDictionary<string, DiagnosticFieldPolicy> FieldPolicies =
+        new ReadOnlyDictionary<string, DiagnosticFieldPolicy>(new Dictionary<string, DiagnosticFieldPolicy>(StringComparer.Ordinal)
+        {
+            ["eventId"] = DiagnosticFieldPolicy.GeneratedIdentifier,
+            ["eventType"] = DiagnosticFieldPolicy.Known(EventTypes),
+            ["severity"] = DiagnosticFieldPolicy.Known(Severities),
+            ["component"] = DiagnosticFieldPolicy.Known(Components),
+            ["operationId"] = DiagnosticFieldPolicy.GeneratedIdentifier,
+            ["correlationId"] = DiagnosticFieldPolicy.GeneratedIdentifier,
+            ["operationKind"] = DiagnosticFieldPolicy.Known(OperationKinds),
+            ["resultState"] = DiagnosticFieldPolicy.Known(ResultStates),
+            ["reasonCode"] = DiagnosticFieldPolicy.Known(ReasonCodes),
+            ["documentType"] = DiagnosticFieldPolicy.Known(DocumentTypes),
+            ["migrationResult"] = DiagnosticFieldPolicy.Known(MigrationResults),
+            ["fallbackSource"] = DiagnosticFieldPolicy.Known(FallbackSources),
+            ["fallbackFieldCodes"] = DiagnosticFieldPolicy.Known(SchemaFieldCodes),
+            ["lastActionMarkerCategory"] = DiagnosticFieldPolicy.Known(LastActionCategories),
+            ["pathClassification"] = DiagnosticFieldPolicy.Known(PathClassifications),
+            ["pathFingerprint"] = DiagnosticFieldPolicy.PathFingerprint,
+            ["extensionClass"] = DiagnosticFieldPolicy.Known(ExtensionClasses)
+        });
+
+    public static string Sanitize(string fieldName, string value)
+    {
+        if (string.IsNullOrEmpty(value))
         {
             return value;
         }
 
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-        return "redacted-" + Convert.ToHexString(bytes)[..16].ToLowerInvariant();
+        return FieldPolicies.TryGetValue(fieldName, out var policy) && policy.Allows(value)
+            ? value
+            : Redact(value);
     }
 
-    private static bool IsCodeLike(string value)
+    private static string Redact(string value)
     {
-        if (LooksLikeFileName(value))
-        {
-            return false;
-        }
-
-        foreach (var character in value)
-        {
-            if (char.IsAsciiLetterOrDigit(character)
-                || character is '.' or '_' or '-')
-            {
-                continue;
-            }
-
-            return false;
-        }
-
-        return true;
+        return "redacted-string";
     }
 
-    private static bool LooksLikeFileName(string value)
+    private sealed record DiagnosticFieldPolicy(
+        Func<string, bool> Allows)
     {
-        if (value.StartsWith(".", StringComparison.Ordinal))
-        {
-            return false;
-        }
+        public static DiagnosticFieldPolicy GeneratedIdentifier { get; } = new(value =>
+            GuidN.IsMatch(value)
+            || GuidD.IsMatch(value)
+            || Ulid.IsMatch(value));
 
-        var extension = Path.GetExtension(value);
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            return false;
-        }
+        public static DiagnosticFieldPolicy PathFingerprint { get; } = new(value => DiagnosticStringSanitizer.PathFingerprint.IsMatch(value));
 
-        return extension is ".txt" or ".pdf" or ".exe" or ".doc" or ".docx" or ".xls" or ".xlsx" or ".ppt" or ".pptx"
-            or ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".tif" or ".tiff"
-            or ".zip" or ".7z" or ".rar" or ".json" or ".xml" or ".csv" or ".md" or ".cs" or ".ps1";
+        public static DiagnosticFieldPolicy Known(HashSet<string> allowed)
+        {
+            return new DiagnosticFieldPolicy(allowed.Contains);
+        }
     }
 }

@@ -751,6 +751,14 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 10 tests across Core and Windows test assemblies.
   - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 6 Core diagnostics tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 25 tests across 4 test assemblies.
+  - Second review-resolution pass added regression tests for deny-by-default diagnostic field policies, generated-id validation, dangerous values across every serialized diagnostic string field, repository-level per-field fallback diagnostics, and diagnostic-write failure during successful persistence reads.
+  - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 14 tests across Core and Windows test assemblies.
+  - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 7 Core diagnostics tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 30 tests across 4 test assemblies.
+  - Third review-resolution pass added regression proof that denied diagnostic strings do not use predictable unsalted SHA-based redaction tokens; denied arbitrary strings now serialize as the non-correlating constant token `redacted-string`.
+  - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 14 tests across Core and Windows test assemblies.
+  - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 7 Core diagnostics tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 30 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

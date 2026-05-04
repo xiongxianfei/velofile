@@ -17,7 +17,7 @@ public sealed class DiagnosticsTests
         var diagnosticEvent = DiagnosticEvent.CreateFailure(
             eventId: "evt-1",
             sequenceNumber: 7,
-            component: "Preview",
+            component: "preview",
             operationKind: "preview",
             reasonCode: "access-denied",
             path: sensitivePath,
@@ -38,41 +38,90 @@ public sealed class DiagnosticsTests
     }
 
     [TestMethod]
-    public void Diagnostic_serializer_sanitizes_every_serialized_string_field()
+    public void Diagnostic_serializer_redacts_dangerous_values_in_every_serialized_string_field()
     {
-        var prohibited = @"C:\Users\alice\Documents\secret-plan.txt";
+        var dangerousValues = new[]
+        {
+            "secret-plan",
+            "payroll",
+            "client-a",
+            "id_rsa",
+            ".env",
+            ".npmrc",
+            ".gitconfig",
+            "private-report.foo",
+            "strategy.internal",
+            "customer-list.backup",
+            "alice",
+            "bob",
+            "jdoe",
+            "admin",
+            "password reset",
+            "tax documents",
+            "client merger",
+            "*.pdf invoice",
+            "Users",
+            "Documents",
+            "Desktop",
+            "OneDrive",
+            "token-abc123",
+            "ssh-private-key",
+            "api_key",
+            "Q4 layoffs",
+            "medical bills",
+            "private notes",
+            @"C:\Users\alice\Documents\secret-plan.txt"
+        };
+
+        foreach (var dangerous in dangerousValues)
+        {
+            var diagnosticEvent = CreateAllStringFieldsEvent(dangerous);
+
+            var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
+
+            Assert.IsFalse(json.Contains(dangerous, StringComparison.OrdinalIgnoreCase), $"Dangerous value was serialized unchanged: {dangerous}");
+            Assert.IsFalse(json.Contains(PredictableShaRedactionToken(dangerous), StringComparison.OrdinalIgnoreCase), $"Dangerous value used a predictable unsalted redaction token: {dangerous}");
+            StringAssert.Contains(json, "redacted-string");
+        }
+    }
+
+    [TestMethod]
+    public void Diagnostic_serializer_preserves_only_allowed_vocabulary_and_generated_ids()
+    {
         var diagnosticEvent = new DiagnosticEvent
         {
-            EventId = prohibited,
-            EventType = prohibited,
+            EventId = "0123456789abcdef0123456789abcdef",
+            EventType = "persistence.field-fallback",
             UtcTimestamp = DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
             SequenceNumber = 1,
-            Severity = prohibited,
-            Component = prohibited,
-            OperationId = prohibited,
-            CorrelationId = prohibited,
-            OperationKind = prohibited,
-            ResultState = prohibited,
-            ReasonCode = prohibited,
-            DocumentType = prohibited,
-            MigrationResult = prohibited,
-            FallbackSource = prohibited,
-            LastActionMarkerCategory = prohibited,
-            PathClassification = prohibited,
-            PathFingerprint = prohibited,
-            ExtensionClass = prohibited
+            Severity = "warning",
+            Component = "persistence",
+            OperationId = "11111111111111111111111111111111",
+            CorrelationId = "22222222-2222-2222-2222-222222222222",
+            OperationKind = "read",
+            ResultState = "field-fallback",
+            ReasonCode = "field-fallback",
+            DocumentType = "session",
+            SchemaVersion = 1,
+            MigrationResult = "not-needed",
+            FallbackSource = "canonical",
+            FallbackCount = 2,
+            FallbackFieldCodes = ["windowPlacement", "activeTabIndex"],
+            LastActionMarkerCategory = "navigation",
+            PathClassification = "local",
+            PathFingerprint = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ExtensionClass = ".txt"
         };
 
         var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
 
-        Assert.IsFalse(json.Contains(@"C:\Users\alice", StringComparison.OrdinalIgnoreCase));
-        Assert.IsFalse(json.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
-        Assert.IsFalse(json.Contains("Documents", StringComparison.OrdinalIgnoreCase));
-        StringAssert.Contains(json, "redacted-");
-
-        var fileNameOnly = DiagnosticJsonSerializer.Serialize(diagnosticEvent with { ReasonCode = "secret-plan.txt" });
-
-        Assert.IsFalse(fileNameOnly.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
+        StringAssert.Contains(json, "\"eventType\":\"persistence.field-fallback\"");
+        StringAssert.Contains(json, "\"component\":\"persistence\"");
+        StringAssert.Contains(json, "\"operationId\":\"11111111111111111111111111111111\"");
+        StringAssert.Contains(json, "\"correlationId\":\"22222222-2222-2222-2222-222222222222\"");
+        StringAssert.Contains(json, "\"reasonCode\":\"field-fallback\"");
+        StringAssert.Contains(json, "\"fallbackFieldCodes\":[\"windowPlacement\",\"activeTabIndex\"]");
+        Assert.IsFalse(json.Contains("redacted-string", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]
@@ -123,9 +172,9 @@ public sealed class DiagnosticsTests
             writer.Write(DiagnosticEvent.CreateFailure(
                 eventId: $"evt-{i}",
                 sequenceNumber: i,
-                component: "Persistence",
+                component: "persistence",
                 operationKind: "write",
-                reasonCode: "simulated",
+                reasonCode: "io-error",
                 path: $@"C:\Users\alice\Documents\secret-{i}.txt",
                 redactor: redactor,
                 timestampUtc: DateTimeOffset.Parse("2026-05-04T00:00:00Z").AddSeconds(i)));
@@ -136,8 +185,8 @@ public sealed class DiagnosticsTests
             writer.RecordCrashMarker("startup", DateTimeOffset.Parse("2026-05-04T00:00:00Z").AddMinutes(i));
         }
 
-        writer.RecordLastActionMarker("navigation", "Navigation", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
-        writer.RecordLastActionMarker("navigation", "Navigation", DateTimeOffset.Parse("2026-05-04T00:01:00Z"));
+        writer.RecordLastActionMarker("navigation", "navigation", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+        writer.RecordLastActionMarker("navigation", "navigation", DateTimeOffset.Parse("2026-05-04T00:01:00Z"));
 
         Assert.IsTrue(Directory.GetFiles(Path.Combine(workspace.Root, "logs"), "*.jsonl").Length > 1);
         Assert.AreEqual(3, Directory.GetFiles(Path.Combine(workspace.Root, "crash-markers"), "*.json").Length);
@@ -166,16 +215,48 @@ public sealed class DiagnosticsTests
             UtcTimestamp = DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
             SequenceNumber = 1,
             Severity = "warning",
-            Component = "Persistence",
+            Component = "persistence",
             OperationKind = "write",
             ResultState = "failed",
-            ReasonCode = "simulated"
+            ReasonCode = "io-error"
         });
         writer.RecordCrashMarker("startup", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
-        writer.RecordLastActionMarker("navigation", "Navigation", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+        writer.RecordLastActionMarker("navigation", "navigation", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
 
         Assert.IsFalse(writer.HasRepeatedCrashMarkers("startup", threshold: 1));
         Assert.IsNotNull(writer.LastFailureReasonCode);
+    }
+
+    private static DiagnosticEvent CreateAllStringFieldsEvent(string value)
+    {
+        return new DiagnosticEvent
+        {
+            EventId = value,
+            EventType = value,
+            UtcTimestamp = DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            SequenceNumber = 1,
+            Severity = value,
+            Component = value,
+            OperationId = value,
+            CorrelationId = value,
+            OperationKind = value,
+            ResultState = value,
+            ReasonCode = value,
+            DocumentType = value,
+            MigrationResult = value,
+            FallbackSource = value,
+            FallbackFieldCodes = [value],
+            LastActionMarkerCategory = value,
+            PathClassification = value,
+            PathFingerprint = value,
+            ExtensionClass = value
+        };
+    }
+
+    private static string PredictableShaRedactionToken(string value)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value));
+        return "redacted-" + Convert.ToHexString(bytes)[..16].ToLowerInvariant();
     }
 
     private sealed class TemporaryWorkspace : IDisposable

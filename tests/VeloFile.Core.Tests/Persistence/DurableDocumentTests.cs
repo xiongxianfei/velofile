@@ -257,6 +257,193 @@ public sealed class DurableDocumentTests
         Assert.IsTrue(diagnostics.Events.Any(e => e.EventType == "persistence.fallback" && e.FallbackSource == "lastKnownGood"));
     }
 
+    [TestMethod]
+    public void Repository_logs_field_fallback_when_canonical_session_optional_field_is_malformed()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var diagnostics = new CollectingDiagnosticSink();
+        var repository = new DurableDocumentRepository<SessionStatePayload>(
+            "session.json",
+            SessionStateDocumentCodec.Instance,
+            storage,
+            () => SessionStatePayload.Empty,
+            diagnostics);
+
+        storage.Files["session.json"] = """
+            {
+              "documentType": "session",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "tabs": [
+                  {
+                    "path": "D:\\Users\\alice\\Documents\\secret-plan",
+                    "sortColumn": "name",
+                    "sortDirection": "ascending",
+                    "viewMode": "details",
+                    "backHistory": [],
+                    "forwardHistory": []
+                  }
+                ],
+                "activeTabIndex": 0,
+                "windowPlacement": {
+                  "left": 10,
+                  "top": "not-an-int",
+                  "width": 1200,
+                  "height": 800
+                }
+              }
+            }
+            """;
+
+        var result = repository.Read();
+
+        Assert.AreEqual("canonical", result.Source);
+        Assert.IsNull(result.Payload.WindowPlacement);
+        var diagnosticEvent = AssertSingleFieldFallback(diagnostics, DurableDocumentTypes.Session, "canonical", "windowPlacement");
+        var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
+        Assert.IsFalse(json.Contains("alice", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains(@"D:\\Users", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public void Repository_logs_field_fallback_when_canonical_settings_optional_field_is_malformed()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var diagnostics = new CollectingDiagnosticSink();
+        var repository = new DurableDocumentRepository<SettingsStatePayload>(
+            "settings.json",
+            SettingsStateDocumentCodec.Instance,
+            storage,
+            () => SettingsStatePayload.Default,
+            diagnostics);
+
+        storage.Files["settings.json"] = """
+            {
+              "documentType": "settings",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "showHiddenFiles": true,
+                "showProtectedOperatingSystemFiles": false,
+                "showFileExtensions": "private notes"
+              }
+            }
+            """;
+
+        var result = repository.Read();
+
+        Assert.AreEqual("canonical", result.Source);
+        Assert.IsTrue(result.Payload.ShowHiddenFiles);
+        Assert.IsTrue(result.Payload.ShowFileExtensions);
+        var diagnosticEvent = AssertSingleFieldFallback(diagnostics, DurableDocumentTypes.Settings, "canonical", "showFileExtensions");
+        var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
+        Assert.IsFalse(json.Contains("private notes", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public void Repository_logs_field_fallback_when_favorites_or_recent_location_entries_are_malformed()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var diagnostics = new CollectingDiagnosticSink();
+        var favoritesRepository = new DurableDocumentRepository<FavoritesStatePayload>(
+            "favorites.json",
+            FavoritesStateDocumentCodec.Instance,
+            storage,
+            () => FavoritesStatePayload.Empty,
+            diagnostics);
+        var recentRepository = new DurableDocumentRepository<RecentLocationsStatePayload>(
+            "recentLocations.json",
+            RecentLocationsStateDocumentCodec.Instance,
+            storage,
+            () => RecentLocationsStatePayload.Empty,
+            diagnostics);
+
+        storage.Files["favorites.json"] = """
+            {
+              "documentType": "favorites",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "pinnedLocations": [
+                  { "displayName": "Projects", "path": "D:\\projects" },
+                  { "displayName": "secret-plan", "path": 42 }
+                ]
+              }
+            }
+            """;
+        storage.Files["recentLocations.json"] = """
+            {
+              "documentType": "recentLocations",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "entries": [
+                  { "path": "D:\\projects", "lastVisitedUtc": "2026-05-04T00:00:00Z" },
+                  { "path": "D:\\Users\\alice\\Documents\\secret-plan", "lastVisitedUtc": "not-a-date" }
+                ]
+              }
+            }
+            """;
+
+        var favorites = favoritesRepository.Read();
+        var recent = recentRepository.Read();
+
+        Assert.AreEqual(1, favorites.Payload.PinnedLocations.Count);
+        Assert.AreEqual(1, recent.Payload.Entries.Count);
+        AssertSingleFieldFallback(diagnostics, DurableDocumentTypes.Favorites, "canonical", "pinnedLocations[]");
+        var recentDiagnostic = AssertSingleFieldFallback(diagnostics, DurableDocumentTypes.RecentLocations, "canonical", "entries[]");
+        var json = DiagnosticJsonSerializer.Serialize(recentDiagnostic);
+        Assert.IsFalse(json.Contains("alice", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public void Repository_read_succeeds_when_field_fallback_diagnostic_sink_throws()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var repository = new DurableDocumentRepository<SessionStatePayload>(
+            "session.json",
+            SessionStateDocumentCodec.Instance,
+            storage,
+            () => SessionStatePayload.Empty,
+            new ThrowingDiagnosticSink());
+
+        storage.Files["session.json"] = """
+            {
+              "documentType": "session",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "tabs": [],
+                "activeTabIndex": 0,
+                "windowPlacement": {
+                  "left": "bad",
+                  "top": 0,
+                  "width": 1200,
+                  "height": 800
+                }
+              }
+            }
+            """;
+
+        var result = repository.Read();
+
+        Assert.AreEqual("canonical", result.Source);
+        Assert.IsNull(result.Payload.WindowPlacement);
+    }
+
     private sealed class InMemoryDurableDocumentStorage : IDurableDocumentStorage
     {
         public Dictionary<string, string> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -289,6 +476,34 @@ public sealed class DurableDocumentTests
 
             Files[canonicalPath] = content;
             Files[BackupPath(canonicalPath)] = content;
+        }
+    }
+
+    private static DiagnosticEvent AssertSingleFieldFallback(
+        CollectingDiagnosticSink diagnostics,
+        string documentType,
+        string fallbackSource,
+        string expectedFieldCode)
+    {
+        var diagnosticEvent = diagnostics.Events.Single(e =>
+            e.EventType == "persistence.field-fallback"
+            && e.DocumentType == documentType
+            && e.FallbackSource == fallbackSource
+            && e.FallbackFieldCodes?.Contains(expectedFieldCode) == true);
+
+        Assert.AreEqual("persistence", diagnosticEvent.Component);
+        Assert.AreEqual("field-fallback", diagnosticEvent.ReasonCode);
+        Assert.AreEqual(1, diagnosticEvent.FallbackCount);
+        Assert.IsTrue(diagnosticEvent.CorruptFieldCount > 0);
+
+        return diagnosticEvent;
+    }
+
+    private sealed class ThrowingDiagnosticSink : IDiagnosticSink
+    {
+        public void Write(DiagnosticEvent diagnosticEvent)
+        {
+            throw new IOException("diagnostic storage unavailable");
         }
     }
 }

@@ -43,6 +43,10 @@ public sealed record DiagnosticEvent
 
     public string? FallbackSource { get; init; }
 
+    public int? FallbackCount { get; init; }
+
+    public IReadOnlyList<string>? FallbackFieldCodes { get; init; }
+
     public int? UnknownFieldCount { get; init; }
 
     public int? CorruptFieldCount { get; init; }
@@ -98,12 +102,41 @@ public sealed record DiagnosticEvent
             UtcTimestamp = DateTimeOffset.UtcNow,
             SequenceNumber = 0,
             Severity = "warning",
-            Component = "Persistence",
+            Component = "persistence",
             OperationKind = "read",
             ResultState = "fallback",
             ReasonCode = reasonCode,
             DocumentType = documentType,
             FallbackSource = fallbackSource,
+            UnknownFieldCount = unknownFieldCount,
+            CorruptFieldCount = corruptFieldCount
+        };
+    }
+
+    public static DiagnosticEvent CreatePersistenceFieldFallback(
+        string documentType,
+        int schemaVersion,
+        string fallbackSource,
+        IReadOnlyList<string> fallbackFieldCodes,
+        int unknownFieldCount,
+        int corruptFieldCount)
+    {
+        return new DiagnosticEvent
+        {
+            EventId = Guid.NewGuid().ToString("N"),
+            EventType = "persistence.field-fallback",
+            UtcTimestamp = DateTimeOffset.UtcNow,
+            SequenceNumber = 0,
+            Severity = "warning",
+            Component = "persistence",
+            OperationKind = "read",
+            ResultState = "field-fallback",
+            ReasonCode = "field-fallback",
+            DocumentType = documentType,
+            SchemaVersion = schemaVersion,
+            FallbackSource = fallbackSource,
+            FallbackCount = fallbackFieldCodes.Count,
+            FallbackFieldCodes = fallbackFieldCodes,
             UnknownFieldCount = unknownFieldCount,
             CorruptFieldCount = corruptFieldCount
         };
@@ -139,12 +172,12 @@ public static class DiagnosticJsonSerializer
     {
         var fields = new Dictionary<string, object?>
         {
-            ["eventId"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.EventId),
-            ["eventType"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.EventType),
+            ["eventId"] = DiagnosticStringSanitizer.Sanitize("eventId", diagnosticEvent.EventId),
+            ["eventType"] = DiagnosticStringSanitizer.Sanitize("eventType", diagnosticEvent.EventType),
             ["utcTimestamp"] = diagnosticEvent.UtcTimestamp,
             ["sequenceNumber"] = diagnosticEvent.SequenceNumber,
-            ["severity"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.Severity),
-            ["component"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.Component)
+            ["severity"] = DiagnosticStringSanitizer.Sanitize("severity", diagnosticEvent.Severity),
+            ["component"] = DiagnosticStringSanitizer.Sanitize("component", diagnosticEvent.Component)
         };
 
         Add(fields, "operationId", diagnosticEvent.OperationId);
@@ -160,6 +193,8 @@ public static class DiagnosticJsonSerializer
         Add(fields, "schemaVersion", diagnosticEvent.SchemaVersion);
         Add(fields, "migrationResult", diagnosticEvent.MigrationResult);
         Add(fields, "fallbackSource", diagnosticEvent.FallbackSource);
+        Add(fields, "fallbackCount", diagnosticEvent.FallbackCount);
+        Add(fields, "fallbackFieldCodes", diagnosticEvent.FallbackFieldCodes);
         Add(fields, "unknownFieldCount", diagnosticEvent.UnknownFieldCount);
         Add(fields, "corruptFieldCount", diagnosticEvent.CorruptFieldCount);
         Add(fields, "lastActionMarkerCategory", diagnosticEvent.LastActionMarkerCategory);
@@ -174,7 +209,17 @@ public static class DiagnosticJsonSerializer
     {
         if (value is not null)
         {
-            fields[fieldName] = DiagnosticStringSanitizer.Sanitize(value);
+            fields[fieldName] = DiagnosticStringSanitizer.Sanitize(fieldName, value);
+        }
+    }
+
+    private static void Add(Dictionary<string, object?> fields, string fieldName, IReadOnlyList<string>? values)
+    {
+        if (values is not null)
+        {
+            fields[fieldName] = values
+                .Select(value => DiagnosticStringSanitizer.Sanitize(fieldName, value))
+                .ToArray();
         }
     }
 

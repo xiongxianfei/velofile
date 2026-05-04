@@ -77,23 +77,25 @@ public sealed class DurableDocumentRepository<TPayload>
     {
         if (TryRead(_canonicalPath, "canonical", out var canonical))
         {
+            WriteFieldFallbackDiagnosticIfNeeded(canonical);
             return canonical;
         }
 
         var backupPath = _storage.BackupPath(_canonicalPath);
         if (TryRead(backupPath, "lastKnownGood", out var backup))
         {
-            _diagnostics.Write(DiagnosticEvent.CreatePersistenceFallback(
+            TryWriteDiagnostic(DiagnosticEvent.CreatePersistenceFallback(
                 documentType: backup.DocumentType,
                 fallbackSource: "lastKnownGood",
                 reasonCode: "canonical-unreadable",
                 unknownFieldCount: backup.UnknownFieldCount,
                 corruptFieldCount: backup.CorruptFieldCount));
+            WriteFieldFallbackDiagnosticIfNeeded(backup);
             return backup;
         }
 
         var safeDefault = _safeDefaultFactory();
-        _diagnostics.Write(DiagnosticEvent.CreatePersistenceFallback(
+        TryWriteDiagnostic(DiagnosticEvent.CreatePersistenceFallback(
             documentType: "unknown",
             fallbackSource: "safeDefaults",
             reasonCode: "canonical-and-backup-unreadable",
@@ -104,6 +106,8 @@ public sealed class DurableDocumentRepository<TPayload>
             Payload: safeDefault,
             Source: "safeDefaults",
             DocumentType: "unknown",
+            SchemaVersion: 0,
+            Fallbacks: [],
             UnknownFieldCount: 0,
             CorruptFieldCount: 1);
     }
@@ -128,6 +132,8 @@ public sealed class DurableDocumentRepository<TPayload>
             Payload: read.Document.Payload,
             Source: source,
             DocumentType: read.Document.DocumentType,
+            SchemaVersion: read.Document.SchemaVersion,
+            Fallbacks: read.Fallbacks,
             UnknownFieldCount: read.UnknownFieldCount,
             CorruptFieldCount: read.CorruptFieldCount);
         return true;
@@ -144,11 +150,46 @@ public sealed class DurableDocumentRepository<TPayload>
             return DurableDocumentStorageReadResult.RecoverableFailure(ExpectedFileSystemExceptions.ReasonCode(ex));
         }
     }
+
+    private void WriteFieldFallbackDiagnosticIfNeeded(DurableDocumentRepositoryReadResult<TPayload> result)
+    {
+        if (result.Fallbacks.Count == 0 && result.CorruptFieldCount == 0)
+        {
+            return;
+        }
+
+        var fieldCodes = result.Fallbacks
+            .Select(fallback => fallback.FieldName)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        TryWriteDiagnostic(DiagnosticEvent.CreatePersistenceFieldFallback(
+            documentType: result.DocumentType,
+            schemaVersion: result.SchemaVersion,
+            fallbackSource: result.Source,
+            fallbackFieldCodes: fieldCodes,
+            unknownFieldCount: result.UnknownFieldCount,
+            corruptFieldCount: result.CorruptFieldCount));
+    }
+
+    private void TryWriteDiagnostic(DiagnosticEvent diagnosticEvent)
+    {
+        try
+        {
+            _diagnostics.Write(diagnosticEvent);
+        }
+        catch
+        {
+            // Diagnostics are best-effort; persistence reads must not fail because logging failed.
+        }
+    }
 }
 
 public sealed record DurableDocumentRepositoryReadResult<TPayload>(
     TPayload Payload,
     string Source,
     string DocumentType,
+    int SchemaVersion,
+    IReadOnlyList<PersistenceFallbackEvent> Fallbacks,
     int UnknownFieldCount,
     int CorruptFieldCount);

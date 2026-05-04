@@ -69,7 +69,7 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
                 UtcTimestamp = timestampUtc,
                 SequenceNumber = 0,
                 Severity = "error",
-                Component = "Diagnostics",
+                Component = "diagnostics",
                 LastActionMarkerCategory = category,
                 ResultState = "crashed"
             };
@@ -101,7 +101,7 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
                 ResultState = "recorded"
             };
 
-            var safeCategory = DiagnosticStringSanitizer.Sanitize(category);
+            var safeCategory = DiagnosticStringSanitizer.Sanitize("lastActionMarkerCategory", category);
             var path = Path.Combine(_lastActionMarkersDirectory, safeCategory + ".json");
             File.WriteAllText(path, DiagnosticJsonSerializer.Serialize(marker) + Environment.NewLine);
         });
@@ -116,7 +116,7 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
 
         try
         {
-            var safeCategory = DiagnosticStringSanitizer.Sanitize(category);
+            var safeCategory = DiagnosticStringSanitizer.Sanitize("lastActionMarkerCategory", category);
             return Directory
                 .EnumerateFiles(_crashMarkersDirectory, "*.json")
                 .Select(File.ReadAllText)
