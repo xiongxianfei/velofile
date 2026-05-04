@@ -1,0 +1,64 @@
+id: 2026-05-05-m6-selection-command-layer
+title: M6 selection, built-in command layer, context menu, and clipboard
+status: review-resolution-implemented
+feature: v1-product-scope
+milestone: M6
+requirements:
+  - R47
+  - R48
+  - R49
+  - R50
+  - R51
+  - R52
+  - R53
+  - A11Y1
+  - A11Y2
+  - A11Y3
+  - AC8
+test_spec:
+  - specs/v1-product-scope.test.md#T021
+  - specs/v1-product-scope.test.md#T022
+  - specs/v1-product-scope.test.md#T023
+architecture:
+  - docs/architecture/system/architecture.md#desktop-app-components
+  - docs/architecture/system/architecture.md#built-in-context-menu
+  - docs/adr/0007-explorer-parity-policy.md
+artifacts:
+  - src/VeloFile.Core/Selection/FileSelectionController.cs
+  - src/VeloFile.Core/Commands/
+  - src/VeloFile.Windows/Clipboard/WindowsClipboardTextWriter.cs
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tests/VeloFile.Core.Tests/Selection/
+  - tests/VeloFile.Core.Tests/Commands/
+  - tests/VeloFile.Windows.Tests/Clipboard/
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter Selection
+    result: passed 8 Core selection/navigation-category tests after first failing for missing selection and command namespaces
+  - command: dotnet test VeloFile.sln -c Debug --filter Commands
+    result: passed 14 Core command tests after first failing for missing command namespaces
+  - command: dotnet test VeloFile.sln -c Debug --filter Clipboard
+    result: passed 4 Core clipboard tests and 1 Windows clipboard boundary test
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
+    result: passed 8 App shell contract tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors after correcting WinUI Backspace accelerator XAML to VirtualKey Back
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
+    result: passed review-resolution shell availability contract tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed after review-resolution with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter Commands
+    result: passed after review-resolution with 14 Core command tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed after review-resolution with restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies
+notes:
+  - M6 adds the command and selection contracts without enumerating or hosting OS Shell extension menu entries.
+  - WinUI uses `VirtualKey.Back` for the Backspace key; the command route remains the V1 Backspace parent-folder behavior.
+  - Clipboard behavior is implemented through a Core writer interface and a Windows Unicode-text clipboard adapter. Tests do not mutate the real clipboard.
+  - File operation verbs are routed as command ids/placeholders here; destructive behavior remains assigned to M8-M10.
+  - Review resolution wires the visible WinUI context menu to Core command availability before opening and before command execution.

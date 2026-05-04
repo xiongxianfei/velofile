@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
+using VeloFile.Core.Commands;
+using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
@@ -138,6 +140,11 @@ public sealed partial class MainWindow : Window
         RefreshShellBindings();
     }
 
+    private void FileListSurface_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ViewModel.SetSelectedFileItems(FileListSurface.SelectedItems.OfType<ListedFileItem>().ToArray());
+    }
+
     private void ShowHiddenFilesToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isRefreshingShellBindings)
@@ -259,6 +266,156 @@ public sealed partial class MainWindow : Window
     private void TogglePreviewAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;
+    }
+
+    private void BuiltInFileContextMenu_Opening(object sender, object e)
+    {
+        RefreshFileContextMenuAvailability();
+    }
+
+    private void SelectAllAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ViewModel.HandleFileListShortcut(KeyGesture.Ctrl("A"));
+        FileListSurface.SelectAll();
+        args.Handled = true;
+    }
+
+    private void ClearSelectionAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        ViewModel.HandleFileListShortcut(KeyGesture.Escape());
+        FileListSurface.SelectedItems.Clear();
+        args.Handled = true;
+    }
+
+    private void OpenAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.Enter());
+        args.Handled = true;
+    }
+
+    private void RenameAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.F2());
+        args.Handled = true;
+    }
+
+    private void DeleteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.Delete());
+        args.Handled = true;
+    }
+
+    private void PermanentDeleteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.Delete(shift: true));
+        args.Handled = true;
+    }
+
+    private void ParentFolderAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.Backspace());
+        args.Handled = true;
+        RefreshShellBindings();
+    }
+
+    private void CopyPathAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.CtrlShift("C"));
+        args.Handled = true;
+    }
+
+    private void CopyNameAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        InvokeFileListShortcut(KeyGesture.CtrlShift("N"));
+        args.Handled = true;
+    }
+
+    private void OpenMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Open);
+    }
+
+    private void OpenWithMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.OpenWith);
+    }
+
+    private void CutMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Cut);
+    }
+
+    private void CopyMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Copy);
+    }
+
+    private void PasteMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Paste);
+    }
+
+    private void RenameMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Rename);
+    }
+
+    private void DeleteMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Delete);
+    }
+
+    private void PropertiesMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Properties);
+    }
+
+    private void CopyPathMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.CopyPath);
+    }
+
+    private void CopyNameMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.CopyName);
+    }
+
+    private void OpenTerminalMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.OpenTerminalHere);
+    }
+
+    private void InvokeFileListShortcut(KeyGesture gesture)
+    {
+        ViewModel.HandleFileListShortcut(gesture);
+    }
+
+    private void ExecuteAvailableBuiltInCommand(VeloFileCommandId commandId)
+    {
+        if (ViewModel.IsBuiltInCommandAvailable(commandId, CanPasteFromClipboard()))
+        {
+            ViewModel.ExecuteBuiltInCommand(commandId);
+        }
+    }
+
+    private void RefreshFileContextMenuAvailability()
+    {
+        OpenMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Open, CanPasteFromClipboard());
+        OpenWithMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.OpenWith, CanPasteFromClipboard());
+        CutMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Cut, CanPasteFromClipboard());
+        CopyMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Copy, CanPasteFromClipboard());
+        PasteMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Paste, CanPasteFromClipboard());
+        RenameMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Rename, CanPasteFromClipboard());
+        DeleteMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Delete, CanPasteFromClipboard());
+        PropertiesMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.Properties, CanPasteFromClipboard());
+        CopyPathMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.CopyPath, CanPasteFromClipboard());
+        CopyNameMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.CopyName, CanPasteFromClipboard());
+        OpenTerminalMenuItem.IsEnabled = ViewModel.IsBuiltInCommandAvailable(VeloFileCommandId.OpenTerminalHere, CanPasteFromClipboard());
+    }
+
+    private static bool CanPasteFromClipboard()
+    {
+        return false;
     }
 
     private void RefreshShellBindings()

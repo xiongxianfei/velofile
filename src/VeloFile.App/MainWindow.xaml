@@ -22,6 +22,15 @@
             <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="FocusPathAccelerator_Invoked" />
             <KeyboardAccelerator Key="F5" Invoked="RefreshAccelerator_Invoked" />
             <KeyboardAccelerator Key="P" Modifiers="Control" Invoked="TogglePreviewAccelerator_Invoked" />
+            <KeyboardAccelerator Key="A" Modifiers="Control" Invoked="SelectAllAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Escape" Invoked="ClearSelectionAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Enter" Invoked="OpenAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F2" Invoked="RenameAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Delete" Invoked="DeleteAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Delete" Modifiers="Shift" Invoked="PermanentDeleteAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Back" Invoked="ParentFolderAccelerator_Invoked" />
+            <KeyboardAccelerator Key="C" Modifiers="Control,Shift" Invoked="CopyPathAccelerator_Invoked" />
+            <KeyboardAccelerator Key="N" Modifiers="Control,Shift" Invoked="CopyNameAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
         <Grid.RowDefinitions>
@@ -307,7 +316,26 @@
                 Grid.Row="3"
                 Margin="0,8,0,0"
                 SelectionMode="Extended"
+                SelectionChanged="FileListSurface_SelectionChanged"
                 AutomationProperties.Name="Files">
+                <ListView.ContextFlyout>
+                    <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
+                        <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open with" Click="OpenWithMenuItem_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="CutMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="CopyMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="PasteMenuItem_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="RenameMenuItem" Text="Rename" Click="RenameMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="DeleteMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="PropertiesMenuItem" Text="Properties" Click="PropertiesMenuItem_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="CopyPathMenuItem" Text="Copy path" Click="CopyPathMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="CopyNameMenuItem" Text="Copy name" Click="CopyNameMenuItem_Click" />
+                        <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
+                    </MenuFlyout>
+                </ListView.ContextFlyout>
                 <ListViewItem Content="Name     Type      Modified" />
                 <ListViewItem Content="Documents    Folder" />
                 <ListViewItem Content="Downloads    Folder" />

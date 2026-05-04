@@ -282,9 +282,16 @@ Architectural boundaries to preserve:
 - Milestone closeout:
   - validation passed
   - progress updated
-  - decision log updated if needed
+  - decision log updated
   - validation notes updated
   - milestone committed
+- Implementation notes:
+  - Added a Core `FileSelectionController` for Explorer-style single, Ctrl toggle, Shift range, Ctrl+A, Escape, and arrow focus behavior over `ListedFileItem`.
+  - Added a VeloFile-owned built-in command registry and keyboard router for R47-R53. The registry reports that it never enumerates Shell extensions.
+  - Added copy path/name clipboard formatting through a Core `IClipboardTextWriter` seam and a Windows Unicode clipboard writer.
+  - Wired WinUI context-menu items and file-command keyboard accelerators through `AppShellViewModel`; file-operation verbs route as command ids/placeholders until M8-M10 implement destructive behavior.
+  - Review resolution now refreshes the visible WinUI context menu from Core command availability before opening and before command execution.
+  - WinUI XAML uses `VirtualKey.Back` for the Backspace accelerator; this still maps to the V1 Backspace parent-folder command route.
 - Risks: Command shortcuts can conflict with text input focus.
 - Rollback/recovery: Command registry should allow disabling commands without destabilizing navigation.
 
@@ -650,7 +657,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M3 complete.
 - [x] M4 complete.
 - [x] M5 complete.
-- [ ] M6 complete.
+- [x] M6 complete.
 - [ ] M7 complete.
 - [ ] M8 complete.
 - [ ] M9 complete.
@@ -682,6 +689,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
 | 2026-05-04 | Split M5 navigation/session behavior into pure Core state services plus a compiled WinUI shell surface. | Core can prove tabs, sidebar, breadcrumb, restore, visibility, and missing-path behavior without a UI automation harness; the WinUI app still exposes the required shell regions for later command wiring. |
 | 2026-05-04 | Resolve M5 review by adding a Core shell command surface and an app launch composition root. | The review found static shell controls and hardcoded launch state; navigation UI routes now converge on Core command methods, and launch restore reads durable state before creating the shell view model. |
+| 2026-05-05 | Implement M6 command behavior as Core selection/command services plus thin WinUI routes. | Core tests can prove Explorer-style selection, command availability, keyboard routing, and clipboard formatting without a UI automation harness; WinUI exposes the built-in menu and accelerators without Shell extension enumeration. |
 
 ## Surprises and Discoveries
 
@@ -703,6 +711,8 @@ Each milestone must update validation notes with the commands actually run and a
 - M5 found that WinUI `Window` itself does not expose `DataContext`; the app shell view model is attached to the root XAML grid instead.
 - M5 app-shell tests are file-based contract checks until a later UI automation harness exists. They verify shell regions, command/event routes, keyboard accelerator invoked handlers, and app composition wiring without launching WinUI inside MSTest.
 - M5 review resolution found that build/test commands share `obj` outputs; running filtered `dotnet test` commands in parallel can trip file locks, so validation commands that build the solution should run sequentially.
+- M6 confirmed the same build-output lock behavior when two filtered `dotnet test` commands were started in parallel. M6 validation used sequential commands after the expected red compile failures were captured.
+- WinUI `KeyboardAccelerator.Key` uses `Windows.System.VirtualKey`; Backspace must be represented as `Key="Back"` in XAML while still routing to the V1 Backspace parent-folder behavior.
 
 ## Validation Notes
 
@@ -817,15 +827,33 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` initially failed because the App composition contract test expected explicit typed repositories while the composition root hid them behind a generic helper; the composition root was made explicit.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 85 tests across 4 test assemblies.
+- M6 test-first implementation evidence:
+  - Added selection, command registry, keyboard routing, clipboard, Windows clipboard boundary, and App shell contract tests before production M6 namespaces existed.
+  - `dotnet test VeloFile.sln -c Debug --filter Selection` and `dotnet test VeloFile.sln -c Debug --filter Commands` first failed as expected because `VeloFile.Core.Selection`, `VeloFile.Core.Commands`, and `VeloFile.Windows.Clipboard` were missing. The first attempt also hit shared-output file locks because the two build-producing test commands ran concurrently.
+- M6 final validation:
+  - `dotnet test VeloFile.sln -c Debug --filter Commands` passed: 14 Core command tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Selection` passed: 8 Core selection/navigation-category tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Clipboard` passed: 4 Core clipboard tests and 1 Windows clipboard boundary test.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 8 App shell contract tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies.
+- M6 review-resolution evidence:
+  - First-pass `code-review` found that the visible WinUI context menu bypassed command availability even though Core availability was correct.
+  - Added a shell contract assertion first for the menu opening route and `ViewModel.IsBuiltInCommandAvailable`.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 8 App shell contract tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --filter Commands` passed: 14 Core command tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 126 tests across 4 test assemblies.
+  - Second-pass `code-review` found no blocking or required-change findings and recommended `verify`.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, and M5 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, and a compiled shell surface wired to those commands. Later V1 file-selection, file-command, search, operation, preview, benchmark, and packaging behavior remains assigned to M6-M16.
+M1, M2, M3, M4, M5, and M6 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, and clipboard copy path/name boundaries. Later V1 search, operation, preview, benchmark, and packaging behavior remains assigned to M7-M16.
 
 ## Readiness
 
-M5 review resolution passed `code-review` with no blocking or required-change findings. M6 is ready to implement.
+M6 second-pass `code-review` is clean with notes and is ready for `verify`.
 
-Implementation resumes after M5 review with:
+Implementation resumes after M6 verify with:
 
-- M6 connecting selection, command routing, built-in context menu, and clipboard behavior.
+- M7 current-folder filter and recursive search.

@@ -94,6 +94,39 @@ public sealed class AppShellContractTests
         Assert.IsFalse(compositionCode.Contains("new PassThroughMonitorPlacementResolver()", StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public void Main_window_shell_exposes_built_in_context_menu_and_file_command_accelerators()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"BuiltInFileContextMenu\"");
+        StringAssert.Contains(xaml, "Opening=\"BuiltInFileContextMenu_Opening\"");
+        StringAssert.Contains(xaml, "Text=\"Open\"");
+        StringAssert.Contains(xaml, "Text=\"Open with\"");
+        StringAssert.Contains(xaml, "Text=\"Cut\"");
+        StringAssert.Contains(xaml, "Text=\"Copy\"");
+        StringAssert.Contains(xaml, "Text=\"Paste\"");
+        StringAssert.Contains(xaml, "Text=\"Rename\"");
+        StringAssert.Contains(xaml, "Text=\"Delete\"");
+        StringAssert.Contains(xaml, "Text=\"Properties\"");
+        StringAssert.Contains(xaml, "Text=\"Copy path\"");
+        StringAssert.Contains(xaml, "Text=\"Copy name\"");
+        StringAssert.Contains(xaml, "Text=\"Open terminal here\"");
+        Assert.IsFalse(xaml.Contains("ShellExtension", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(xaml.Contains("Show more options", StringComparison.OrdinalIgnoreCase));
+
+        StringAssert.Contains(xaml, "Key=\"A\" Modifiers=\"Control\"");
+        StringAssert.Contains(xaml, "Key=\"F2\"");
+        StringAssert.Contains(xaml, "Key=\"Delete\"");
+        StringAssert.Contains(xaml, "Key=\"C\" Modifiers=\"Control,Shift\"");
+        StringAssert.Contains(xaml, "Key=\"N\" Modifiers=\"Control,Shift\"");
+        StringAssert.Contains(codeBehind, "ViewModel.HandleFileListShortcut");
+        StringAssert.Contains(codeBehind, "RefreshFileContextMenuAvailability");
+        StringAssert.Contains(codeBehind, "ViewModel.IsBuiltInCommandAvailable");
+    }
+
     private static DirectoryInfo FindRepoRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

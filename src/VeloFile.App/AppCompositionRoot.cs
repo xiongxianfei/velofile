@@ -7,6 +7,7 @@ using VeloFile.Core.Persistence;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using VeloFile.Core.Visibility;
+using VeloFile.Windows.Clipboard;
 using VeloFile.Windows.FileSystem;
 using VeloFile.Windows.Storage;
 using VeloFile.Windows.Windowing;
@@ -78,7 +79,7 @@ public static class AppCompositionRoot
             ReadDriveEntries()));
 
         diagnostics.RecordLastActionMarker("startup", "session", DateTimeOffset.UtcNow);
-        return new AppShellViewModel(startupState);
+        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter());
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()
