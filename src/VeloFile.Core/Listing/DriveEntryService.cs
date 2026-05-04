@@ -33,6 +33,7 @@ public sealed class DriveEntryService
     private readonly IDriveEntrySource _entrySource;
     private readonly IDriveHintSource _hintSource;
     private readonly object _sync = new();
+    private readonly HashSet<string> _liveHintOperations = new(StringComparer.OrdinalIgnoreCase);
     private long _generation;
     private CancellationTokenSource? _refreshCancellation;
     private IReadOnlyList<DriveEntry> _currentEntries = [];
@@ -122,9 +123,8 @@ public sealed class DriveEntryService
         DriveHintRefreshOptions options,
         CancellationToken cancellationToken)
     {
-        using var semaphore = new SemaphoreSlim(options.MaxConcurrentHintOperations);
         var tasks = initialEntries
-            .Select(entry => EnrichEntryAsync(entry, options, semaphore, cancellationToken))
+            .Select(entry => EnrichEntryAsync(entry, options, cancellationToken))
             .ToArray();
         var entries = await Task.WhenAll(tasks).ConfigureAwait(false);
 
@@ -143,40 +143,33 @@ public sealed class DriveEntryService
     private async Task<DriveEntry> EnrichEntryAsync(
         DriveEntry entry,
         DriveHintRefreshOptions options,
-        SemaphoreSlim semaphore,
         CancellationToken cancellationToken)
     {
-        var acquired = false;
+        if (!TryReserveHintSlot(entry.RootPath, options.MaxConcurrentHintOperations))
+        {
+            return WithoutHints(entry, DriveHintStatus.Unavailable);
+        }
 
-        try
+        var hint = await ReadHintWithTimeoutAsync(entry.RootPath, options.HintTimeout, cancellationToken).ConfigureAwait(false);
+        return ApplyHint(entry, hint);
+    }
+
+    private bool TryReserveHintSlot(string rootPath, int maxConcurrentHintOperations)
+    {
+        lock (_sync)
         {
-            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-            acquired = true;
-            var hint = await ReadHintWithTimeoutAsync(entry.RootPath, options.HintTimeout, cancellationToken).ConfigureAwait(false);
-            return ApplyHint(entry, hint);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return WithoutHints(entry, DriveHintStatus.Cancelled);
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
-        {
-            return WithoutHints(entry, DriveHintStatus.AccessDenied);
-        }
-        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
-        {
-            return WithoutHints(entry, DriveHintStatus.Unavailable);
-        }
-        catch (Exception)
-        {
-            return WithoutHints(entry, DriveHintStatus.Unavailable);
-        }
-        finally
-        {
-            if (acquired)
+            if (_liveHintOperations.Contains(rootPath))
             {
-                semaphore.Release();
+                return false;
             }
+
+            if (_liveHintOperations.Count >= maxConcurrentHintOperations)
+            {
+                return false;
+            }
+
+            _liveHintOperations.Add(rootPath);
+            return true;
         }
     }
 
@@ -192,10 +185,29 @@ public sealed class DriveEntryService
         {
             hintTask = _hintSource.GetHintAsync(rootPath, hintCancellation.Token);
         }
-        catch
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            ReleaseHintSlot(rootPath);
             hintCancellation.Dispose();
-            throw;
+            return DriveHint.Cancelled();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
+        {
+            ReleaseHintSlot(rootPath);
+            hintCancellation.Dispose();
+            return DriveHint.AccessDenied();
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            ReleaseHintSlot(rootPath);
+            hintCancellation.Dispose();
+            return DriveHint.Unavailable();
+        }
+        catch (Exception)
+        {
+            ReleaseHintSlot(rootPath);
+            hintCancellation.Dispose();
+            return DriveHint.Unavailable();
         }
 
         var timeoutTask = Task.Delay(timeout);
@@ -208,21 +220,38 @@ public sealed class DriveEntryService
             {
                 return await hintTask.ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return DriveHint.Cancelled();
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
+            {
+                return DriveHint.AccessDenied();
+            }
+            catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+            {
+                return DriveHint.Unavailable();
+            }
+            catch (Exception)
+            {
+                return DriveHint.Unavailable();
+            }
             finally
             {
+                ReleaseHintSlot(rootPath);
                 hintCancellation.Dispose();
             }
         }
 
         hintCancellation.Cancel();
-        _ = ObserveLateHintAsync(hintTask, hintCancellation);
+        _ = ObserveLateHintAsync(rootPath, hintTask, hintCancellation);
 
         return completed == cancellationTask || cancellationToken.IsCancellationRequested
             ? DriveHint.Cancelled()
             : DriveHint.TimedOut();
     }
 
-    private static async Task ObserveLateHintAsync(Task<DriveHint> hintTask, CancellationTokenSource hintCancellation)
+    private async Task ObserveLateHintAsync(string rootPath, Task<DriveHint> hintTask, CancellationTokenSource hintCancellation)
     {
         try
         {
@@ -234,7 +263,16 @@ public sealed class DriveEntryService
         }
         finally
         {
+            ReleaseHintSlot(rootPath);
             hintCancellation.Dispose();
+        }
+    }
+
+    private void ReleaseHintSlot(string rootPath)
+    {
+        lock (_sync)
+        {
+            _liveHintOperations.Remove(rootPath);
         }
     }
 

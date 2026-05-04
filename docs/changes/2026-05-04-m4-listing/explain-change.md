@@ -48,7 +48,9 @@ M4 focused validation passed with:
 M4 review-resolution focused validation also passed with:
 
 - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Slow_tab_listing|Stale_slow_listing|Closing_tab_cancels|Drive_entries_are_returned|Slow_hint_completion|Hint_failure|Cancelling_hint"`
+- `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Timed_out_non_cancelling_hints|Cancellation_ignoring_old_listing"`
 - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Listing`
+- `dotnet test VeloFile.sln -c Debug --filter Listing`
 
 Final closeout CI is recorded in the active plan and `change.yaml`.
 
@@ -56,7 +58,7 @@ Final milestone closeout also passed:
 
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 
-The review-resolution closeout run built with 0 warnings and 0 errors and passed 55 tests across 4 test assemblies.
+The review-resolution closeout run built with 0 warnings and 0 errors and passed 58 tests across 4 test assemblies.
 
 ## Deferred By Plan
 

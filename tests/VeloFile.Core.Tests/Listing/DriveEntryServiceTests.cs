@@ -34,6 +34,58 @@ public sealed class DriveEntryServiceTests
     }
 
     [TestMethod]
+    public async Task Timed_out_non_cancelling_hints_continue_counting_against_concurrency_cap()
+    {
+        var hintSource = new ControlledDriveHintSource();
+        foreach (var rootPath in new[] { @"A:\", @"B:\", @"C:\", @"D:\", @"E:\" })
+        {
+            hintSource.SetPending(rootPath, observeCancellation: false);
+        }
+
+        var service = new DriveEntryService(
+            new StaticDriveEntrySource(
+                FastEntry(@"A:\"),
+                FastEntry(@"B:\"),
+                FastEntry(@"C:\"),
+                FastEntry(@"D:\"),
+                FastEntry(@"E:\")),
+            hintSource);
+
+        var refresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromMilliseconds(50), MaxConcurrentHintOperations: 2));
+        var result = await refresh.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsTrue(result.Applied);
+        Assert.HasCount(5, result.Entries);
+        Assert.IsLessThanOrEqualTo(hintSource.MaxActiveCount, 2, $"Expected at most 2 live hint reads, saw {hintSource.MaxActiveCount}.");
+        Assert.AreEqual(DriveHintStatus.TimedOut, result.Entries.Single(entry => entry.RootPath == @"A:\").HintStatus);
+        Assert.AreEqual(DriveHintStatus.TimedOut, result.Entries.Single(entry => entry.RootPath == @"B:\").HintStatus);
+        Assert.AreEqual(DriveHintStatus.Unavailable, result.Entries.Single(entry => entry.RootPath == @"C:\").HintStatus);
+        Assert.AreEqual(DriveHintStatus.Unavailable, result.Entries.Single(entry => entry.RootPath == @"D:\").HintStatus);
+        Assert.AreEqual(DriveHintStatus.Unavailable, result.Entries.Single(entry => entry.RootPath == @"E:\").HintStatus);
+        CollectionAssert.AreEquivalent(new[] { @"A:\", @"B:\" }, hintSource.StartedRoots.Distinct().ToArray());
+
+        var secondRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromMilliseconds(50), MaxConcurrentHintOperations: 2));
+        var secondResult = await secondRefresh.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsTrue(secondResult.Applied);
+        Assert.IsLessThanOrEqualTo(hintSource.MaxActiveCount, 2, $"Expected at most 2 live hint reads, saw {hintSource.MaxActiveCount}.");
+        CollectionAssert.AreEquivalent(new[] { @"A:\", @"B:\" }, hintSource.StartedRoots.Distinct().ToArray());
+
+        hintSource.Release(@"A:\", DriveHint.Available(volumeLabel: "Released", availableFreeSpaceBytes: 1, totalSizeBytes: 2));
+        await WaitUntilAsync(
+            async () =>
+            {
+                var thirdRefresh = service.StartRefresh(new DriveHintRefreshOptions(TimeSpan.FromMilliseconds(50), MaxConcurrentHintOperations: 2));
+                var thirdResult = await thirdRefresh.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+                return thirdResult.Applied && hintSource.StartedRoots.Contains(@"C:\");
+            },
+            TimeSpan.FromSeconds(2));
+
+        CollectionAssert.AreEquivalent(new[] { @"A:\", @"B:\", @"C:\" }, hintSource.StartedRoots.Distinct().ToArray());
+        Assert.IsLessThanOrEqualTo(hintSource.MaxActiveCount, 2, $"Expected at most 2 live hint reads, saw {hintSource.MaxActiveCount}.");
+    }
+
+    [TestMethod]
     public async Task Slow_hint_completion_updates_only_matching_generation()
     {
         var entrySource = new MutableDriveEntrySource(FastEntry(@"C:\"));
@@ -116,6 +168,22 @@ public sealed class DriveEntryServiceTests
             TotalSizeBytes: null);
     }
 
+    private static async Task WaitUntilAsync(Func<Task<bool>> condition, TimeSpan timeout)
+    {
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (await condition())
+            {
+                return;
+            }
+
+            await Task.Delay(20);
+        }
+
+        Assert.Fail("Condition was not met before the timeout.");
+    }
+
     private sealed class StaticDriveEntrySource : IDriveEntrySource
     {
         private readonly IReadOnlyList<DriveEntry> _entries;
@@ -155,17 +223,55 @@ public sealed class DriveEntryServiceTests
     {
         private readonly Dictionary<string, TaskCompletionSource<DriveHint>> _pending = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Func<CancellationToken, Task<DriveHint>>> _routes = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new();
+        private int _activeCount;
+        private int _maxActiveCount;
 
         public void SetHint(string rootPath, DriveHint hint)
         {
             _routes[rootPath] = _ => Task.FromResult(hint);
         }
 
-        public void SetPending(string rootPath)
+        public IReadOnlyList<string> StartedRoots
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _startedRoots.ToArray();
+                }
+            }
+        }
+
+        public int MaxActiveCount
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _maxActiveCount;
+                }
+            }
+        }
+
+        public void SetPending(string rootPath, bool observeCancellation = true)
         {
             var pending = new TaskCompletionSource<DriveHint>(TaskCreationOptions.RunContinuationsAsynchronously);
             _pending[rootPath] = pending;
-            _routes[rootPath] = _ => pending.Task;
+            _routes[rootPath] = async cancellationToken =>
+            {
+                OnStarted(rootPath);
+                try
+                {
+                    return observeCancellation
+                        ? await pending.Task.WaitAsync(cancellationToken)
+                        : await pending.Task;
+                }
+                finally
+                {
+                    OnCompleted();
+                }
+            };
         }
 
         public void SetFailure(string rootPath, Exception exception)
@@ -186,6 +292,26 @@ public sealed class DriveEntryServiceTests
         public Task<DriveHint> GetHintAsync(string rootPath, CancellationToken cancellationToken)
         {
             return _routes[rootPath](cancellationToken);
+        }
+
+        private readonly List<string> _startedRoots = [];
+
+        private void OnStarted(string rootPath)
+        {
+            lock (_sync)
+            {
+                _startedRoots.Add(rootPath);
+                _activeCount++;
+                _maxActiveCount = Math.Max(_maxActiveCount, _activeCount);
+            }
+        }
+
+        private void OnCompleted()
+        {
+            lock (_sync)
+            {
+                _activeCount--;
+            }
         }
     }
 }

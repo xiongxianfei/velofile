@@ -779,10 +779,12 @@ Each milestone must update validation notes with the commands actually run and a
   - Added regression tests first for direct concurrent slow-vs-healthy tab isolation, stale slow completion after same-tab navigation, tab close cancellation, slow/hanging drive hints, stale drive hint generations, hint failures, and hint cancellation.
   - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Slow_tab_listing|Drive_entries_are_returned"` failed first because `FolderListingCoordinator`, `DriveEntryService`, `IDriveHintSource`, `DriveHint`, and `DriveHintStatus` did not exist.
   - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Slow_tab_listing|Stale_slow_listing|Closing_tab_cancels|Drive_entries_are_returned|Slow_hint_completion|Hint_failure|Cancelling_hint"` passed: 8 tests.
+  - Second review-resolution pass added direct proof for live underlying drive hint read caps and cancellation-ignoring stale listing completion/failure.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter "Timed_out_non_cancelling_hints|Cancellation_ignoring_old_listing"` initially failed because timed-out hint reads released capacity before underlying reads completed, then passed after live-read slot tracking.
   - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Listing` passed: 4 tests.
-  - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 15 Core listing tests and 4 Windows listing/file-system tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 18 Core listing tests and 4 Windows listing/file-system tests.
   - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 4 Core visibility tests.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 55 tests across 4 test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 58 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

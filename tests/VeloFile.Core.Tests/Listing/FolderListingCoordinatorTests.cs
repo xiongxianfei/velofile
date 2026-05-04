@@ -69,6 +69,62 @@ public sealed class FolderListingCoordinatorTests
     }
 
     [TestMethod]
+    public async Task Cancellation_ignoring_old_listing_result_cannot_overwrite_newer_tab_state()
+    {
+        var oldSource = new CancellationIgnoringFolderEntrySource();
+        var source = new RoutedFolderEntrySource(
+            ("slow://old", oldSource),
+            ("local://new", new StaticFolderEntrySource("new-file.txt")));
+        var coordinator = new FolderListingCoordinator(new FolderListingService(source));
+
+        var oldOperation = coordinator.StartLoad("tab-a", "slow://old", Options);
+        await oldSource.Started.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var newOperation = coordinator.StartLoad("tab-a", "local://new", Options);
+        var newResult = await newOperation.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsTrue(newResult.Applied);
+        Assert.AreEqual("local://new", coordinator.GetState("tab-a")?.Path);
+        Assert.AreEqual("new-file.txt", coordinator.GetState("tab-a")?.FirstViewport.Single().Name);
+        await oldSource.CancellationRequested.WaitAsync(TimeSpan.FromSeconds(2));
+
+        oldSource.Release("old-file.txt");
+        var oldResult = await oldOperation.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsFalse(oldResult.Applied);
+        Assert.AreEqual("local://new", coordinator.GetState("tab-a")?.Path);
+        Assert.AreEqual("new-file.txt", coordinator.GetState("tab-a")?.FirstViewport.Single().Name);
+        Assert.IsFalse(coordinator.GetState("tab-a")!.FirstViewport.Any(entry => entry.Name == "old-file.txt"));
+    }
+
+    [TestMethod]
+    public async Task Cancellation_ignoring_old_listing_failure_cannot_overwrite_newer_tab_state()
+    {
+        var oldSource = new CancellationIgnoringThrowingFolderEntrySource(new UnauthorizedAccessException("late-denied"));
+        var source = new RoutedFolderEntrySource(
+            ("slow://old", oldSource),
+            ("local://new", new StaticFolderEntrySource("new-file.txt")));
+        var coordinator = new FolderListingCoordinator(new FolderListingService(source));
+
+        var oldOperation = coordinator.StartLoad("tab-a", "slow://old", Options);
+        await oldSource.Started.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var newOperation = coordinator.StartLoad("tab-a", "local://new", Options);
+        var newResult = await newOperation.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsTrue(newResult.Applied);
+        await oldSource.CancellationRequested.WaitAsync(TimeSpan.FromSeconds(2));
+
+        oldSource.Release();
+        var oldResult = await oldOperation.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsFalse(oldResult.Applied);
+        Assert.AreEqual(FolderListingStatus.Ready, coordinator.GetState("tab-a")?.Status);
+        Assert.AreEqual("local://new", coordinator.GetState("tab-a")?.Path);
+        Assert.AreEqual("new-file.txt", coordinator.GetState("tab-a")?.FirstViewport.Single().Name);
+    }
+
+    [TestMethod]
     public async Task Closing_tab_cancels_slow_listing_without_updating_state()
     {
         var slowSource = new GatedFolderEntrySource();
@@ -169,6 +225,72 @@ public sealed class FolderListingCoordinatorTests
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return Entry(path, name);
             }
+        }
+    }
+
+    private sealed class CancellationIgnoringFolderEntrySource : IFolderEntrySource
+    {
+        private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _cancellationRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<IReadOnlyList<string>> _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Started => _started.Task;
+
+        public Task CancellationRequested => _cancellationRequested.Task;
+
+        public void Release(params string[] names)
+        {
+            _release.TrySetResult(names);
+        }
+
+        public async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(
+            string path,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            _started.TrySetResult();
+            using var registration = cancellationToken.Register(() => _cancellationRequested.TrySetResult());
+
+            var names = await _release.Task;
+            foreach (var name in names)
+            {
+                yield return Entry(path, name);
+            }
+        }
+    }
+
+    private sealed class CancellationIgnoringThrowingFolderEntrySource : IFolderEntrySource
+    {
+        private readonly Exception _exception;
+        private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _cancellationRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public CancellationIgnoringThrowingFolderEntrySource(Exception exception)
+        {
+            _exception = exception;
+        }
+
+        public Task Started => _started.Task;
+
+        public Task CancellationRequested => _cancellationRequested.Task;
+
+        public void Release()
+        {
+            _release.TrySetResult();
+        }
+
+        public async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(
+            string path,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            _started.TrySetResult();
+            using var registration = cancellationToken.Register(() => _cancellationRequested.TrySetResult());
+
+            await _release.Task;
+            throw _exception;
+            #pragma warning disable CS0162
+            yield break;
+            #pragma warning restore CS0162
         }
     }
 
