@@ -73,6 +73,20 @@ validation:
     result: passed after app-shell blocker fixes with 134 tests across 4 test assemblies
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed after app-shell blocker fixes with restore, build with 0 warnings and 0 errors, and 134 tests across 4 test assemblies
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
+    result: passed after listing-feed and view-order selection fixes with 23 App shell contract/route tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed after listing-feed and view-order selection fixes with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter Commands
+    result: passed after listing-feed and view-order selection fixes with 14 Core command tests and 3 App command-route tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Selection
+    result: passed after listing-feed and view-order selection fixes with 8 Core selection/navigation-category tests and 6 App selection tests
+  - command: dotnet test VeloFile.sln -c Debug --filter Listing
+    result: passed after listing-feed and view-order selection fixes with 19 Core listing tests, 4 Windows listing tests, and 1 App listing-route test
+  - command: dotnet test VeloFile.sln -c Debug
+    result: passed after listing-feed and view-order selection fixes with 141 tests across 4 test assemblies
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed after listing-feed and view-order selection fixes with restore, build with 0 warnings and 0 errors, and 141 tests across 4 test assemblies
 notes:
   - M6 adds the command and selection contracts without enumerating or hosting OS Shell extension menu entries.
   - WinUI uses `VirtualKey.Back` for the Backspace key; the command route remains the V1 Backspace parent-folder behavior.
@@ -81,3 +95,4 @@ notes:
   - Review resolution wires the visible WinUI context menu to Core command availability before opening and before command execution.
   - App-shell blocker resolution binds the production file list to real `ListedFileItem` values and routes file-command accelerators through WinUI focus context before invoking Core commands.
   - The stale drive-hint generation test now uses enough hint slots to test generation safety without contradicting the existing live-underlying-read concurrency cap.
+  - Fourth-pass review resolution wires production folder listing into `AppShellViewModel.FileItems` and orders selected items by the current visible file-list order.

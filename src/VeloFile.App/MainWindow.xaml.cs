@@ -29,6 +29,7 @@ public sealed partial class MainWindow : Window
         ViewModel = viewModel;
         _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
         _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
+        ViewModel.ShellStateChanged += ViewModel_ShellStateChanged;
         Title = ViewModel.WindowTitle;
         RootShell.DataContext = ViewModel;
         RootShell.MinWidth = WindowPlacementPolicy.Default.MinimumRestorableWidth;
@@ -146,7 +147,12 @@ public sealed partial class MainWindow : Window
 
     private void FileListSurface_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems));
+        ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.FileItems));
+    }
+
+    private void ViewModel_ShellStateChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(RefreshShellBindings);
     }
 
     private void ShowHiddenFilesToggle_Toggled(object sender, RoutedEventArgs e)

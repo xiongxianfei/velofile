@@ -11,19 +11,32 @@ namespace VeloFile.App.ViewModels;
 
 public sealed class AppShellViewModel
 {
+    private const int DefaultViewportItemCount = 500;
     private readonly BuiltInCommandRegistry _commandRegistry;
     private readonly KeyboardCommandRouter _keyboardCommandRouter;
     private readonly ClipboardCommandService _clipboardCommands;
+    private readonly FolderListingCoordinator? _listingCoordinator;
+    private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _fileItems = [];
+    private FolderListingRequest? _activeListingRequest;
 
-    public AppShellViewModel(AppShellStartupState startupState, IClipboardTextWriter? clipboardWriter = null)
+    public AppShellViewModel(
+        AppShellStartupState startupState,
+        IClipboardTextWriter? clipboardWriter = null,
+        FolderListingCoordinator? listingCoordinator = null,
+        int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
         WindowPlacementResolution = startupState.WindowPlacementResolution;
         _commandRegistry = BuiltInCommandRegistry.CreateDefault();
         _keyboardCommandRouter = KeyboardCommandRouter.CreateDefault();
         _clipboardCommands = new ClipboardCommandService(clipboardWriter ?? NoOpClipboardTextWriter.Instance);
+        _listingCoordinator = listingCoordinator;
+        _viewportItemCount = viewportItemCount;
+        RefreshActiveListing();
     }
+
+    public event EventHandler? ShellStateChanged;
 
     public AppShellCommandSurface CommandSurface { get; }
 
@@ -63,12 +76,24 @@ public sealed class AppShellViewModel
 
     public PathSubmissionResult SubmitPath(string path)
     {
-        return CommandSurface.SubmitPath(path);
+        var result = CommandSurface.SubmitPath(path);
+        if (result.Accepted)
+        {
+            RefreshActiveListing(forceReload: true);
+        }
+
+        return result;
     }
 
     public PathSubmissionResult ActivateSidebarTarget(ShellNavigationTarget target)
     {
-        return CommandSurface.ActivateSidebarTarget(target);
+        var result = CommandSurface.ActivateSidebarTarget(target);
+        if (result.Accepted)
+        {
+            RefreshActiveListing(forceReload: true);
+        }
+
+        return result;
     }
 
     public void OpenBreadcrumbSegment(BreadcrumbSegment segment)
@@ -83,77 +108,116 @@ public sealed class AppShellViewModel
 
     public bool NavigateBack()
     {
-        return CommandSurface.NavigateBack();
+        var navigated = CommandSurface.NavigateBack();
+        if (navigated)
+        {
+            RefreshActiveListing();
+        }
+
+        return navigated;
     }
 
     public bool NavigateForward()
     {
-        return CommandSurface.NavigateForward();
+        var navigated = CommandSurface.NavigateForward();
+        if (navigated)
+        {
+            RefreshActiveListing();
+        }
+
+        return navigated;
     }
 
     public bool NavigateToParent()
     {
-        return CommandSurface.NavigateToParent();
+        var navigated = CommandSurface.NavigateToParent();
+        if (navigated)
+        {
+            RefreshActiveListing(forceReload: true);
+        }
+
+        return navigated;
     }
 
     public void RefreshActiveTab()
     {
         CommandSurface.RefreshActiveTab();
+        RefreshActiveListing(forceReload: true);
     }
 
     public void NewTab()
     {
         CommandSurface.NewTab();
+        RefreshActiveListing();
     }
 
     public void DuplicateActiveTab()
     {
         CommandSurface.DuplicateActiveTab();
+        RefreshActiveListing();
     }
 
     public void CloseActiveTab()
     {
+        var closedTabId = ActiveTab.Id;
         CommandSurface.CloseActiveTab();
+        _listingCoordinator?.CloseTab(closedTabId);
+        RefreshActiveListing();
     }
 
     public void ReopenClosedTab()
     {
-        CommandSurface.ReopenClosedTab();
+        if (CommandSurface.ReopenClosedTab() is not null)
+        {
+            RefreshActiveListing();
+        }
     }
 
     public void SwitchToTab(int index)
     {
         CommandSurface.SwitchToTab(index);
+        RefreshActiveListing();
     }
 
     public void SwitchNextTab()
     {
         CommandSurface.SwitchNextTab();
+        RefreshActiveListing();
     }
 
     public void SwitchPreviousTab()
     {
         CommandSurface.SwitchPreviousTab();
+        RefreshActiveListing();
     }
 
     public void SetShowHiddenFiles(bool show)
     {
         CommandSurface.SetShowHiddenFiles(show);
+        RefreshActiveListing(forceReload: true);
     }
 
     public void SetShowFileExtensions(bool show)
     {
         CommandSurface.SetShowFileExtensions(show);
+        RefreshActiveListing(forceReload: true);
     }
 
     public VisibilityChangeStatus SetShowProtectedOperatingSystemFiles(bool show, bool confirmed)
     {
-        return CommandSurface.SetShowProtectedOperatingSystemFiles(show, confirmed);
+        var status = CommandSurface.SetShowProtectedOperatingSystemFiles(show, confirmed);
+        if (status is VisibilityChangeStatus.Applied)
+        {
+            RefreshActiveListing(forceReload: true);
+        }
+
+        return status;
     }
 
     public void StartFresh()
     {
         CommandSurface.StartFresh();
+        RefreshActiveListing(forceReload: true);
     }
 
     public IReadOnlyList<BuiltInContextMenuItem> BuildFileContextMenu(bool canPaste)
@@ -214,12 +278,74 @@ public sealed class AppShellViewModel
 
     public void SetSelectedFileItems(IReadOnlyList<ListedFileItem> items)
     {
-        SelectedFileItems = items;
+        var selectedPaths = items
+            .Select(item => item.FullPath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        SelectedFileItems = _fileItems
+            .Where(item => selectedPaths.Contains(item.FullPath))
+            .ToArray();
     }
 
     private CommandContext CreateCommandContext(bool canPaste)
     {
         return CommandContext.ForSelection(ActivePath, SelectedFileItems, canPaste);
+    }
+
+    private void RefreshActiveListing(bool forceReload = false)
+    {
+        if (_listingCoordinator is null)
+        {
+            return;
+        }
+
+        if (ActiveTab.LocationState is not NavigationTabLocationState.Available)
+        {
+            ApplyListingState(null);
+            return;
+        }
+
+        if (!forceReload)
+        {
+            var existingState = _listingCoordinator.GetState(ActiveTab.Id);
+            if (existingState is not null
+                && string.Equals(existingState.Path, ActivePath, StringComparison.OrdinalIgnoreCase)
+                && existingState.Status is FolderListingStatus.Ready or FolderListingStatus.Empty)
+            {
+                ApplyListingState(existingState);
+                return;
+            }
+        }
+
+        var operation = _listingCoordinator.StartLoad(
+            ActiveTab.Id,
+            ActivePath,
+            new FolderListingOptions(_viewportItemCount, VisibilitySettings));
+        _activeListingRequest = operation.Request;
+        ApplyListingState(operation.InitialState);
+        _ = CompleteListingAsync(operation);
+    }
+
+    private async Task CompleteListingAsync(FolderListingOperation operation)
+    {
+        var result = await operation.Completion.ConfigureAwait(false);
+        if (!result.Applied || !IsActiveListingResult(result))
+        {
+            return;
+        }
+
+        ApplyListingState(result.State);
+    }
+
+    private bool IsActiveListingResult(FolderListingLoadResult result)
+    {
+        return _activeListingRequest == result.Request
+            && string.Equals(ActiveTab.Id, result.Request.TabId, StringComparison.Ordinal);
+    }
+
+    private void ApplyListingState(FolderListingState? state)
+    {
+        SetFileItems(state?.Status is FolderListingStatus.Ready ? state.FirstViewport : []);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private sealed class NoOpClipboardTextWriter : IClipboardTextWriter

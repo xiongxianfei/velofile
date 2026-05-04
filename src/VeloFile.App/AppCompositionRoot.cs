@@ -79,7 +79,9 @@ public static class AppCompositionRoot
             ReadDriveEntries()));
 
         diagnostics.RecordLastActionMarker("startup", "session", DateTimeOffset.UtcNow);
-        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter());
+        var listingCoordinator = new FolderListingCoordinator(
+            new FolderListingService(new WindowsFolderEntrySource()));
+        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

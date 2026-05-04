@@ -9,12 +9,18 @@ public interface IFileListRowItem
 
 public static class FileListSelectionMapper
 {
-    public static IReadOnlyList<ListedFileItem> ToListedFileItems(IEnumerable<object?> selectedItems)
+    public static IReadOnlyList<ListedFileItem> ToListedFileItems(
+        IEnumerable<object?> selectedItems,
+        IReadOnlyList<ListedFileItem> visibleItems)
     {
-        return selectedItems
+        var selectedPaths = selectedItems
             .Select(TryGetListedFileItem)
             .Where(item => item is not null)
-            .Select(item => item!)
+            .Select(item => item!.FullPath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return visibleItems
+            .Where(item => selectedPaths.Contains(item.FullPath))
             .ToArray();
     }
 
@@ -36,6 +42,7 @@ public static class FileListSelectionMapper
     private static ListedFileItem? TryGetDataContextListedFileItem(object selectedItem)
     {
         var dataContextProperty = selectedItem.GetType().GetProperty("DataContext");
-        return dataContextProperty?.GetValue(selectedItem) as ListedFileItem;
+        var dataContext = dataContextProperty?.GetValue(selectedItem);
+        return ReferenceEquals(dataContext, selectedItem) ? null : TryGetListedFileItem(dataContext);
     }
 }

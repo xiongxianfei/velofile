@@ -75,6 +75,8 @@ public sealed class AppShellContractTests
         StringAssert.Contains(compositionCode, "SessionRestoreService");
         StringAssert.Contains(compositionCode, "WindowsDurableDocumentStorage");
         StringAssert.Contains(compositionCode, "LocalDiagnosticLogStore");
+        StringAssert.Contains(compositionCode, "new FolderListingCoordinator");
+        StringAssert.Contains(compositionCode, "new WindowsFolderEntrySource()");
     }
 
     [TestMethod]
@@ -138,7 +140,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
         Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileItems");
-        StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems");
+        StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.FileItems)");
         Assert.IsFalse(codeBehind.Contains("FileListSurface.SelectedItems.OfType<ListedFileItem>()", StringComparison.Ordinal));
     }
 

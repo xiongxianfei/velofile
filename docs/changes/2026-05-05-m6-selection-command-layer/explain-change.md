@@ -12,6 +12,7 @@ M6 adds the V1 command and selection foundation:
 - WinUI shell context-menu items and keyboard accelerators that route into `AppShellViewModel`.
 - A bound WinUI file list whose selected visible rows map to canonical `ListedFileItem` values.
 - An app-shell focus-context bridge so file-command accelerators are suppressed while text input owns focus.
+- A production listing feed from the active tab path into `AppShellViewModel.FileItems`.
 
 The implementation deliberately does not add OS Shell extension context-menu hosting. That remains out of V1 scope after the earlier accepted product decision.
 
@@ -43,6 +44,10 @@ The first focused runs failed for the expected reason: `VeloFile.Core.Selection`
 
 `FileListSurface` is bound to `AppShellViewModel.FileItems`; static placeholder rows are not part of the production file list. The shell selection route uses `FileListSelectionMapper` to turn selected rows, wrappers, or item containers back into `ListedFileItem` values before commands run.
 
+`AppShellViewModel` starts folder listing through `FolderListingCoordinator` for the active tab on startup, accepted navigation, refresh, tab switching, and visibility-setting changes. The WinUI shell only binds and forwards selection; it does not enumerate folders.
+
+Selection mapping is ordered by the current visible `FileItems` collection. This keeps Copy path/name output aligned with the current sorted or filtered file-list order and ignores stale selected rows that are no longer visible.
+
 `AppFileCommandAcceleratorRouter` asks `IKeyboardFocusContextProvider` for the current WinUI focus context before routing file commands. Text-input focus is passed into the Core `KeyboardCommandRouter`, and suppressed routes do not mark the accelerator handled as a file command.
 
 WinUI's XAML key name for Backspace is `Back` because `KeyboardAccelerator.Key` uses `Windows.System.VirtualKey`. The app handler still routes it to the V1 Backspace parent-folder command.
@@ -64,7 +69,7 @@ Final milestone closeout passed with:
 
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 
-The latest CI run built with 0 warnings and 0 errors and passed 134 tests across 4 test assemblies. During final validation, an existing drive-hint stale-generation test was corrected to avoid using a concurrency cap that contradicted the live-underlying-read cap; the focused test and full CI both pass after that setup fix.
+The latest CI run built with 0 warnings and 0 errors and passed 141 tests across 4 test assemblies. During validation, an existing drive-hint stale-generation test was corrected to avoid using a concurrency cap that contradicted the live-underlying-read cap; the focused test and full CI both pass after that setup fix.
 
 ## Deferred By Plan
 

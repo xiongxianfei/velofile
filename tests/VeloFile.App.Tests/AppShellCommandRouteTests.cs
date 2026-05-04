@@ -24,6 +24,7 @@ public sealed class AppShellCommandRouteTests
         var first = Item(@"D:\projects\alpha.txt", "alpha.txt");
         var second = Item(@"D:\projects\docs", "docs", FileSystemEntryKind.Directory);
 
+        viewModel.SetFileItems([first, second]);
         viewModel.SetSelectedFileItems([first, second]);
 
         Assert.IsTrue(viewModel.IsBuiltInCommandAvailable(VeloFileCommandId.CopyPath, canPaste: false));
@@ -42,6 +43,7 @@ public sealed class AppShellCommandRouteTests
         var first = Item(@"D:\projects\alpha.txt", "alpha.txt");
         var second = Item(@"D:\projects\docs", "docs", FileSystemEntryKind.Directory);
 
+        viewModel.SetFileItems([first, second]);
         viewModel.SetSelectedFileItems([first, second]);
 
         viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyName);
@@ -58,12 +60,14 @@ public sealed class AppShellCommandRouteTests
         var wrapped = Item(@"D:\projects\wrapped.txt", "wrapped.txt");
         var container = Item(@"D:\projects\container.txt", "container.txt");
 
-        var mapped = FileListSelectionMapper.ToListedFileItems([
-            direct,
-            new TestFileListRow(wrapped),
-            new TestSelectionContainer(container),
-            new object()
-        ]);
+        var mapped = FileListSelectionMapper.ToListedFileItems(
+            [
+                new TestSelectionContainer(container),
+                new TestFileListRow(wrapped),
+                direct,
+                new object()
+            ],
+            [direct, wrapped, container]);
 
         CollectionAssert.AreEqual(new[] { direct, wrapped, container }, mapped.ToArray());
     }
@@ -73,7 +77,9 @@ public sealed class AppShellCommandRouteTests
     {
         var clipboard = new CollectingClipboardTextWriter();
         var viewModel = CreateViewModel(clipboard);
-        viewModel.SetSelectedFileItems([Item(@"D:\projects\alpha.txt", "alpha.txt")]);
+        var item = Item(@"D:\projects\alpha.txt", "alpha.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
         var router = new AppFileCommandAcceleratorRouter(
             viewModel,
             new TestKeyboardFocusContextProvider(AppKeyboardFocusScope.TextInput));
@@ -90,6 +96,7 @@ public sealed class AppShellCommandRouteTests
         var clipboard = new CollectingClipboardTextWriter();
         var viewModel = CreateViewModel(clipboard);
         var item = Item(@"D:\projects\alpha.txt", "alpha.txt");
+        viewModel.SetFileItems([item]);
         viewModel.SetSelectedFileItems([item]);
         var router = new AppFileCommandAcceleratorRouter(
             viewModel,
@@ -107,7 +114,9 @@ public sealed class AppShellCommandRouteTests
     {
         var clipboard = new CollectingClipboardTextWriter();
         var viewModel = CreateViewModel(clipboard);
-        viewModel.SetSelectedFileItems([Item(@"D:\projects\alpha.txt", "alpha.txt")]);
+        var item = Item(@"D:\projects\alpha.txt", "alpha.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
         var router = new AppFileCommandAcceleratorRouter(
             viewModel,
             new TestKeyboardFocusContextProvider(AppKeyboardFocusScope.Other));
@@ -118,9 +127,141 @@ public sealed class AppShellCommandRouteTests
         Assert.IsNull(clipboard.Text);
     }
 
-    private static AppShellViewModel CreateViewModel(IClipboardTextWriter clipboardWriter)
+    [TestMethod]
+    public async Task Startup_listing_populates_visible_file_items_and_copy_path_uses_shell_selection()
     {
-        var workspace = NavigationWorkspace.Create(@"D:\projects");
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var first = Item(@"D:\projects\alpha.txt", "alpha.txt");
+        var second = Item(@"D:\projects\beta.txt", "beta.txt");
+        source.SetEntries(@"D:\projects", first, second);
+        var viewModel = CreateViewModel(clipboard, listingSource: source);
+
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+        viewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems([second], viewModel.FileItems));
+        viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyPath);
+
+        Assert.AreEqual(second.FullPath, clipboard.Text);
+    }
+
+    [TestMethod]
+    public async Task Successful_navigation_reloads_visible_file_items_for_copy_name()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var a1 = Item(@"D:\projects\a1.txt", "a1.txt");
+        var b1 = Item(@"D:\other\b1.txt", "b1.txt");
+        var b2 = Item(@"D:\other\b2.txt", "b2.txt");
+        source.SetEntries(@"D:\projects", a1);
+        source.SetEntries(@"D:\other", b1, b2);
+        var viewModel = CreateViewModel(
+            clipboard,
+            listingSource: source,
+            existingPaths: [@"D:\projects", @"D:\other"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].FullPath == a1.FullPath);
+
+        var result = viewModel.SubmitPath(@"D:\other");
+
+        Assert.IsTrue(result.Accepted);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2 && viewModel.FileItems[0].FullPath == b1.FullPath);
+        viewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems([b2], viewModel.FileItems));
+        viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyName);
+
+        Assert.AreEqual("b2.txt", clipboard.Text);
+    }
+
+    [TestMethod]
+    public async Task Active_tab_switch_replaces_visible_file_items_for_that_tab()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var a1 = Item(@"D:\projects\a1.txt", "a1.txt");
+        var b1 = Item(@"D:\other\b1.txt", "b1.txt");
+        source.SetEntries(@"D:\projects", a1);
+        source.SetEntries(@"D:\other", b1);
+        var viewModel = CreateViewModel(
+            clipboard,
+            defaultPath: @"D:\other",
+            listingSource: source,
+            existingPaths: [@"D:\projects", @"D:\other"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].FullPath == a1.FullPath);
+
+        viewModel.NewTab();
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].FullPath == b1.FullPath);
+
+        viewModel.SwitchToTab(0);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].FullPath == a1.FullPath);
+
+        viewModel.SwitchToTab(1);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].FullPath == b1.FullPath);
+        viewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems([b1], viewModel.FileItems));
+        viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyName);
+
+        Assert.AreEqual("b1.txt", clipboard.Text);
+    }
+
+    [TestMethod]
+    public void Selection_mapping_orders_selected_rows_by_current_visible_order()
+    {
+        var first = Item(@"D:\projects\a.txt", "a.txt");
+        var second = Item(@"D:\projects\b.txt", "b.txt");
+        var third = Item(@"D:\projects\c.txt", "c.txt");
+
+        var mapped = FileListSelectionMapper.ToListedFileItems([third, first], [first, second, third]);
+
+        CollectionAssert.AreEqual(new[] { first, third }, mapped.ToArray());
+    }
+
+    [TestMethod]
+    public void Selection_mapping_respects_sorted_or_filtered_visible_order()
+    {
+        var first = Item(@"D:\projects\a.txt", "a.txt");
+        var second = Item(@"D:\projects\b.txt", "b.txt");
+        var third = Item(@"D:\projects\c.txt", "c.txt");
+
+        var mapped = FileListSelectionMapper.ToListedFileItems([first, third], [third, first]);
+
+        CollectionAssert.AreEqual(new[] { third, first }, mapped.ToArray());
+        CollectionAssert.DoesNotContain(mapped.ToArray(), second);
+    }
+
+    [TestMethod]
+    public void Selection_mapping_ignores_stale_selected_rows()
+    {
+        var visible = Item(@"D:\projects\a.txt", "a.txt");
+        var stale = Item(@"D:\old\z.txt", "z.txt");
+
+        var mapped = FileListSelectionMapper.ToListedFileItems([stale, visible], [visible]);
+
+        CollectionAssert.AreEqual(new[] { visible }, mapped.ToArray());
+    }
+
+    [TestMethod]
+    public void View_model_selected_items_are_ordered_by_current_visible_file_items()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var viewModel = CreateViewModel(clipboard);
+        var first = Item(@"D:\projects\a.txt", "a.txt");
+        var second = Item(@"D:\projects\b.txt", "b.txt");
+        var third = Item(@"D:\projects\c.txt", "c.txt");
+        viewModel.SetFileItems([first, second, third]);
+
+        viewModel.SetSelectedFileItems([third, first]);
+        viewModel.ExecuteBuiltInCommand(VeloFileCommandId.CopyPath);
+
+        Assert.AreEqual(
+            string.Join(Environment.NewLine, first.FullPath, third.FullPath),
+            clipboard.Text);
+    }
+
+    private static AppShellViewModel CreateViewModel(
+        IClipboardTextWriter clipboardWriter,
+        string initialPath = @"D:\projects",
+        string? defaultPath = null,
+        FakeFolderEntrySource? listingSource = null,
+        IReadOnlyList<string>? existingPaths = null)
+    {
+        var workspace = NavigationWorkspace.Create(initialPath);
         var sidebar = SidebarStateService.Create(
             FavoritesStatePayload.Empty,
             RecentLocationsStatePayload.Empty,
@@ -132,16 +273,19 @@ public sealed class AppShellCommandRouteTests
             sidebar,
             visibility,
             CrashRecoveryState.None,
-            new TestDefaultLaunchPathProvider(@"D:\projects"),
-            new TestPathExistenceProbe(),
+            new TestDefaultLaunchPathProvider(defaultPath ?? initialPath),
+            new TestPathExistenceProbe(existingPaths ?? [initialPath, defaultPath ?? initialPath]),
             NoOpSettingsStateWriter.Instance,
             utcNow: () => DateTimeOffset.Parse("2026-05-05T00:00:00Z"));
         var startupState = new AppShellStartupState(
             "VeloFile",
             commandSurface,
             WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement));
+        var coordinator = listingSource is null
+            ? null
+            : new FolderListingCoordinator(new FolderListingService(listingSource));
 
-        return new AppShellViewModel(startupState, clipboardWriter);
+        return new AppShellViewModel(startupState, clipboardWriter, coordinator, viewportItemCount: 100);
     }
 
     private static ListedFileItem Item(
@@ -189,9 +333,16 @@ public sealed class AppShellCommandRouteTests
 
     private sealed class TestPathExistenceProbe : IPathExistenceProbe
     {
+        private readonly HashSet<string> _existingPaths;
+
+        public TestPathExistenceProbe(IEnumerable<string> existingPaths)
+        {
+            _existingPaths = new HashSet<string>(existingPaths, StringComparer.OrdinalIgnoreCase);
+        }
+
         public bool Exists(string path)
         {
-            return true;
+            return _existingPaths.Contains(path);
         }
     }
 
@@ -228,5 +379,54 @@ public sealed class AppShellCommandRouteTests
         }
 
         public object DataContext { get; }
+    }
+
+    private sealed class FakeFolderEntrySource : IFolderEntrySource
+    {
+        private readonly Dictionary<string, IReadOnlyList<FileSystemEntrySnapshot>> _entries = new(StringComparer.OrdinalIgnoreCase);
+
+        public void SetEntries(string path, params ListedFileItem[] items)
+        {
+            _entries[path] = items
+                .Select(item => new FileSystemEntrySnapshot(
+                    item.FullPath,
+                    item.Name,
+                    item.Kind,
+                    item.Length,
+                    item.LastWriteTimeUtc,
+                    item.Attributes))
+                .ToArray();
+        }
+
+        public async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            if (!_entries.TryGetValue(path, out var entries))
+            {
+                yield break;
+            }
+
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return entry;
+            }
+        }
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(2);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (condition())
+            {
+                return;
+            }
+
+            await Task.Delay(20);
+        }
+
+        Assert.Fail("Condition was not met before the timeout.");
     }
 }
