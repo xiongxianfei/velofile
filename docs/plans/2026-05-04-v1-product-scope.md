@@ -641,7 +641,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M2 complete.
 - [x] M3 complete.
 - [x] M4 complete.
-- [ ] M5 complete.
+- [x] M5 complete.
 - [ ] M6 complete.
 - [ ] M7 complete.
 - [ ] M8 complete.
@@ -672,6 +672,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Make M2 benchmark output non-gating with null timing values. | ADR 0003 and P16 prohibit public performance claims before the benchmark harness and reference corpus exist; M2 only establishes report shape. |
 | 2026-05-04 | Split M3 persistence decisions between Core schema/recovery and Windows file replacement. | Core owns durable document contracts and recovery policy; Windows owns same-directory temp, flush, and atomic replacement behavior. |
 | 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
+| 2026-05-04 | Split M5 navigation/session behavior into pure Core state services plus a compiled WinUI shell surface. | Core can prove tabs, sidebar, breadcrumb, restore, visibility, and missing-path behavior without a UI automation harness; the WinUI app still exposes the required shell regions for later command wiring. |
 
 ## Surprises and Discoveries
 
@@ -690,6 +691,8 @@ Each milestone must update validation notes with the commands actually run and a
 - M4 implementation found that `scripts/select-validation.py` is still absent, so M4 used the plan-specified `dotnet test` filters and `scripts/ci.ps1` directly rather than selector-selected checks.
 - M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
 - M4 review found two correctness gaps: request-token tests did not prove slow-tab isolation, and drive free-space hints were loaded synchronously. M4 now has a tab listing coordinator with per-tab cancellation/stale-result protection and a drive hint enrichment service that keeps entries separate from timeout-bounded hints.
+- M5 found that WinUI `Window` itself does not expose `DataContext`; the app shell view model is attached to the root XAML grid instead.
+- M5 app-shell tests are file-based contract checks until a later UI automation harness exists. They verify shell regions and keyboard accelerator declarations without launching WinUI inside MSTest.
 
 ## Validation Notes
 
@@ -785,15 +788,25 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Listing` passed: 18 Core listing tests and 4 Windows listing/file-system tests.
   - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 4 Core visibility tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 58 tests across 4 test assemblies.
+- M5 test-first implementation evidence:
+  - Added navigation, sidebar, session restore, visibility-settings, and app shell contract tests before production M5 namespaces and shell regions existed.
+  - `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session|Sidebar"` failed as expected because `VeloFile.Core.Navigation`, `VeloFile.Core.Sidebar`, `VeloFile.Core.Session`, and the app shell contract regions were missing.
+- M5 final validation:
+  - `dotnet test VeloFile.sln -c Debug --filter Navigation` passed: 6 Core navigation tests and 2 App shell contract tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Session` passed: 8 Core session/persistence restore tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Sidebar` passed: 3 Core sidebar tests and 1 App shell contract test.
+  - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 7 Core visibility tests and 1 App shell contract test.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 73 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, and M4 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, and non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs. Later V1 user-facing browsing behavior remains assigned to M5-M16.
+M1, M2, M3, M4, and M5 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, and core navigation/sidebar/session restore state with a compiled shell surface. Later V1 user-facing command, search, operation, preview, benchmark, and packaging behavior remains assigned to M6-M16.
 
 ## Readiness
 
-M4 review fixes are ready for `code-review`. Do not start M5 until the M4 review-resolution pass is accepted or remaining findings are explicitly deferred.
+M5 implementation is ready for `code-review`. Do not start M6 until the M5 review pass is accepted or remaining findings are explicitly deferred.
 
-Implementation resumes after M4 review with:
+Implementation resumes after M5 review with:
 
-- M5 connecting the UI shell to navigation, tabs, sidebar, breadcrumb/path bar, visibility settings, and session restore.
+- M6 connecting selection, command routing, built-in context menu, and clipboard behavior.

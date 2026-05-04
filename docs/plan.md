@@ -12,7 +12,7 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| [2026-05-04 V1 product scope](plans/2026-05-04-v1-product-scope.md) | Implement the approved VeloFile V1 product scope from empty/template-stage repository through MSIX preview readiness. | M4 review fixes implemented | Run `code-review` for M4 review fixes before starting M5. |
+| [2026-05-04 V1 product scope](plans/2026-05-04-v1-product-scope.md) | Implement the approved VeloFile V1 product scope from empty/template-stage repository through MSIX preview readiness. | M5 implemented | Run `code-review` for M5 before starting M6. |
 
 ## Blocked
 

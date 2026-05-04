@@ -7,11 +7,242 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Title="VeloFile">
-    <Grid Padding="16">
+    <Grid
+        x:Name="RootShell"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+        MinWidth="900"
+        MinHeight="560">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="T" Modifiers="Control" />
+            <KeyboardAccelerator Key="W" Modifiers="Control" />
+            <KeyboardAccelerator Key="Tab" Modifiers="Control" />
+            <KeyboardAccelerator Key="L" Modifiers="Control" />
+            <KeyboardAccelerator Key="P" Modifiers="Control" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="28" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="248" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border
+            x:Name="TabStrip"
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            BorderThickness="0,0,0,1"
+            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Orientation="Horizontal"
+                VerticalAlignment="Stretch">
+                <Button
+                    MinWidth="140"
+                    Margin="8,6,4,6"
+                    HorizontalContentAlignment="Left"
+                    Content="Home"
+                    AutomationProperties.Name="Active tab" />
+                <Button
+                    Width="36"
+                    Margin="0,6,4,6"
+                    ToolTipService.ToolTip="New tab"
+                    AutomationProperties.Name="New tab">
+                    <SymbolIcon Symbol="Add" />
+                </Button>
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Margin="0,6,8,6">
+                <Button
+                    Width="36"
+                    ToolTipService.ToolTip="Previous tab"
+                    AutomationProperties.Name="Previous tab">
+                    <SymbolIcon Symbol="Back" />
+                </Button>
+                <Button
+                    Width="36"
+                    Margin="4,0,0,0"
+                    ToolTipService.ToolTip="Next tab"
+                    AutomationProperties.Name="Next tab">
+                    <SymbolIcon Symbol="Forward" />
+                </Button>
+            </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="12,8,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                x:Name="BreadcrumbPathBar"
+                Orientation="Horizontal"
+                VerticalAlignment="Center">
+                <Button
+                    Content="C:\"
+                    Padding="8,4"
+                    AutomationProperties.Name="Breadcrumb root" />
+                <TextBlock
+                    Margin="6,0"
+                    VerticalAlignment="Center"
+                    Text=">" />
+                <Button
+                    Content="Users"
+                    Padding="8,4"
+                    AutomationProperties.Name="Breadcrumb segment" />
+            </StackPanel>
+
+            <TextBox
+                x:Name="RawPathBox"
+                Grid.Column="1"
+                Margin="12,0"
+                PlaceholderText="Type or paste a path"
+                AutomationProperties.Name="Raw path" />
+
+            <StackPanel
+                x:Name="FileViewModeSelector"
+                Grid.Column="2"
+                Orientation="Horizontal"
+                Spacing="4"
+                AutomationProperties.Name="File view mode">
+                <RadioButton Content="Details" IsChecked="True" />
+                <RadioButton Content="List" />
+                <RadioButton Content="Icons" />
+            </StackPanel>
+        </Grid>
+
+        <Border
+            x:Name="SidebarPane"
+            Grid.Row="1"
+            Grid.RowSpan="3"
+            Grid.Column="0"
+            Padding="12,8"
+            BorderThickness="0,0,1,0"
+            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel x:Name="VisibilityControls" Spacing="6">
+                <ToggleSwitch
+                    Header="Hidden"
+                    AccessKey="H"
+                    AutomationProperties.Name="Show hidden files" />
+                <ToggleSwitch
+                    Header="System"
+                    AccessKey="S"
+                    AutomationProperties.Name="Show protected operating system files" />
+                <ToggleSwitch
+                    Header="Extensions"
+                    AccessKey="E"
+                    IsOn="True"
+                    AutomationProperties.Name="Show file extensions" />
+            </StackPanel>
+
+            <ListView
+                Grid.Row="1"
+                Margin="0,14,0,0"
+                SelectionMode="Single"
+                AutomationProperties.Name="Sidebar locations">
+                <ListView.Header>
+                    <TextBlock Text="Locations" />
+                </ListView.Header>
+                <ListViewItem Content="Favorites" />
+                <ListViewItem Content="Recent" />
+                <ListViewItem Content="Drives" />
+                <ListViewItem Content="C:\" />
+            </ListView>
+
+            <TextBlock
+                Grid.Row="2"
+                Text="Ready"
+                Opacity="0.7" />
+            </Grid>
+        </Border>
+
+        <Grid
+            Grid.Row="2"
+            Grid.Column="1"
+            Margin="12,0,12,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <InfoBar
+                x:Name="MissingLocationState"
+                Grid.Row="0"
+                IsOpen="False"
+                Severity="Warning"
+                Title="Location unavailable"
+                Message="The restored path is no longer available.">
+                <InfoBar.ActionButton>
+                    <Button Content="Close tab" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <ListView
+                x:Name="FileListSurface"
+                Grid.Row="1"
+                Margin="0,8,0,0"
+                SelectionMode="Extended"
+                AutomationProperties.Name="Files">
+                <ListViewItem Content="Name     Type      Modified" />
+                <ListViewItem Content="Documents    Folder" />
+                <ListViewItem Content="Downloads    Folder" />
+            </ListView>
+
+            <Grid Grid.Row="2" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="LoadingState"
+                    Text="Loading"
+                    Opacity="0.75" />
+                <TextBlock
+                    x:Name="EmptyFolderState"
+                    Grid.Column="1"
+                    Text="Empty folder"
+                    Opacity="0.75" />
+                <TextBlock
+                    x:Name="FailedState"
+                    Grid.Column="2"
+                    Text="Unable to open location"
+                    Opacity="0.75" />
+            </Grid>
+        </Grid>
+
         <TextBlock
+            Grid.Row="3"
+            Grid.Column="1"
+            Margin="12,0"
             VerticalAlignment="Center"
-            HorizontalAlignment="Center"
-            Text="VeloFile"
-            FontSize="24" />
+            Text="0 items selected"
+            Opacity="0.7" />
     </Grid>
 </Window>
