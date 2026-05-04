@@ -39,18 +39,20 @@ validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Filtering
     result: passed 3 Core filtering tests and 2 App filtering tests
   - command: dotnet test VeloFile.sln -c Debug --filter Search
-    result: passed 5 Core search tests and 9 App search tests after review-resolution fixes
+    result: passed 6 Core search tests and 10 App search tests after default-cap review-resolution fixes
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
-    result: passed 33 App shell contract/route tests after review-resolution fixes
+    result: passed 34 App shell contract/route tests after default-cap review-resolution fixes
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build with 0 warnings and 0 errors, and 158 tests across Windows, App, Core, and Corpus test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 160 tests across Windows, App, Core, and Corpus test assemblies
 review_resolution:
   - finding: recursive search results and skipped locations were stored in view-model state but not visible in the shell
     resolution: added VisibleItems display mode, bound the file list to search results while search is active or retained, and exposed skipped-location count/details to the shell
   - finding: no direct proof that a user can start a new/refined query after the result cap
     resolution: added a cap-to-new-query regression proving old capped results, skipped locations, and stale updates do not contaminate the new query
+  - finding: no direct proof that the default recursive search result cap is 10,000
+    resolution: added a Core default-options contract test and an App route test proving normal user search passes ResultLimit 10,000
 notes:
   - Current-folder filtering is literal substring matching over the active visible listing and does not invoke recursive search or Windows Search indexing.
   - Recursive search is explicit, walks through the existing folder-entry source boundary, streams result updates, skips reparse-point directories, reports skipped locations, and stops adding results at the configured cap.

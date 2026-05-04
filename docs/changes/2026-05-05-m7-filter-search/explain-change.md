@@ -28,6 +28,7 @@ The M7 tests cover:
 - clearing a filter to restore visible order;
 - metacharacters treated as literal filter text;
 - recursive search streaming and result cap;
+- the default recursive search cap is 10,000 in Core options and the normal App search route;
 - cancellation before the cap and after the cap;
 - access-denied skipped locations;
 - reparse-point loop avoidance;

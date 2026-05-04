@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Globalization;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Search;
 
@@ -10,6 +11,19 @@ namespace VeloFile.Core.Tests.Search;
 [TestCategory("Search")]
 public sealed class RecursiveSearchServiceTests
 {
+    [TestMethod]
+    public void RecursiveSearchOptions_default_result_limit_is_ten_thousand()
+    {
+        var contractLimit = int.Parse("10000", CultureInfo.InvariantCulture);
+
+        Assert.IsTrue(
+            RecursiveSearchOptions.DefaultResultLimit == contractLimit,
+            "The public default result-limit constant must stay at the V1 10,000-result cap.");
+        Assert.IsTrue(
+            RecursiveSearchOptions.Default.ResultLimit == contractLimit,
+            "The default options instance must use the V1 10,000-result cap.");
+    }
+
     [TestMethod]
     public async Task Search_streams_results_and_stops_adding_after_result_cap()
     {

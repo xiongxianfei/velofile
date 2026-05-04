@@ -874,15 +874,16 @@ Each milestone must update validation notes with the commands actually run and a
 - M7 validation:
   - `dotnet test VeloFile.sln -c Debug --filter "Filtering|Search"` passed: 7 Core filtering/search tests and 5 App filtering/search tests.
   - `dotnet test VeloFile.sln -c Debug --filter Filtering` passed: 3 Core filtering tests and 2 App filtering tests.
-  - `dotnet test VeloFile.sln -c Debug --filter Search` passed: 5 Core search tests and 9 App search tests after review-resolution fixes.
+  - `dotnet test VeloFile.sln -c Debug --filter Search` passed: 6 Core search tests and 10 App search tests after default-cap review-resolution fixes.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
-  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 33 App shell contract/route tests after review-resolution fixes.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 158 tests across 4 test assemblies.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 34 App shell contract/route tests after default-cap review-resolution fixes.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 160 tests across 4 test assemblies.
   - A parallel `Filtering`/`Search` validation attempt produced a transient file-lock on the `Filtering` build output; the same `Filtering` selector passed when rerun sequentially.
 - M7 review-resolution evidence:
   - Added `VisibleItems` display mode so the file list switches from folder rows to recursive search rows while search is active, completed, cancelled, or capped.
   - Added skipped-location count/details and clear-search shell wiring.
   - Added direct App tests for visible streamed search rows, skipped-location details, cap-to-new-query replacement, stale old-run update suppression, and clear search returning to current-folder rows.
+  - Added direct Core and App route tests proving the V1 default recursive search result cap is 10,000.
 
 ## Outcome and Retrospective
 

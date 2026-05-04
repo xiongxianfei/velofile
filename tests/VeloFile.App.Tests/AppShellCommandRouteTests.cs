@@ -323,6 +323,25 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("Search")]
+    public async Task Recursive_search_normal_start_uses_v1_default_ten_thousand_result_cap()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var listingSource = new FakeFolderEntrySource();
+        listingSource.SetEntries(@"D:\projects", Item(@"D:\projects\folder-row.txt", "folder-row.txt"));
+        var searchService = new ScriptedRecursiveSearchService();
+        var viewModel = CreateViewModel(clipboard, listingSource: listingSource, searchService: searchService);
+        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1);
+
+        viewModel.StartRecursiveSearch("default-cap");
+
+        await WaitUntilAsync(() => searchService.LastOptions is not null);
+        Assert.AreEqual("default-cap", searchService.LastQuery);
+        Assert.AreEqual(10_000, searchService.LastOptions!.ResultLimit);
+        Assert.AreEqual(RecursiveSearchStatus.Running, viewModel.RecursiveSearch.Status);
+    }
+
+    [TestMethod]
+    [TestCategory("Search")]
     public async Task Recursive_search_streams_results_into_visible_items_and_copy_commands_use_search_rows()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -669,6 +688,10 @@ public sealed class AppShellCommandRouteTests
         private readonly Dictionary<string, System.Threading.Channels.Channel<RecursiveSearchUpdate>> _channels =
             new(StringComparer.OrdinalIgnoreCase);
 
+        public string? LastQuery { get; private set; }
+
+        public RecursiveSearchOptions? LastOptions { get; private set; }
+
         public void Emit(string query, RecursiveSearchUpdate update)
         {
             ChannelFor(query).Writer.TryWrite(update);
@@ -680,6 +703,8 @@ public sealed class AppShellCommandRouteTests
             RecursiveSearchOptions options,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            LastQuery = query;
+            LastOptions = options;
             var channel = ChannelFor(query);
             await foreach (var update in channel.Reader.ReadAllAsync(CancellationToken.None))
             {
