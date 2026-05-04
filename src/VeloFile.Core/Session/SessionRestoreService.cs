@@ -28,6 +28,27 @@ public interface ICrashRecoverySignal
     bool ShouldOfferStartFresh { get; }
 }
 
+public interface IDefaultLaunchPathProvider
+{
+    string GetDefaultLaunchPath();
+}
+
+public sealed class DefaultLaunchPathProvider : IDefaultLaunchPathProvider
+{
+    public string GetDefaultLaunchPath()
+    {
+        var candidates = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Path.GetPathRoot(Environment.SystemDirectory)
+        };
+
+        return candidates.FirstOrDefault(candidate => !string.IsNullOrWhiteSpace(candidate)) ?? @"C:\";
+    }
+}
+
 public sealed record CrashRecoveryState(bool StartFreshOffered, string? ReasonCode)
 {
     public static CrashRecoveryState None { get; } = new(StartFreshOffered: false, ReasonCode: null);
@@ -57,33 +78,36 @@ public sealed class SessionRestoreService
     private readonly IMonitorPlacementResolver _monitorPlacementResolver;
     private readonly IScrollAnchorResolver _scrollAnchorResolver;
     private readonly ICrashRecoverySignal _crashRecoverySignal;
+    private readonly IDefaultLaunchPathProvider _defaultLaunchPathProvider;
 
     public SessionRestoreService(
         IPathExistenceProbe pathExistenceProbe,
         IMonitorPlacementResolver monitorPlacementResolver,
         IScrollAnchorResolver scrollAnchorResolver,
-        ICrashRecoverySignal crashRecoverySignal)
+        ICrashRecoverySignal crashRecoverySignal,
+        IDefaultLaunchPathProvider defaultLaunchPathProvider)
     {
         _pathExistenceProbe = pathExistenceProbe;
         _monitorPlacementResolver = monitorPlacementResolver;
         _scrollAnchorResolver = scrollAnchorResolver;
         _crashRecoverySignal = crashRecoverySignal;
+        _defaultLaunchPathProvider = defaultLaunchPathProvider;
     }
 
     public SessionRestoreResult Restore(
         SessionStatePayload session,
         FavoritesStatePayload favorites,
         RecentLocationsStatePayload recentLocations,
-        SettingsStatePayload settings)
+        SettingsStatePayload settings,
+        IReadOnlyList<DriveEntry>? drives = null)
     {
         var restoredTabs = session.Tabs
             .Select((tab, index) => RestoreTab(tab, $"tab-{index + 1:D4}"))
             .ToArray();
+        var defaultLaunchPath = _defaultLaunchPathProvider.GetDefaultLaunchPath();
 
-        var workspace = restoredTabs.Length == 0
-            ? NavigationWorkspace.FromRestoredTabs([], activeTabIndex: 0)
-            : NavigationWorkspace.FromRestoredTabs(restoredTabs, session.ActiveTabIndex);
-        var sidebar = SidebarStateService.Create(favorites, recentLocations, drives: []);
+        var workspace = NavigationWorkspace.FromRestoredTabs(restoredTabs, session.ActiveTabIndex, defaultLaunchPath);
+        var sidebar = SidebarStateService.Create(favorites, recentLocations, drives ?? []);
         var visibility = VisibilitySettingsService.FromPayload(settings).Settings;
         var placement = RestoreWindowPlacement(session.WindowPlacement);
         var crashRecovery = _crashRecoverySignal.ShouldOfferStartFresh

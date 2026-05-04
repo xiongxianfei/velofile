@@ -13,11 +13,17 @@
         MinWidth="900"
         MinHeight="560">
         <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Key="T" Modifiers="Control" />
-            <KeyboardAccelerator Key="W" Modifiers="Control" />
-            <KeyboardAccelerator Key="Tab" Modifiers="Control" />
-            <KeyboardAccelerator Key="L" Modifiers="Control" />
-            <KeyboardAccelerator Key="P" Modifiers="Control" />
+            <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Up" Modifiers="Menu" Invoked="UpAccelerator_Invoked" />
+            <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NewTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="W" Modifiers="Control" Invoked="CloseTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="T" Modifiers="Control,Shift" Invoked="ReopenClosedTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Tab" Modifiers="Control" Invoked="NextTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Tab" Modifiers="Control,Shift" Invoked="PreviousTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="FocusPathAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F5" Invoked="RefreshAccelerator_Invoked" />
+            <KeyboardAccelerator Key="P" Modifiers="Control" Invoked="TogglePreviewAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
         <Grid.RowDefinitions>
@@ -38,47 +44,81 @@
             BorderThickness="0,0,0,1"
             BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
             <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <StackPanel
-                Orientation="Horizontal"
-                VerticalAlignment="Stretch">
-                <Button
-                    MinWidth="140"
-                    Margin="8,6,4,6"
-                    HorizontalContentAlignment="Left"
-                    Content="Home"
-                    AutomationProperties.Name="Active tab" />
-                <Button
-                    Width="36"
-                    Margin="0,6,4,6"
-                    ToolTipService.ToolTip="New tab"
-                    AutomationProperties.Name="New tab">
-                    <SymbolIcon Symbol="Add" />
-                </Button>
-            </StackPanel>
+                <ListView
+                    x:Name="TabList"
+                    Margin="8,4"
+                    IsItemClickEnabled="False"
+                    SelectionMode="Single"
+                    SelectionChanged="TabList_SelectionChanged"
+                    AutomationProperties.Name="Tabs">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                MinWidth="140"
+                                Padding="8,4"
+                                Text="{Binding Path}" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
-            <StackPanel
-                Grid.Column="1"
-                Orientation="Horizontal"
-                Margin="0,6,8,6">
-                <Button
-                    Width="36"
-                    ToolTipService.ToolTip="Previous tab"
-                    AutomationProperties.Name="Previous tab">
-                    <SymbolIcon Symbol="Back" />
-                </Button>
-                <Button
-                    Width="36"
-                    Margin="4,0,0,0"
-                    ToolTipService.ToolTip="Next tab"
-                    AutomationProperties.Name="Next tab">
-                    <SymbolIcon Symbol="Forward" />
-                </Button>
-            </StackPanel>
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Margin="0,6,8,6"
+                    Spacing="4">
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="Previous tab"
+                        Click="PreviousTabButton_Click"
+                        AutomationProperties.Name="Previous tab">
+                        <SymbolIcon Symbol="Back" />
+                    </Button>
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="Next tab"
+                        Click="NextTabButton_Click"
+                        AutomationProperties.Name="Next tab">
+                        <SymbolIcon Symbol="Forward" />
+                    </Button>
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="New tab"
+                        Click="NewTabButton_Click"
+                        AutomationProperties.Name="New tab">
+                        <SymbolIcon Symbol="Add" />
+                    </Button>
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="Duplicate tab"
+                        Click="DuplicateTabButton_Click"
+                        AutomationProperties.Name="Duplicate tab">
+                        <SymbolIcon Symbol="Copy" />
+                    </Button>
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="Close tab"
+                        Click="CloseTabButton_Click"
+                        AutomationProperties.Name="Close tab">
+                        <SymbolIcon Symbol="Cancel" />
+                    </Button>
+                    <Button
+                        Width="36"
+                        ToolTipService.ToolTip="Reopen closed tab"
+                        Click="ReopenClosedTabButton_Click"
+                        AutomationProperties.Name="Reopen closed tab">
+                        <SymbolIcon Symbol="Refresh" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -88,38 +128,64 @@
             Margin="12,8,12,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <StackPanel
-                x:Name="BreadcrumbPathBar"
+                x:Name="NavigationButtons"
                 Orientation="Horizontal"
-                VerticalAlignment="Center">
-                <Button
-                    Content="C:\"
-                    Padding="8,4"
-                    AutomationProperties.Name="Breadcrumb root" />
-                <TextBlock
-                    Margin="6,0"
-                    VerticalAlignment="Center"
-                    Text=">" />
-                <Button
-                    Content="Users"
-                    Padding="8,4"
-                    AutomationProperties.Name="Breadcrumb segment" />
+                VerticalAlignment="Center"
+                Spacing="4">
+                <Button Width="36" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
+                    <SymbolIcon Symbol="Back" />
+                </Button>
+                <Button Width="36" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
+                    <SymbolIcon Symbol="Forward" />
+                </Button>
+                <Button Width="36" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
+                    <SymbolIcon Symbol="Up" />
+                </Button>
+                <Button Width="36" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
+                    <SymbolIcon Symbol="Refresh" />
+                </Button>
             </StackPanel>
+
+            <ListView
+                x:Name="BreadcrumbPathBar"
+                Grid.Column="1"
+                Margin="8,0,0,0"
+                IsItemClickEnabled="True"
+                ItemClick="BreadcrumbPathBar_ItemClick"
+                SelectionMode="None"
+                AutomationProperties.Name="Breadcrumb path">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Button
+                            Content="{Binding DisplayName}"
+                            Padding="8,4"
+                            AutomationProperties.Name="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
 
             <TextBox
                 x:Name="RawPathBox"
-                Grid.Column="1"
+                Grid.Column="2"
                 Margin="12,0"
+                KeyDown="RawPathBox_KeyDown"
                 PlaceholderText="Type or paste a path"
                 AutomationProperties.Name="Raw path" />
 
             <StackPanel
                 x:Name="FileViewModeSelector"
-                Grid.Column="2"
+                Grid.Column="3"
                 Orientation="Horizontal"
                 Spacing="4"
                 AutomationProperties.Name="File view mode">
@@ -138,46 +204,55 @@
             BorderThickness="0,0,1,0"
             BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
             <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <StackPanel x:Name="VisibilityControls" Spacing="6">
-                <ToggleSwitch
-                    Header="Hidden"
-                    AccessKey="H"
-                    AutomationProperties.Name="Show hidden files" />
-                <ToggleSwitch
-                    Header="System"
-                    AccessKey="S"
-                    AutomationProperties.Name="Show protected operating system files" />
-                <ToggleSwitch
-                    Header="Extensions"
-                    AccessKey="E"
-                    IsOn="True"
-                    AutomationProperties.Name="Show file extensions" />
-            </StackPanel>
+                <StackPanel x:Name="VisibilityControls" Spacing="6">
+                    <ToggleSwitch
+                        x:Name="ShowHiddenFilesToggle"
+                        Header="Hidden"
+                        AccessKey="H"
+                        Toggled="ShowHiddenFilesToggle_Toggled"
+                        AutomationProperties.Name="Show hidden files" />
+                    <ToggleSwitch
+                        x:Name="ShowSystemFilesToggle"
+                        Header="System"
+                        AccessKey="S"
+                        Toggled="ShowSystemFilesToggle_Toggled"
+                        AutomationProperties.Name="Show protected operating system files" />
+                    <ToggleSwitch
+                        x:Name="ShowExtensionsToggle"
+                        Header="Extensions"
+                        AccessKey="E"
+                        Toggled="ShowExtensionsToggle_Toggled"
+                        AutomationProperties.Name="Show file extensions" />
+                </StackPanel>
 
-            <ListView
-                Grid.Row="1"
-                Margin="0,14,0,0"
-                SelectionMode="Single"
-                AutomationProperties.Name="Sidebar locations">
-                <ListView.Header>
-                    <TextBlock Text="Locations" />
-                </ListView.Header>
-                <ListViewItem Content="Favorites" />
-                <ListViewItem Content="Recent" />
-                <ListViewItem Content="Drives" />
-                <ListViewItem Content="C:\" />
-            </ListView>
+                <ListView
+                    x:Name="SidebarLocationsList"
+                    Grid.Row="1"
+                    Margin="0,14,0,0"
+                    IsItemClickEnabled="True"
+                    ItemClick="SidebarLocationsList_ItemClick"
+                    SelectionMode="Single"
+                    AutomationProperties.Name="Sidebar locations">
+                    <ListView.Header>
+                        <TextBlock Text="Locations" />
+                    </ListView.Header>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
-            <TextBlock
-                Grid.Row="2"
-                Text="Ready"
-                Opacity="0.7" />
+                <TextBlock
+                    Grid.Row="2"
+                    Text="Ready"
+                    Opacity="0.7" />
             </Grid>
         </Border>
 
@@ -187,25 +262,38 @@
             Margin="12,0,12,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <InfoBar
-                x:Name="MissingLocationState"
+                x:Name="CrashRecoveryState"
                 Grid.Row="0"
+                IsOpen="False"
+                Severity="Warning"
+                Title="Recovered after a previous crash"
+                Message="You can start fresh if restored state keeps causing failures.">
+                <InfoBar.ActionButton>
+                    <Button Content="Start fresh" Click="StartFreshButton_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <InfoBar
+                x:Name="MissingLocationState"
+                Grid.Row="1"
                 IsOpen="False"
                 Severity="Warning"
                 Title="Location unavailable"
                 Message="The restored path is no longer available.">
                 <InfoBar.ActionButton>
-                    <Button Content="Close tab" />
+                    <Button Content="Close tab" Click="CloseMissingLocationTabButton_Click" />
                 </InfoBar.ActionButton>
             </InfoBar>
 
             <ListView
                 x:Name="FileListSurface"
-                Grid.Row="1"
+                Grid.Row="2"
                 Margin="0,8,0,0"
                 SelectionMode="Extended"
                 AutomationProperties.Name="Files">
@@ -214,7 +302,7 @@
                 <ListViewItem Content="Downloads    Folder" />
             </ListView>
 
-            <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Grid Grid.Row="3" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />

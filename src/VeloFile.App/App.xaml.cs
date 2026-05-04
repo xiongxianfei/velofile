@@ -1,5 +1,4 @@
 using Microsoft.UI.Xaml;
-using VeloFile.Core.Foundation;
 
 namespace VeloFile.App;
 
@@ -14,9 +13,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        var initialState = new AppBootstrapper().CreateInitialState();
-
-        _window = new MainWindow(initialState);
+        _window = new MainWindow(AppCompositionRoot.CreateShellViewModel());
         _window.Activate();
     }
 }

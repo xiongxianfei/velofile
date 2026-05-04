@@ -9,15 +9,18 @@ public sealed class NavigationEntryPointService
     private readonly NavigationWorkspace _workspace;
     private readonly SidebarStateService _sidebar;
     private readonly Func<DateTimeOffset> _utcNow;
+    private readonly Func<string, bool>? _pathExists;
 
     public NavigationEntryPointService(
         NavigationWorkspace workspace,
         SidebarStateService sidebar,
-        Func<DateTimeOffset> utcNow)
+        Func<DateTimeOffset> utcNow,
+        Func<string, bool>? pathExists = null)
     {
         _workspace = workspace;
         _sidebar = sidebar;
         _utcNow = utcNow;
+        _pathExists = pathExists;
     }
 
     public void OpenTypedPath(string path)
@@ -57,7 +60,9 @@ public sealed class NavigationEntryPointService
 
     private void NavigateAndRecord(string path)
     {
-        _workspace.NavigateActive(path);
+        var normalizedPath = path.Trim();
+        var missingLocation = _pathExists is not null && !_pathExists(normalizedPath);
+        _workspace.NavigateActive(normalizedPath, missingLocation);
         _sidebar.RecordRecent(_workspace.ActiveTab.Path, _utcNow());
     }
 }

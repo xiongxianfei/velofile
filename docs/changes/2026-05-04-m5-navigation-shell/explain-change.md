@@ -11,9 +11,11 @@ M5 connects the non-UI listing and persistence foundations to core browsing stat
 - Sidebar state for pinned favorites, recent locations capped at 20, dismissible recents, and drive entries with nullable hints.
 - Session restore orchestration for tab paths, active tab index, history, sort, view mode, scroll anchor by item name, window placement, missing-path tabs, sidebar state, visibility settings, and repeated-crash start-fresh prompts.
 - Visibility settings service for hidden files, protected operating-system files, and file extensions.
-- WinUI main-window shell regions for tabs, sidebar, breadcrumb/raw path, file view modes, visibility controls, file list states, and missing-location state.
+- A Core shell command surface for typed path navigation, sidebar targets, breadcrumb navigation, back/forward/up/refresh, tab lifecycle, keyboard-style tab switching, visibility toggles, missing-location close, and crash-recovery start-fresh.
+- A launch composition path that reads durable session, settings, favorites, and recent-location documents before creating the WinUI shell view model.
+- WinUI main-window shell regions and event routes for tabs, sidebar, breadcrumb/raw path, navigation buttons, visibility controls, keyboard accelerators, file list states, crash recovery, and missing-location state.
 
-M5 does not implement selection, file operations, command routing, context-menu verbs, filtering/search, preview providers, drag/drop, or benchmarked UI automation. Those remain assigned to later milestones.
+M5 does not implement file selection, file operations, context-menu verbs, filtering/search, preview providers, drag/drop, or benchmarked UI automation. Those remain assigned to later milestones. M5 now includes navigation command routing because it is required for the shell to satisfy AC2.
 
 ## Test-First Evidence
 
@@ -22,10 +24,14 @@ M5 tests were added before production navigation, sidebar, and session namespace
 - `tests/VeloFile.Core.Tests/Navigation/NavigationWorkspaceTests.cs`
 - `tests/VeloFile.Core.Tests/Sidebar/SidebarStateTests.cs`
 - `tests/VeloFile.Core.Tests/Session/SessionRestoreServiceTests.cs`
+- `tests/VeloFile.Core.Tests/Shell/AppShellCommandSurfaceTests.cs`
+- `tests/VeloFile.Core.Tests/Shell/AppShellStartupServiceTests.cs`
 - `tests/VeloFile.Core.Tests/Visibility/VisibilitySettingsServiceTests.cs`
 - `tests/VeloFile.App.Tests/AppShellContractTests.cs`
 
 The first focused run failed for the expected reason: `VeloFile.Core.Navigation`, `VeloFile.Core.Sidebar`, `VeloFile.Core.Session`, and the app shell regions did not exist yet.
+
+Review-resolution tests were also added before production fixes for the three review findings. The first focused review-resolution run failed for the expected reason: the Core shell command/startup surfaces and app shell command routes did not exist.
 
 ## Design Choices
 
@@ -37,7 +43,13 @@ The first focused run failed for the expected reason: `VeloFile.Core.Navigation`
 
 `VisibilitySettingsService` wraps the M4 visibility projection settings with persistence conversion and first-use confirmation behavior for protected operating-system files.
 
-The WinUI shell is intentionally a concrete first screen, not a landing page. It exposes the required regions and keyboard accelerator declarations, while later milestones will connect command handlers, selection, operations, search, and preview surfaces.
+`AppShellCommandSurface` is the single command path for user-visible navigation surfaces. Buttons, path submission, sidebar target activation, breadcrumb activation, tab selection, and keyboard accelerators route through `AppShellViewModel` into that command surface; code-behind only translates WinUI events into typed command calls.
+
+`AppCompositionRoot` is the launch composition boundary. It constructs local diagnostics, Windows durable storage, typed durable repositories for session/settings/favorites/recent locations, restore probes, drive entries, `SessionRestoreService`, and `AppShellStartupService` before creating `AppShellViewModel`. `MainWindow` receives the view model and no longer decides restore policy.
+
+`NavigationWorkspace` now enforces the V1 invariant that a usable shell always has at least one tab. Empty restored sessions and close-last-tab behavior normalize to a default active tab rather than leaving `ActiveTab` unsafe.
+
+The WinUI shell is intentionally a concrete first screen, not a landing page. It exposes the required regions, command routes, and keyboard accelerator invoked handlers, while later milestones will connect file selection, operations, search, and preview surfaces.
 
 ## Validation
 
@@ -56,7 +68,7 @@ Final milestone closeout also passed:
 
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 
-The closeout run built with 0 warnings and 0 errors and passed 73 tests across 4 test assemblies.
+The review-resolution closeout run built with 0 warnings and 0 errors and passed 85 tests across 4 test assemblies.
 
 ## Deferred By Plan
 

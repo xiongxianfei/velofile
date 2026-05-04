@@ -19,7 +19,8 @@ public sealed class SessionRestoreServiceTests
             new SetPathExistenceProbe(existingPaths: [@"D:\projects"]),
             new TestMonitorPlacementResolver(availableMonitor: @"\\.\DISPLAY1", fallbackPlacement: new WindowPlacementState(0, 0, 1000, 700, @"\\.\DISPLAY1")),
             new SetScrollAnchorResolver(existingAnchors: [(@"D:\projects", "README.md")]),
-            new TestCrashRecoverySignal(shouldOfferStartFresh: false));
+            new TestCrashRecoverySignal(shouldOfferStartFresh: false),
+            new TestDefaultLaunchPathProvider(@"C:\Users\alice"));
 
         var session = new SessionStatePayload(
             Tabs:
@@ -86,7 +87,8 @@ public sealed class SessionRestoreServiceTests
             new SetPathExistenceProbe(existingPaths: [@"D:\projects"]),
             new TestMonitorPlacementResolver(availableMonitor: @"\\.\DISPLAY1", fallbackPlacement: fallback),
             new SetScrollAnchorResolver(existingAnchors: []),
-            new TestCrashRecoverySignal(shouldOfferStartFresh: false));
+            new TestCrashRecoverySignal(shouldOfferStartFresh: false),
+            new TestDefaultLaunchPathProvider(@"C:\Users\alice"));
 
         var session = new SessionStatePayload(
             Tabs: [new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])],
@@ -105,7 +107,8 @@ public sealed class SessionRestoreServiceTests
             new SetPathExistenceProbe(existingPaths: [@"D:\projects"]),
             new TestMonitorPlacementResolver(availableMonitor: @"\\.\DISPLAY1", fallbackPlacement: null),
             new SetScrollAnchorResolver(existingAnchors: []),
-            new TestCrashRecoverySignal(shouldOfferStartFresh: false));
+            new TestCrashRecoverySignal(shouldOfferStartFresh: false),
+            new TestDefaultLaunchPathProvider(@"C:\Users\alice"));
         var session = new SessionStatePayload(
             Tabs: [new SessionTabState(@"D:\projects", "name", "ascending", "details", "deleted.txt", [], [])],
             ActiveTabIndex: 0,
@@ -123,7 +126,8 @@ public sealed class SessionRestoreServiceTests
             new SetPathExistenceProbe(existingPaths: [@"D:\projects"]),
             new TestMonitorPlacementResolver(availableMonitor: @"\\.\DISPLAY1", fallbackPlacement: null),
             new SetScrollAnchorResolver(existingAnchors: []),
-            new TestCrashRecoverySignal(shouldOfferStartFresh: true));
+            new TestCrashRecoverySignal(shouldOfferStartFresh: true),
+            new TestDefaultLaunchPathProvider(@"C:\Users\alice"));
         var session = new SessionStatePayload(
             Tabs: [new SessionTabState(@"D:\projects", "name", "ascending", "details", null, [], [])],
             ActiveTabIndex: 0,
@@ -134,6 +138,24 @@ public sealed class SessionRestoreServiceTests
         Assert.IsTrue(result.CrashRecovery.StartFreshOffered);
         Assert.AreEqual("repeated-crash-marker", result.CrashRecovery.ReasonCode);
         Assert.AreEqual(@"D:\projects", result.Workspace.ActiveTab.Path);
+    }
+
+    [TestMethod]
+    public void Empty_session_restore_creates_a_safe_default_tab()
+    {
+        var restore = new SessionRestoreService(
+            new SetPathExistenceProbe(existingPaths: [@"C:\Users\alice"]),
+            new TestMonitorPlacementResolver(availableMonitor: @"\\.\DISPLAY1", fallbackPlacement: null),
+            new SetScrollAnchorResolver(existingAnchors: []),
+            new TestCrashRecoverySignal(shouldOfferStartFresh: false),
+            new TestDefaultLaunchPathProvider(@"C:\Users\alice"));
+
+        var result = restore.Restore(SessionStatePayload.Empty, FavoritesStatePayload.Empty, RecentLocationsStatePayload.Empty, SettingsStatePayload.Default);
+
+        Assert.AreEqual(1, result.Workspace.Tabs.Count);
+        Assert.AreEqual(0, result.Workspace.ActiveTabIndex);
+        Assert.AreEqual(@"C:\Users\alice", result.Workspace.ActiveTab.Path);
+        Assert.AreEqual(NavigationTabLocationState.Available, result.Workspace.ActiveTab.LocationState);
     }
 
     private sealed class SetPathExistenceProbe : IPathExistenceProbe
@@ -196,5 +218,20 @@ public sealed class SessionRestoreServiceTests
         }
 
         public bool ShouldOfferStartFresh { get; }
+    }
+
+    private sealed class TestDefaultLaunchPathProvider : IDefaultLaunchPathProvider
+    {
+        private readonly string _path;
+
+        public TestDefaultLaunchPathProvider(string path)
+        {
+            _path = path;
+        }
+
+        public string GetDefaultLaunchPath()
+        {
+            return _path;
+        }
     }
 }

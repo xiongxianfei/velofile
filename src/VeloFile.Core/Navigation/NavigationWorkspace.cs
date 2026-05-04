@@ -6,13 +6,20 @@ public sealed class NavigationWorkspace
 {
     private readonly List<NavigationTab> _tabs;
     private readonly Stack<NavigationTab> _closedTabs = new();
+    private readonly string _defaultPath;
     private int _nextTabNumber;
 
-    private NavigationWorkspace(IEnumerable<NavigationTab> tabs, int activeTabIndex, int nextTabNumber)
+    private NavigationWorkspace(IEnumerable<NavigationTab> tabs, int activeTabIndex, int nextTabNumber, string defaultPath)
     {
+        _defaultPath = NormalizePathInput(defaultPath);
         _tabs = tabs.ToList();
+        if (_tabs.Count == 0)
+        {
+            _tabs.Add(NavigationTab.Create("tab-0001", _defaultPath));
+        }
+
         ActiveTabIndex = ClampActiveTabIndex(activeTabIndex, _tabs.Count);
-        _nextTabNumber = nextTabNumber;
+        _nextTabNumber = Math.Max(nextTabNumber, _tabs.Count + 1);
     }
 
     public IReadOnlyList<NavigationTab> Tabs => _tabs;
@@ -23,13 +30,14 @@ public sealed class NavigationWorkspace
 
     public static NavigationWorkspace Create(string initialPath)
     {
-        return new NavigationWorkspace([NavigationTab.Create("tab-0001", NormalizePathInput(initialPath))], activeTabIndex: 0, nextTabNumber: 2);
+        var normalizedInitialPath = NormalizePathInput(initialPath);
+        return new NavigationWorkspace([NavigationTab.Create("tab-0001", normalizedInitialPath)], activeTabIndex: 0, nextTabNumber: 2, normalizedInitialPath);
     }
 
-    public static NavigationWorkspace FromRestoredTabs(IEnumerable<NavigationTab> tabs, int activeTabIndex)
+    public static NavigationWorkspace FromRestoredTabs(IEnumerable<NavigationTab> tabs, int activeTabIndex, string defaultPath)
     {
         var restoredTabs = tabs.ToArray();
-        return new NavigationWorkspace(restoredTabs, activeTabIndex, restoredTabs.Length + 1);
+        return new NavigationWorkspace(restoredTabs, activeTabIndex, restoredTabs.Length + 1, defaultPath);
     }
 
     public NavigationTab OpenTab(string path)
@@ -59,6 +67,7 @@ public sealed class NavigationWorkspace
 
         if (_tabs.Count == 0)
         {
+            _tabs.Add(NavigationTab.Create(NextTabId(), _defaultPath));
             ActiveTabIndex = 0;
             return;
         }
@@ -130,6 +139,11 @@ public sealed class NavigationWorkspace
 
     public void NavigateActive(string path)
     {
+        NavigateActive(path, missingLocation: false);
+    }
+
+    public void NavigateActive(string path, bool missingLocation)
+    {
         EnsureHasActiveTab();
         var tab = ActiveTab;
         var nextPath = NormalizePathInput(path);
@@ -139,8 +153,8 @@ public sealed class NavigationWorkspace
             BackHistory = tab.BackHistory.Concat([tab.Path]).ToArray(),
             ForwardHistory = [],
             ScrollAnchorName = null,
-            LocationState = NavigationTabLocationState.Available,
-            MissingPath = null
+            LocationState = missingLocation ? NavigationTabLocationState.MissingLocation : NavigationTabLocationState.Available,
+            MissingPath = missingLocation ? nextPath : null
         };
     }
 
@@ -195,6 +209,12 @@ public sealed class NavigationWorkspace
             MissingPath = null
         };
         return true;
+    }
+
+    public void RefreshActive()
+    {
+        EnsureHasActiveTab();
+        _tabs[ActiveTabIndex] = ActiveTab with { ReloadVersion = ActiveTab.ReloadVersion + 1 };
     }
 
     public void SetActiveViewMode(FileListViewMode viewMode)

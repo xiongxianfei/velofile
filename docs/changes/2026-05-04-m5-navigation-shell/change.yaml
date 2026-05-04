@@ -1,6 +1,6 @@
 id: 2026-05-04-m5-navigation-shell
 title: M5 navigation shell, tabs, sidebar, breadcrumb, and session restore
-status: implemented
+status: review-resolution-implemented
 feature: v1-product-scope
 milestone: M5
 requirements:
@@ -44,22 +44,32 @@ architecture:
   - docs/adr/0006-session-restore-persistence.md
   - docs/adr/0007-explorer-parity-policy.md
 artifacts:
+  - src/VeloFile.Core/Shell/
   - src/VeloFile.Core/Navigation/
   - src/VeloFile.Core/Sidebar/
   - src/VeloFile.Core/Session/
   - src/VeloFile.Core/Visibility/VisibilitySettingsService.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
   - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
   - src/VeloFile.App/ViewModels/
   - tests/VeloFile.Core.Tests/Navigation/
+  - tests/VeloFile.Core.Tests/Shell/
   - tests/VeloFile.Core.Tests/Sidebar/
   - tests/VeloFile.Core.Tests/Session/
   - tests/VeloFile.Core.Tests/Visibility/VisibilitySettingsServiceTests.cs
   - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - docs/changes/2026-05-04-m5-navigation-shell/reviews/first-pass-code-review.md
+  - docs/changes/2026-05-04-m5-navigation-shell/review-resolution.md
 validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter "Navigation|Session"
+    result: failed first as expected for missing Shell command/startup surfaces and unwired app shell routes
+  - command: dotnet test VeloFile.sln -c Debug --filter "Navigation|Session"
+    result: passed review-resolution tests with 19 Core tests and 3 App shell contract tests
   - command: dotnet test VeloFile.sln -c Debug --filter Navigation
-    result: passed 6 Core navigation tests and 2 App shell contract tests
+    result: passed 9 Core navigation tests and 3 App shell contract tests
   - command: dotnet test VeloFile.sln -c Debug --filter Session
-    result: passed 8 Core session/persistence restore tests
+    result: passed 11 Core session/startup restore tests
   - command: dotnet test VeloFile.sln -c Debug --filter Sidebar
     result: passed 3 Core sidebar tests and 1 App shell contract test
   - command: dotnet test VeloFile.sln -c Debug --filter Visibility
@@ -67,9 +77,10 @@ validation:
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build with 0 warnings and 0 errors, and 73 tests across 4 test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 85 tests across 4 test assemblies
 notes:
-  - M5 implements core navigation/sidebar/session state and a compiled WinUI shell surface. It does not implement file selection, file commands, context-menu behavior, filtering/search, or preview behavior; those remain assigned to later milestones.
+  - M5 implements core navigation/sidebar/session state, navigation command routing, app launch restore composition, and a compiled WinUI shell surface. It does not implement file selection, file commands, context-menu behavior, filtering/search, or preview behavior; those remain assigned to later milestones.
   - Session restore keeps missing paths visible through a missing-location tab state and close-tab action flag. Actual path existence, monitor availability, scroll-anchor existence, and repeated-crash detection are supplied through explicit interfaces.
+  - Review resolution enforces an always-at-least-one-tab workspace invariant and wires app launch through durable session/settings/favorites/recent-location reads before creating the shell view model.
   - Visibility settings now have an application-level service that round-trips through settings persistence and requires confirmation before protected operating-system files are first shown.
   - App shell tests are file-based contract checks because the repository does not yet have a WinUI UI automation harness.

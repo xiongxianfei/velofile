@@ -2,96 +2,133 @@ using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Persistence;
-using VeloFile.Core.Sidebar;
+using VeloFile.Core.Session;
+using VeloFile.Core.Shell;
 using VeloFile.Core.Visibility;
 
 namespace VeloFile.App.ViewModels;
 
 public sealed class AppShellViewModel
 {
-    private readonly NavigationEntryPointService _entryPoints;
-
-    private AppShellViewModel(
-        string windowTitle,
-        NavigationWorkspace workspace,
-        SidebarStateService sidebar,
-        VisibilitySettingsService visibility)
+    public AppShellViewModel(AppShellStartupState startupState)
     {
-        WindowTitle = windowTitle;
-        Workspace = workspace;
-        Sidebar = sidebar;
-        Visibility = visibility;
-        _entryPoints = new NavigationEntryPointService(Workspace, Sidebar, () => DateTimeOffset.UtcNow);
+        CommandSurface = startupState.CommandSurface;
+        WindowPlacement = startupState.WindowPlacement;
     }
 
-    public string WindowTitle { get; }
+    public AppShellCommandSurface CommandSurface { get; }
 
-    public NavigationWorkspace Workspace { get; }
+    public WindowPlacementState? WindowPlacement { get; }
 
-    public SidebarStateService Sidebar { get; }
+    public string WindowTitle => CommandSurface.WindowTitle;
 
-    public VisibilitySettingsService Visibility { get; }
+    public IReadOnlyList<NavigationTab> Tabs => CommandSurface.Tabs;
 
-    public static AppShellViewModel Create(InitialAppState initialState)
+    public int ActiveTabIndex => CommandSurface.ActiveTabIndex;
+
+    public NavigationTab ActiveTab => CommandSurface.ActiveTab;
+
+    public string ActivePath => CommandSurface.ActivePath;
+
+    public IReadOnlyList<BreadcrumbSegment> BreadcrumbSegments => CommandSurface.BreadcrumbSegments;
+
+    public IReadOnlyList<ShellNavigationTarget> SidebarNavigationTargets => CommandSurface.SidebarNavigationTargets;
+
+    public VisibilitySettings VisibilitySettings => CommandSurface.VisibilitySettings;
+
+    public CrashRecoveryState CrashRecovery => CommandSurface.CrashRecovery;
+
+    public bool MissingLocationVisible => CommandSurface.MissingLocationVisible;
+
+    public string? MissingLocationPath => CommandSurface.MissingLocationPath;
+
+    public void SubmitPath(string path)
     {
-        var initialPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrWhiteSpace(initialPath))
-        {
-            initialPath = @"C:\";
-        }
-
-        return new AppShellViewModel(
-            initialState.WindowTitle,
-            NavigationWorkspace.Create(initialPath),
-            SidebarStateService.Create(
-                FavoritesStatePayload.Empty,
-                RecentLocationsStatePayload.Empty,
-                drives:
-                [
-                    new DriveEntry(
-                        Name: @"C:\",
-                        RootPath: @"C:\",
-                        DriveType: DriveType.Fixed,
-                        IsReady: false,
-                        AvailableFreeSpaceBytes: null,
-                        TotalSizeBytes: null,
-                        HintStatus: DriveHintStatus.NotRequested)
-                ]),
-            VisibilitySettingsService.FromPayload(SettingsStatePayload.Default));
+        CommandSurface.SubmitPath(path);
     }
 
-    public void OpenTypedPath(string path)
+    public void ActivateSidebarTarget(ShellNavigationTarget target)
     {
-        _entryPoints.OpenTypedPath(path);
-    }
-
-    public void OpenPastedPath(string path)
-    {
-        _entryPoints.OpenPastedPath(path);
+        CommandSurface.ActivateSidebarTarget(target);
     }
 
     public void OpenBreadcrumbSegment(BreadcrumbSegment segment)
     {
-        _entryPoints.OpenBreadcrumbSegment(segment);
+        SubmitPath(segment.FullPath);
     }
 
-    public void OpenSidebarLocation(string path)
+    public bool NavigateBack()
     {
-        _entryPoints.OpenSidebarLocation(path);
+        return CommandSurface.NavigateBack();
     }
 
-    public void OpenFavorite(PinnedLocationState favorite)
+    public bool NavigateForward()
     {
-        _entryPoints.OpenFavorite(favorite);
+        return CommandSurface.NavigateForward();
     }
 
-    public void OpenRecent(RecentLocationState recentLocation)
+    public bool NavigateToParent()
     {
-        _entryPoints.OpenRecent(recentLocation);
+        return CommandSurface.NavigateToParent();
     }
 
-    public void OpenDrive(DriveEntry drive)
+    public void RefreshActiveTab()
     {
-        _entryPoints.OpenDrive(drive);
+        CommandSurface.RefreshActiveTab();
+    }
+
+    public void NewTab()
+    {
+        CommandSurface.NewTab();
+    }
+
+    public void DuplicateActiveTab()
+    {
+        CommandSurface.DuplicateActiveTab();
+    }
+
+    public void CloseActiveTab()
+    {
+        CommandSurface.CloseActiveTab();
+    }
+
+    public void ReopenClosedTab()
+    {
+        CommandSurface.ReopenClosedTab();
+    }
+
+    public void SwitchToTab(int index)
+    {
+        CommandSurface.SwitchToTab(index);
+    }
+
+    public void SwitchNextTab()
+    {
+        CommandSurface.SwitchNextTab();
+    }
+
+    public void SwitchPreviousTab()
+    {
+        CommandSurface.SwitchPreviousTab();
+    }
+
+    public void SetShowHiddenFiles(bool show)
+    {
+        CommandSurface.SetShowHiddenFiles(show);
+    }
+
+    public void SetShowFileExtensions(bool show)
+    {
+        CommandSurface.SetShowFileExtensions(show);
+    }
+
+    public VisibilityChangeStatus SetShowProtectedOperatingSystemFiles(bool show, bool confirmed)
+    {
+        return CommandSurface.SetShowProtectedOperatingSystemFiles(show, confirmed);
+    }
+
+    public void StartFresh()
+    {
+        CommandSurface.StartFresh();
     }
 }

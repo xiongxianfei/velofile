@@ -145,4 +145,20 @@ public sealed class NavigationWorkspaceTests
         Assert.AreEqual("descending", workspace.ActiveTab.SortDirection);
         Assert.AreEqual("README.md", workspace.ActiveTab.ScrollAnchorName);
     }
+
+    [TestMethod]
+    public void Empty_restored_tabs_and_close_last_tab_keep_a_safe_default_active_tab()
+    {
+        var workspace = NavigationWorkspace.FromRestoredTabs([], activeTabIndex: 0, defaultPath: @"C:\Users\alice");
+
+        Assert.AreEqual(1, workspace.Tabs.Count);
+        Assert.AreEqual(0, workspace.ActiveTabIndex);
+        Assert.AreEqual(@"C:\Users\alice", workspace.ActiveTab.Path);
+
+        workspace.CloseTab(workspace.ActiveTab.Id);
+
+        Assert.AreEqual(1, workspace.Tabs.Count);
+        Assert.AreEqual(0, workspace.ActiveTabIndex);
+        Assert.AreEqual(@"C:\Users\alice", workspace.ActiveTab.Path);
+    }
 }

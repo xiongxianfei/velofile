@@ -37,6 +37,45 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "AccessKey=\"E\"");
     }
 
+    [TestMethod]
+    public void Main_window_shell_wires_navigation_controls_to_code_behind_command_routes()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "Click=\"BackButton_Click\"");
+        StringAssert.Contains(xaml, "KeyDown=\"RawPathBox_KeyDown\"");
+        StringAssert.Contains(xaml, "ItemClick=\"SidebarLocationsList_ItemClick\"");
+        StringAssert.Contains(xaml, "SelectionChanged=\"TabList_SelectionChanged\"");
+        StringAssert.Contains(xaml, "Click=\"NewTabButton_Click\"");
+        StringAssert.Contains(xaml, "Invoked=\"NewTabAccelerator_Invoked\"");
+
+        StringAssert.Contains(codeBehind, "ViewModel.NavigateBack()");
+        StringAssert.Contains(codeBehind, "ViewModel.SubmitPath");
+        StringAssert.Contains(codeBehind, "ViewModel.ActivateSidebarTarget");
+        StringAssert.Contains(codeBehind, "ViewModel.SwitchToTab");
+        StringAssert.Contains(codeBehind, "ViewModel.NewTab()");
+        StringAssert.Contains(codeBehind, "NewTabAccelerator_Invoked");
+    }
+
+    [TestMethod]
+    public void App_launch_uses_composition_root_instead_of_hardcoded_main_window_state()
+    {
+        var repoRoot = FindRepoRoot();
+        var appCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
+        var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
+
+        StringAssert.Contains(appCode, "AppCompositionRoot.CreateShellViewModel()");
+        StringAssert.Contains(compositionCode, "DurableDocumentRepository<SessionStatePayload>");
+        StringAssert.Contains(compositionCode, "DurableDocumentRepository<SettingsStatePayload>");
+        StringAssert.Contains(compositionCode, "DurableDocumentRepository<FavoritesStatePayload>");
+        StringAssert.Contains(compositionCode, "DurableDocumentRepository<RecentLocationsStatePayload>");
+        StringAssert.Contains(compositionCode, "SessionRestoreService");
+        StringAssert.Contains(compositionCode, "WindowsDurableDocumentStorage");
+        StringAssert.Contains(compositionCode, "LocalDiagnosticLogStore");
+    }
+
     private static DirectoryInfo FindRepoRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

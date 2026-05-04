@@ -24,5 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VeloFile.Core\VeloFile.Core.csproj" />
+    <ProjectReference Include="..\VeloFile.Windows\VeloFile.Windows.csproj" />
   </ItemGroup>
 </Project>

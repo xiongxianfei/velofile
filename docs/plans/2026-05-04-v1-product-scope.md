@@ -673,6 +673,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Split M3 persistence decisions between Core schema/recovery and Windows file replacement. | Core owns durable document contracts and recovery policy; Windows owns same-directory temp, flush, and atomic replacement behavior. |
 | 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
 | 2026-05-04 | Split M5 navigation/session behavior into pure Core state services plus a compiled WinUI shell surface. | Core can prove tabs, sidebar, breadcrumb, restore, visibility, and missing-path behavior without a UI automation harness; the WinUI app still exposes the required shell regions for later command wiring. |
+| 2026-05-04 | Resolve M5 review by adding a Core shell command surface and an app launch composition root. | The review found static shell controls and hardcoded launch state; navigation UI routes now converge on Core command methods, and launch restore reads durable state before creating the shell view model. |
 
 ## Surprises and Discoveries
 
@@ -692,7 +693,8 @@ Each milestone must update validation notes with the commands actually run and a
 - M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
 - M4 review found two correctness gaps: request-token tests did not prove slow-tab isolation, and drive free-space hints were loaded synchronously. M4 now has a tab listing coordinator with per-tab cancellation/stale-result protection and a drive hint enrichment service that keeps entries separate from timeout-bounded hints.
 - M5 found that WinUI `Window` itself does not expose `DataContext`; the app shell view model is attached to the root XAML grid instead.
-- M5 app-shell tests are file-based contract checks until a later UI automation harness exists. They verify shell regions and keyboard accelerator declarations without launching WinUI inside MSTest.
+- M5 app-shell tests are file-based contract checks until a later UI automation harness exists. They verify shell regions, command/event routes, keyboard accelerator invoked handlers, and app composition wiring without launching WinUI inside MSTest.
+- M5 review resolution found that build/test commands share `obj` outputs; running filtered `dotnet test` commands in parallel can trip file locks, so validation commands that build the solution should run sequentially.
 
 ## Validation Notes
 
@@ -798,14 +800,23 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Visibility` passed: 7 Core visibility tests and 1 App shell contract test.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 73 tests across 4 test assemblies.
+- M5 review-resolution evidence:
+  - Added regression tests first for shell command routes, startup restore, crash recovery start-fresh, missing-path restore reaching the shell, empty session restore, and close-last-tab behavior.
+  - `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session"` failed first as expected because `VeloFile.Core.Shell`, `IDefaultLaunchPathProvider`, and WinUI command routes were missing.
+  - `dotnet test VeloFile.sln -c Debug --filter "Navigation|Session"` passed: 19 Core tests and 3 App shell contract tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Navigation` passed: 9 Core navigation tests and 3 App shell contract tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Session` passed: 11 Core session/startup restore tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` initially failed because the App composition contract test expected explicit typed repositories while the composition root hid them behind a generic helper; the composition root was made explicit.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 85 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, and M5 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, and core navigation/sidebar/session restore state with a compiled shell surface. Later V1 user-facing command, search, operation, preview, benchmark, and packaging behavior remains assigned to M6-M16.
+M1, M2, M3, M4, and M5 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, and a compiled shell surface wired to those commands. Later V1 file-selection, file-command, search, operation, preview, benchmark, and packaging behavior remains assigned to M6-M16.
 
 ## Readiness
 
-M5 implementation is ready for `code-review`. Do not start M6 until the M5 review pass is accepted or remaining findings are explicitly deferred.
+M5 review resolution is ready for `code-review`. Do not start M6 until the M5 review-resolution pass is accepted or remaining findings are explicitly deferred.
 
 Implementation resumes after M5 review with:
 

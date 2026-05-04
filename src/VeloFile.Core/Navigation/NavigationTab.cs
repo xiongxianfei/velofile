@@ -18,7 +18,8 @@ public sealed record NavigationTab(
     FileListViewMode ViewMode,
     string? ScrollAnchorName,
     NavigationTabLocationState LocationState,
-    string? MissingPath)
+    string? MissingPath,
+    int ReloadVersion)
 {
     public bool CloseTabActionAvailable => LocationState is NavigationTabLocationState.MissingLocation;
 
@@ -34,7 +35,8 @@ public sealed record NavigationTab(
             ViewMode: FileListViewMode.Details,
             ScrollAnchorName: null,
             LocationState: NavigationTabLocationState.Available,
-            MissingPath: null);
+            MissingPath: null,
+            ReloadVersion: 0);
     }
 
     public static NavigationTab Restored(
@@ -58,6 +60,7 @@ public sealed record NavigationTab(
             viewMode,
             scrollAnchorName,
             missingLocation ? NavigationTabLocationState.MissingLocation : NavigationTabLocationState.Available,
-            missingLocation ? path : null);
+            missingLocation ? path : null,
+            ReloadVersion: 0);
     }
 }
