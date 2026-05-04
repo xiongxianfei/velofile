@@ -38,6 +38,44 @@ public sealed class DiagnosticsTests
     }
 
     [TestMethod]
+    public void Diagnostic_serializer_sanitizes_every_serialized_string_field()
+    {
+        var prohibited = @"C:\Users\alice\Documents\secret-plan.txt";
+        var diagnosticEvent = new DiagnosticEvent
+        {
+            EventId = prohibited,
+            EventType = prohibited,
+            UtcTimestamp = DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            SequenceNumber = 1,
+            Severity = prohibited,
+            Component = prohibited,
+            OperationId = prohibited,
+            CorrelationId = prohibited,
+            OperationKind = prohibited,
+            ResultState = prohibited,
+            ReasonCode = prohibited,
+            DocumentType = prohibited,
+            MigrationResult = prohibited,
+            FallbackSource = prohibited,
+            LastActionMarkerCategory = prohibited,
+            PathClassification = prohibited,
+            PathFingerprint = prohibited,
+            ExtensionClass = prohibited
+        };
+
+        var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
+
+        Assert.IsFalse(json.Contains(@"C:\Users\alice", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("Documents", StringComparison.OrdinalIgnoreCase));
+        StringAssert.Contains(json, "redacted-");
+
+        var fileNameOnly = DiagnosticJsonSerializer.Serialize(diagnosticEvent with { ReasonCode = "secret-plan.txt" });
+
+        Assert.IsFalse(fileNameOnly.Contains("secret-plan", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
     public void Path_fingerprint_is_stable_per_installation_and_rotates_with_salt()
     {
         var first = new PathRedactor(Convert.FromHexString("00112233445566778899AABBCCDDEEFF"));
@@ -110,6 +148,34 @@ public sealed class DiagnosticsTests
 
         Assert.IsFalse(allDiagnostics.Contains("alice", StringComparison.OrdinalIgnoreCase));
         Assert.IsFalse(allDiagnostics.Contains("secret-", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public void Local_diagnostics_are_best_effort_when_storage_is_unavailable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "velofile-diagnostics-tests", Guid.NewGuid().ToString("N"), "blocked-by-file");
+        Directory.CreateDirectory(Path.GetDirectoryName(root)!);
+        File.WriteAllText(root, "not a directory");
+
+        var writer = new LocalDiagnosticLogStore(root, DiagnosticRetentionPolicy.Default);
+
+        writer.Write(new DiagnosticEvent
+        {
+            EventId = "evt-1",
+            EventType = "operation.failure",
+            UtcTimestamp = DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            SequenceNumber = 1,
+            Severity = "warning",
+            Component = "Persistence",
+            OperationKind = "write",
+            ResultState = "failed",
+            ReasonCode = "simulated"
+        });
+        writer.RecordCrashMarker("startup", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+        writer.RecordLastActionMarker("navigation", "Navigation", DateTimeOffset.Parse("2026-05-04T00:00:00Z"));
+
+        Assert.IsFalse(writer.HasRepeatedCrashMarkers("startup", threshold: 1));
+        Assert.IsNotNull(writer.LastFailureReasonCode);
     }
 
     private sealed class TemporaryWorkspace : IDisposable

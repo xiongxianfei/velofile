@@ -63,6 +63,19 @@ public sealed class PersistenceWindowsDurableDocumentStorageTests
         Assert.AreEqual(0, recovered.Payload.Tabs.Count);
     }
 
+    [TestMethod]
+    public void Windows_storage_treats_missing_reads_as_recoverable_instead_of_using_check_then_read()
+    {
+        using var workspace = TemporaryWorkspace.Create();
+        var path = Path.Combine(workspace.Root, "missing-session.json");
+        var storage = new WindowsDurableDocumentStorage();
+
+        var read = storage.ReadText(path);
+
+        Assert.AreEqual(DurableDocumentStorageReadStatus.Missing, read.Status);
+        Assert.IsNull(read.Content);
+    }
+
     private static DurableDocumentRepository<SessionStatePayload> CreateRepository(string canonicalPath, WindowsDurableDocumentStorage storage)
     {
         return new DurableDocumentRepository<SessionStatePayload>(

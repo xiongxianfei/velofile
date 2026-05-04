@@ -744,6 +744,13 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 7 tests across Core and Windows test assemblies.
   - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 4 Core diagnostics tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 20 tests across 4 test assemblies.
+- M3 review-resolution evidence:
+  - Added regression tests first for recoverable persistence read failures, durable codecs for settings/favorites/recent locations, session window-placement round trip and malformed fallback, best-effort diagnostic storage failures, and diagnostic string sanitization.
+  - `dotnet test VeloFile.sln -c Debug --filter Persistence` initially failed as expected because `DurableDocumentStorageReadResult`, `ReadText`, and local-state codecs were not implemented.
+  - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` initially failed behind the same missing persistence compile surface before diagnostics production fixes existed.
+  - `dotnet test VeloFile.sln -c Debug --filter Persistence` passed: 10 tests across Core and Windows test assemblies.
+  - `dotnet test VeloFile.sln -c Debug --filter Diagnostics` passed: 6 Core diagnostics tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build, and 25 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

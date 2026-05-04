@@ -132,12 +132,58 @@ public static class DiagnosticJsonSerializer
     private static readonly JsonSerializerOptions Options = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false
     };
 
     public static string Serialize(DiagnosticEvent diagnosticEvent)
     {
-        return JsonSerializer.Serialize(diagnosticEvent, Options);
+        var fields = new Dictionary<string, object?>
+        {
+            ["eventId"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.EventId),
+            ["eventType"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.EventType),
+            ["utcTimestamp"] = diagnosticEvent.UtcTimestamp,
+            ["sequenceNumber"] = diagnosticEvent.SequenceNumber,
+            ["severity"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.Severity),
+            ["component"] = DiagnosticStringSanitizer.Sanitize(diagnosticEvent.Component)
+        };
+
+        Add(fields, "operationId", diagnosticEvent.OperationId);
+        Add(fields, "correlationId", diagnosticEvent.CorrelationId);
+        Add(fields, "operationKind", diagnosticEvent.OperationKind);
+        Add(fields, "resultState", diagnosticEvent.ResultState);
+        Add(fields, "reasonCode", diagnosticEvent.ReasonCode);
+        Add(fields, "durationMs", diagnosticEvent.DurationMs);
+        Add(fields, "timeoutBudgetMs", diagnosticEvent.TimeoutBudgetMs);
+        Add(fields, "retryCount", diagnosticEvent.RetryCount);
+        Add(fields, "cancellationFlag", diagnosticEvent.CancellationFlag);
+        Add(fields, "documentType", diagnosticEvent.DocumentType);
+        Add(fields, "schemaVersion", diagnosticEvent.SchemaVersion);
+        Add(fields, "migrationResult", diagnosticEvent.MigrationResult);
+        Add(fields, "fallbackSource", diagnosticEvent.FallbackSource);
+        Add(fields, "unknownFieldCount", diagnosticEvent.UnknownFieldCount);
+        Add(fields, "corruptFieldCount", diagnosticEvent.CorruptFieldCount);
+        Add(fields, "lastActionMarkerCategory", diagnosticEvent.LastActionMarkerCategory);
+        Add(fields, "pathClassification", diagnosticEvent.PathClassification);
+        Add(fields, "pathFingerprint", diagnosticEvent.PathFingerprint);
+        Add(fields, "extensionClass", diagnosticEvent.ExtensionClass);
+
+        return JsonSerializer.Serialize(fields, Options);
+    }
+
+    private static void Add(Dictionary<string, object?> fields, string fieldName, string? value)
+    {
+        if (value is not null)
+        {
+            fields[fieldName] = DiagnosticStringSanitizer.Sanitize(value);
+        }
+    }
+
+    private static void Add<TValue>(Dictionary<string, object?> fields, string fieldName, TValue? value)
+        where TValue : struct
+    {
+        if (value is not null)
+        {
+            fields[fieldName] = value.Value;
+        }
     }
 }

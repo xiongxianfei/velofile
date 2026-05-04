@@ -54,8 +54,10 @@ public sealed class SessionStateDocumentCodec : IDurableDocumentCodec<SessionSta
                 activeTabIndex = 0;
             }
 
+            var windowPlacement = ReadWindowPlacement(payloadObject, fallbackEvents, ref corruptFieldCount);
+
             var unknownFieldCount = CountUnknownFields(root, RootFields) + CountUnknownFields(payloadObject, PayloadFields);
-            var payload = new SessionStatePayload(tabs, activeTabIndex, WindowPlacement: null);
+            var payload = new SessionStatePayload(tabs, activeTabIndex, windowPlacement);
             var envelope = DurableDocumentEnvelope.Create(
                 documentType,
                 schemaVersion,
@@ -113,11 +115,25 @@ public sealed class SessionStateDocumentCodec : IDurableDocumentCodec<SessionSta
             });
         }
 
-        return new JsonObject
+        var payloadObject = new JsonObject
         {
             ["tabs"] = tabs,
-            ["activeTabIndex"] = payload.ActiveTabIndex
+            ["activeTabIndex"] = payload.ActiveTabIndex,
         };
+
+        if (payload.WindowPlacement is not null)
+        {
+            payloadObject["windowPlacement"] = new JsonObject
+            {
+                ["left"] = payload.WindowPlacement.Left,
+                ["top"] = payload.WindowPlacement.Top,
+                ["width"] = payload.WindowPlacement.Width,
+                ["height"] = payload.WindowPlacement.Height,
+                ["monitorDeviceName"] = payload.WindowPlacement.MonitorDeviceName
+            };
+        }
+
+        return payloadObject;
     }
 
     private static JsonArray ToJsonArray(IEnumerable<string> values)
@@ -165,6 +181,36 @@ public sealed class SessionStateDocumentCodec : IDurableDocumentCodec<SessionSta
         }
 
         return tabs;
+    }
+
+    private static WindowPlacementState? ReadWindowPlacement(
+        JsonObject payload,
+        List<PersistenceFallbackEvent> fallbackEvents,
+        ref int corruptFieldCount)
+    {
+        if (payload["windowPlacement"] is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var placement = payload["windowPlacement"]?.AsObject()
+                ?? throw new JsonException("windowPlacement is malformed.");
+
+            return new WindowPlacementState(
+                Left: placement["left"]?.GetValue<int>() ?? throw new JsonException("windowPlacement.left is missing."),
+                Top: placement["top"]?.GetValue<int>() ?? throw new JsonException("windowPlacement.top is missing."),
+                Width: placement["width"]?.GetValue<int>() ?? throw new JsonException("windowPlacement.width is missing."),
+                Height: placement["height"]?.GetValue<int>() ?? throw new JsonException("windowPlacement.height is missing."),
+                MonitorDeviceName: ReadNullableString(placement, "monitorDeviceName"));
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            fallbackEvents.Add(new PersistenceFallbackEvent("windowPlacement", "malformed"));
+            corruptFieldCount++;
+            return null;
+        }
     }
 
     private static string ReadRequiredString(JsonObject root, string fieldName)

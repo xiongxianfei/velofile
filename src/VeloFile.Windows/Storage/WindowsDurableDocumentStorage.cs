@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using VeloFile.Core;
 using VeloFile.Core.Persistence;
 
 namespace VeloFile.Windows.Storage;
@@ -11,16 +12,27 @@ public sealed class WindowsDurableDocumentStorage : IDurableDocumentStorage
         return canonicalPath + ".bak";
     }
 
-    public bool TryReadText(string path, out string content)
+    public DurableDocumentStorageReadResult ReadText(string path)
     {
-        if (!File.Exists(path))
+        try
         {
-            content = string.Empty;
-            return false;
-        }
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 
-        content = File.ReadAllText(path, Encoding.UTF8);
-        return true;
+            return DurableDocumentStorageReadResult.Found(reader.ReadToEnd());
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return DurableDocumentStorageReadResult.Missing();
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            return DurableDocumentStorageReadResult.RecoverableFailure(ExpectedFileSystemExceptions.ReasonCode(ex));
+        }
     }
 
     public void WriteAtomic(string canonicalPath, string content)

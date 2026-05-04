@@ -63,6 +63,77 @@ public sealed class DurableDocumentTests
         Assert.AreEqual("recentLocations", DurableDocumentTypes.RecentLocations);
         Assert.AreEqual(20, recentLocations.Entries.Count, "Recent locations are capped at the V1 storage boundary.");
         Assert.AreEqual("D:\\projects\\25", recentLocations.Entries[0].Path);
+
+        var settingsRoundTrip = SettingsStateDocumentCodec.Instance.Read(SettingsStateDocumentCodec.Instance.Serialize(settings));
+        var favoritesRoundTrip = FavoritesStateDocumentCodec.Instance.Read(FavoritesStateDocumentCodec.Instance.Serialize(favorites));
+        var recentRoundTrip = RecentLocationsStateDocumentCodec.Instance.Read(RecentLocationsStateDocumentCodec.Instance.Serialize(
+            DurableDocumentEnvelope.Create(
+                DurableDocumentTypes.RecentLocations,
+                schemaVersion: 1,
+                minimumReaderVersion: 1,
+                appVersion: "1.0.0-test",
+                writtenAtUtc: DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+                recentLocations)));
+
+        Assert.IsTrue(settingsRoundTrip.Success, settingsRoundTrip.FailureReason);
+        Assert.IsTrue(favoritesRoundTrip.Success, favoritesRoundTrip.FailureReason);
+        Assert.IsTrue(recentRoundTrip.Success, recentRoundTrip.FailureReason);
+        Assert.IsTrue(settingsRoundTrip.Document!.Payload.ShowFileExtensions);
+        Assert.AreEqual("Projects", favoritesRoundTrip.Document!.Payload.PinnedLocations[0].DisplayName);
+        Assert.AreEqual(20, recentRoundTrip.Document!.Payload.Entries.Count);
+    }
+
+    [TestMethod]
+    public void Session_document_round_trips_window_placement_and_falls_back_per_malformed_placement_field()
+    {
+        var payload = new SessionStatePayload(
+            Tabs: [],
+            ActiveTabIndex: 0,
+            WindowPlacement: new WindowPlacementState(Left: 10, Top: 20, Width: 1200, Height: 800, MonitorDeviceName: @"\\.\DISPLAY2"));
+
+        var envelope = DurableDocumentEnvelope.Create(
+            DurableDocumentTypes.Session,
+            schemaVersion: 1,
+            minimumReaderVersion: 1,
+            appVersion: "1.0.0-test",
+            writtenAtUtc: DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            payload);
+
+        var roundTrip = SessionStateDocumentCodec.Instance.Read(SessionStateDocumentCodec.Instance.Serialize(envelope));
+
+        Assert.IsTrue(roundTrip.Success, roundTrip.FailureReason);
+        Assert.AreEqual(10, roundTrip.Document!.Payload.WindowPlacement!.Left);
+        Assert.AreEqual(20, roundTrip.Document.Payload.WindowPlacement.Top);
+        Assert.AreEqual(1200, roundTrip.Document.Payload.WindowPlacement.Width);
+        Assert.AreEqual(800, roundTrip.Document.Payload.WindowPlacement.Height);
+        Assert.AreEqual(@"\\.\DISPLAY2", roundTrip.Document.Payload.WindowPlacement.MonitorDeviceName);
+
+        var malformed = """
+            {
+              "documentType": "session",
+              "schemaVersion": 1,
+              "minimumReaderVersion": 1,
+              "appVersion": "1.0.0-test",
+              "writtenAtUtc": "2026-05-04T00:00:00Z",
+              "payload": {
+                "tabs": [],
+                "activeTabIndex": 0,
+                "windowPlacement": {
+                  "left": 10,
+                  "top": "not-an-int",
+                  "width": 1200,
+                  "height": 800,
+                  "monitorDeviceName": "\\\\.\\DISPLAY2"
+                }
+              }
+            }
+            """;
+
+        var fallback = SessionStateDocumentCodec.Instance.Read(malformed);
+
+        Assert.IsTrue(fallback.Success, fallback.FailureReason);
+        Assert.IsNull(fallback.Document!.Payload.WindowPlacement);
+        Assert.IsTrue(fallback.Fallbacks.Any(item => item.FieldName == "windowPlacement"));
     }
 
     [TestMethod]
@@ -155,18 +226,58 @@ public sealed class DurableDocumentTests
         Assert.IsTrue(diagnostics.Events.Any(e => e.EventType == "persistence.fallback" && e.FallbackSource == "safeDefaults"));
     }
 
+    [TestMethod]
+    public void Repository_recovers_when_primary_storage_read_is_recoverable_failure()
+    {
+        var storage = new InMemoryDurableDocumentStorage();
+        var diagnostics = new CollectingDiagnosticSink();
+        var repository = new DurableDocumentRepository<SessionStatePayload>(
+            "session.json",
+            SessionStateDocumentCodec.Instance,
+            storage,
+            () => SessionStatePayload.Empty,
+            diagnostics);
+
+        storage.Files["session.json.bak"] = SessionStateDocumentCodec.Instance.Serialize(DurableDocumentEnvelope.Create(
+            DurableDocumentTypes.Session,
+            schemaVersion: 1,
+            minimumReaderVersion: 1,
+            appVersion: "1.0.0-test",
+            writtenAtUtc: DateTimeOffset.Parse("2026-05-04T00:00:00Z"),
+            new SessionStatePayload(
+                [new SessionTabState("D:\\projects\\velofile", "name", "ascending", "details", null, [], [])],
+                ActiveTabIndex: 0,
+                WindowPlacement: null)));
+        storage.ReadFailures["session.json"] = DurableDocumentStorageReadResult.RecoverableFailure("sharing-violation");
+
+        var recovered = repository.Read();
+
+        Assert.AreEqual("lastKnownGood", recovered.Source);
+        Assert.AreEqual("D:\\projects\\velofile", recovered.Payload.Tabs[0].Path);
+        Assert.IsTrue(diagnostics.Events.Any(e => e.EventType == "persistence.fallback" && e.FallbackSource == "lastKnownGood"));
+    }
+
     private sealed class InMemoryDurableDocumentStorage : IDurableDocumentStorage
     {
         public Dictionary<string, string> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public Dictionary<string, DurableDocumentStorageReadResult> ReadFailures { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public string BackupPath(string canonicalPath)
         {
             return canonicalPath + ".bak";
         }
 
-        public bool TryReadText(string path, out string content)
+        public DurableDocumentStorageReadResult ReadText(string path)
         {
-            return Files.TryGetValue(path, out content!);
+            if (ReadFailures.TryGetValue(path, out var failure))
+            {
+                return failure;
+            }
+
+            return Files.TryGetValue(path, out var content)
+                ? DurableDocumentStorageReadResult.Found(content)
+                : DurableDocumentStorageReadResult.Missing();
         }
 
         public void WriteAtomic(string canonicalPath, string content)

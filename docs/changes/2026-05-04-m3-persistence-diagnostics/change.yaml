@@ -41,13 +41,14 @@ artifacts:
   - tests/VeloFile.Windows.Tests/Storage/
 validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Persistence
-    result: passed 7 tests across Core and Windows test assemblies
+    result: passed 10 tests across Core and Windows test assemblies after review-resolution fixes
   - command: dotnet test VeloFile.sln -c Debug --filter Diagnostics
-    result: passed 4 Core diagnostics tests
+    result: passed 6 Core diagnostics tests after review-resolution fixes
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build, and 20 tests across 4 test assemblies
+    result: passed restore, build, and 25 tests across 4 test assemblies after review-resolution fixes
 notes:
   - M3 implements persistence and diagnostics foundations only; UI session restore and start-fresh flows remain assigned to M5.
   - Preview-release numeric promotion thresholds remain assigned to M15 release triage; M3 provides local marker and diagnostic primitives that threshold policy will consume.
   - Diagnostic output records path classification and non-reversible path fingerprints only; raw paths, filenames, usernames, clipboard content, search queries, and preview text are not serialized by default.
   - Durable writes use the Core repository abstraction and the Windows storage adapter for same-directory temp files, flush, atomic replacement where available, and last-known-good backup recovery.
+  - Review resolution added recoverable storage read failures, codecs for all M3 local state documents, session window-placement round trip, best-effort diagnostics storage, and centralized diagnostic string sanitization.

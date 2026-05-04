@@ -6,9 +6,37 @@ public interface IDurableDocumentStorage
 {
     string BackupPath(string canonicalPath);
 
-    bool TryReadText(string path, out string content);
+    DurableDocumentStorageReadResult ReadText(string path);
 
     void WriteAtomic(string canonicalPath, string content);
+}
+
+public enum DurableDocumentStorageReadStatus
+{
+    Found,
+    Missing,
+    RecoverableFailure
+}
+
+public sealed record DurableDocumentStorageReadResult(
+    DurableDocumentStorageReadStatus Status,
+    string? Content,
+    string? ReasonCode)
+{
+    public static DurableDocumentStorageReadResult Found(string content)
+    {
+        return new DurableDocumentStorageReadResult(DurableDocumentStorageReadStatus.Found, content, ReasonCode: null);
+    }
+
+    public static DurableDocumentStorageReadResult Missing()
+    {
+        return new DurableDocumentStorageReadResult(DurableDocumentStorageReadStatus.Missing, Content: null, ReasonCode: "missing");
+    }
+
+    public static DurableDocumentStorageReadResult RecoverableFailure(string reasonCode)
+    {
+        return new DurableDocumentStorageReadResult(DurableDocumentStorageReadStatus.RecoverableFailure, Content: null, reasonCode);
+    }
 }
 
 public sealed class DurableDocumentRepository<TPayload>
@@ -84,12 +112,13 @@ public sealed class DurableDocumentRepository<TPayload>
     {
         result = default!;
 
-        if (!_storage.TryReadText(path, out var content))
+        var storageRead = ReadFromStorage(path);
+        if (storageRead.Status is not DurableDocumentStorageReadStatus.Found || storageRead.Content is null)
         {
             return false;
         }
 
-        var read = _codec.Read(content);
+        var read = _codec.Read(storageRead.Content);
         if (!read.Success || read.Document is null)
         {
             return false;
@@ -102,6 +131,18 @@ public sealed class DurableDocumentRepository<TPayload>
             UnknownFieldCount: read.UnknownFieldCount,
             CorruptFieldCount: read.CorruptFieldCount);
         return true;
+    }
+
+    private DurableDocumentStorageReadResult ReadFromStorage(string path)
+    {
+        try
+        {
+            return _storage.ReadText(path);
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            return DurableDocumentStorageReadResult.RecoverableFailure(ExpectedFileSystemExceptions.ReasonCode(ex));
+        }
     }
 }
 

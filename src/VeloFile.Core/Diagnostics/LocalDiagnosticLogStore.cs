@@ -1,3 +1,5 @@
+using VeloFile.Core;
+
 namespace VeloFile.Core.Diagnostics;
 
 public sealed record DiagnosticRetentionPolicy(
@@ -21,6 +23,8 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
     private readonly string _lastActionMarkersDirectory;
     private readonly DiagnosticRetentionPolicy _retentionPolicy;
 
+    public string? LastFailureReasonCode { get; private set; }
+
     public LocalDiagnosticLogStore(string root, DiagnosticRetentionPolicy retentionPolicy)
     {
         _root = root;
@@ -29,56 +33,78 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
         _crashMarkersDirectory = Path.Combine(root, "crash-markers");
         _lastActionMarkersDirectory = Path.Combine(root, "last-action-markers");
 
-        Directory.CreateDirectory(_root);
-        Directory.CreateDirectory(_logsDirectory);
-        Directory.CreateDirectory(_crashMarkersDirectory);
-        Directory.CreateDirectory(_lastActionMarkersDirectory);
+        TryEnsureDirectories();
     }
 
     public void Write(DiagnosticEvent diagnosticEvent)
     {
-        var line = DiagnosticJsonSerializer.Serialize(diagnosticEvent) + Environment.NewLine;
-        var logPath = CurrentLogPath(line.Length);
+        TryBestEffort(() =>
+        {
+            if (!TryEnsureDirectories())
+            {
+                return;
+            }
 
-        File.AppendAllText(logPath, line);
-        ApplyLogRetention(DateTimeOffset.UtcNow);
+            var line = DiagnosticJsonSerializer.Serialize(diagnosticEvent) + Environment.NewLine;
+            var logPath = CurrentLogPath(line.Length);
+
+            File.AppendAllText(logPath, line);
+            ApplyLogRetention(DateTimeOffset.UtcNow);
+        });
     }
 
     public void RecordCrashMarker(string category, DateTimeOffset timestampUtc)
     {
-        var marker = new DiagnosticEvent
+        TryBestEffort(() =>
         {
-            EventId = Guid.NewGuid().ToString("N"),
-            EventType = "crash.marker",
-            UtcTimestamp = timestampUtc,
-            SequenceNumber = 0,
-            Severity = "error",
-            Component = "Diagnostics",
-            LastActionMarkerCategory = category,
-            ResultState = "crashed"
-        };
+            if (!TryEnsureDirectories())
+            {
+                return;
+            }
 
-        var path = Path.Combine(_crashMarkersDirectory, $"{timestampUtc.UtcTicks:D20}-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, DiagnosticJsonSerializer.Serialize(marker) + Environment.NewLine);
-        RetainLatestCrashMarkers();
+            var marker = new DiagnosticEvent
+            {
+                EventId = Guid.NewGuid().ToString("N"),
+                EventType = "crash.marker",
+                UtcTimestamp = timestampUtc,
+                SequenceNumber = 0,
+                Severity = "error",
+                Component = "Diagnostics",
+                LastActionMarkerCategory = category,
+                ResultState = "crashed"
+            };
+
+            var path = Path.Combine(_crashMarkersDirectory, $"{timestampUtc.UtcTicks:D20}-{Guid.NewGuid():N}.json");
+            File.WriteAllText(path, DiagnosticJsonSerializer.Serialize(marker) + Environment.NewLine);
+            RetainLatestCrashMarkers();
+        });
     }
 
     public void RecordLastActionMarker(string category, string component, DateTimeOffset timestampUtc)
     {
-        var marker = new DiagnosticEvent
+        TryBestEffort(() =>
         {
-            EventId = Guid.NewGuid().ToString("N"),
-            EventType = "last-action.marker",
-            UtcTimestamp = timestampUtc,
-            SequenceNumber = 0,
-            Severity = "info",
-            Component = component,
-            LastActionMarkerCategory = category,
-            ResultState = "recorded"
-        };
+            if (!TryEnsureDirectories())
+            {
+                return;
+            }
 
-        var path = Path.Combine(_lastActionMarkersDirectory, category + ".json");
-        File.WriteAllText(path, DiagnosticJsonSerializer.Serialize(marker) + Environment.NewLine);
+            var marker = new DiagnosticEvent
+            {
+                EventId = Guid.NewGuid().ToString("N"),
+                EventType = "last-action.marker",
+                UtcTimestamp = timestampUtc,
+                SequenceNumber = 0,
+                Severity = "info",
+                Component = component,
+                LastActionMarkerCategory = category,
+                ResultState = "recorded"
+            };
+
+            var safeCategory = DiagnosticStringSanitizer.Sanitize(category);
+            var path = Path.Combine(_lastActionMarkersDirectory, safeCategory + ".json");
+            File.WriteAllText(path, DiagnosticJsonSerializer.Serialize(marker) + Environment.NewLine);
+        });
     }
 
     public bool HasRepeatedCrashMarkers(string category, int threshold)
@@ -88,10 +114,19 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
             throw new ArgumentOutOfRangeException(nameof(threshold), "Threshold must be positive.");
         }
 
-        return Directory
-            .EnumerateFiles(_crashMarkersDirectory, "*.json")
-            .Select(File.ReadAllText)
-            .Count(content => content.Contains($"\"lastActionMarkerCategory\":\"{category}\"", StringComparison.Ordinal)) >= threshold;
+        try
+        {
+            var safeCategory = DiagnosticStringSanitizer.Sanitize(category);
+            return Directory
+                .EnumerateFiles(_crashMarkersDirectory, "*.json")
+                .Select(File.ReadAllText)
+                .Count(content => content.Contains($"\"lastActionMarkerCategory\":\"{safeCategory}\"", StringComparison.Ordinal)) >= threshold;
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            LastFailureReasonCode = ExpectedFileSystemExceptions.ReasonCode(ex);
+            return false;
+        }
     }
 
     private string CurrentLogPath(int nextLineLength)
@@ -147,6 +182,35 @@ public sealed class LocalDiagnosticLogStore : IDiagnosticSink
         foreach (var marker in staleMarkers)
         {
             marker.Delete();
+        }
+    }
+
+    private bool TryEnsureDirectories()
+    {
+        try
+        {
+            Directory.CreateDirectory(_root);
+            Directory.CreateDirectory(_logsDirectory);
+            Directory.CreateDirectory(_crashMarkersDirectory);
+            Directory.CreateDirectory(_lastActionMarkersDirectory);
+            return true;
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            LastFailureReasonCode = ExpectedFileSystemExceptions.ReasonCode(ex);
+            return false;
+        }
+    }
+
+    private void TryBestEffort(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            LastFailureReasonCode = ExpectedFileSystemExceptions.ReasonCode(ex);
         }
     }
 }
