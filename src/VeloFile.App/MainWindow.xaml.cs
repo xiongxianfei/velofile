@@ -249,6 +249,24 @@ public sealed partial class MainWindow : Window
         RefreshShellBindings();
     }
 
+    private async void SkipConflictButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.ResolveFileOperationConflictAsync(FileOperationConflictChoice.Skip);
+        RefreshShellBindings();
+    }
+
+    private async void ReplaceConflictButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.ResolveFileOperationConflictAsync(FileOperationConflictChoice.Replace);
+        RefreshShellBindings();
+    }
+
+    private async void KeepBothConflictButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.ResolveFileOperationConflictAsync(FileOperationConflictChoice.KeepBoth);
+        RefreshShellBindings();
+    }
+
     private void ViewModel_ShellStateChanged(object? sender, EventArgs e)
     {
         DispatcherQueue.TryEnqueue(RefreshShellBindings);
@@ -569,6 +587,10 @@ public sealed partial class MainWindow : Window
             PermanentDeleteConfirmationText.Text = ViewModel.PendingPermanentDeleteConfirmation is null
                 ? ""
                 : PermanentDeleteConfirmationMessage(ViewModel.PendingPermanentDeleteConfirmation);
+            FileOperationConflictPanel.Visibility = ViewModel.PendingFileOperationConflict is null ? Visibility.Collapsed : Visibility.Visible;
+            FileOperationConflictText.Text = ViewModel.PendingFileOperationConflict is null
+                ? ""
+                : FileOperationConflictMessage(ViewModel.PendingFileOperationConflict);
             RawPathBox.Text = ViewModel.PathEntryError?.SubmittedPath ?? ViewModel.ActivePath;
             MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
             MissingLocationState.Message = ViewModel.MissingLocationPath is null
@@ -595,6 +617,11 @@ public sealed partial class MainWindow : Window
             ? "Recycle Bin delete is unavailable. "
             : "";
         return $"{prefix}Permanently delete {confirmation.Items.Count} selected item(s)?";
+    }
+
+    private static string FileOperationConflictMessage(FileOperationConflict conflict)
+    {
+        return $"Name conflict for {conflict.ExistingName}. Choose how to continue.";
     }
 
 }

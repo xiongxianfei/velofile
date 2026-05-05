@@ -19,7 +19,31 @@ public sealed class FileOperationService
 
     public PermanentDeleteConfirmationRequest? PendingPermanentDeleteConfirmation { get; private set; }
 
+    public FileOperationConflict? PendingConflict { get; private set; }
+
     public bool CanCancelCurrentOperation => State.CanCancel;
+
+    public async Task CopyAsync(
+        IReadOnlyList<ListedFileItem> items,
+        string targetDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSelection(items);
+        EnsureTargetDirectory(targetDirectory);
+
+        await ExecuteAdapterRequestAsync(FileOperationRequest.Copy(items, targetDirectory.Trim()), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task MoveAsync(
+        IReadOnlyList<ListedFileItem> items,
+        string targetDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSelection(items);
+        EnsureTargetDirectory(targetDirectory);
+
+        await ExecuteAdapterRequestAsync(FileOperationRequest.Move(items, targetDirectory.Trim()), cancellationToken).ConfigureAwait(false);
+    }
 
     public async Task RenameAsync(ListedFileItem item, string targetName, CancellationToken cancellationToken = default)
     {
@@ -30,6 +54,27 @@ public sealed class FileOperationService
         }
 
         await ExecuteAdapterRequestAsync(FileOperationRequest.Rename(item, targetName.Trim()), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ResolveConflictAsync(
+        FileOperationConflictChoice choice,
+        CancellationToken cancellationToken = default)
+    {
+        var conflict = PendingConflict;
+        if (conflict is null)
+        {
+            return;
+        }
+
+        PendingConflict = null;
+        var request = new FileOperationRequest(
+            conflict.Kind,
+            conflict.Items,
+            TargetName: null,
+            ConfirmedPermanentDelete: false,
+            conflict.TargetDirectory,
+            choice);
+        await ExecuteAdapterRequestAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteToRecycleBinAsync(IReadOnlyList<ListedFileItem> items, CancellationToken cancellationToken = default)
@@ -109,6 +154,7 @@ public sealed class FileOperationService
         CancellationToken cancellationToken)
     {
         PendingPermanentDeleteConfirmation = null;
+        PendingConflict = null;
         var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _currentOperationCancellation = operationCancellation;
         SetState(FileOperationState.Running(request.Kind, request.Items.Count, CanCancel(request)));
@@ -148,8 +194,15 @@ public sealed class FileOperationService
 
     private void ApplyResult(FileOperationRequest request, FileOperationAdapterResult result)
     {
+        if (result.Status is FileOperationAdapterResultStatus.ConflictRequired && result.Conflict is not null)
+        {
+            PendingConflict = result.Conflict;
+            SetState(FileOperationState.WaitingForConflict(result.Conflict, result.ReasonCode));
+            return;
+        }
+
         var undo = result.Status is FileOperationAdapterResultStatus.Completed
-            && request.Kind is not FileOperationKind.PermanentDelete
+            && request.Kind is FileOperationKind.Move or FileOperationKind.Rename or FileOperationKind.RecycleBinDelete
             && result.UndoSupported
             ? new FileOperationUndoEligibility(CanUndo: true, request.Kind)
             : FileOperationUndoEligibility.None;
@@ -182,6 +235,14 @@ public sealed class FileOperationService
         if (items.Count == 0)
         {
             throw new ArgumentException("At least one item is required.", nameof(items));
+        }
+    }
+
+    private static void EnsureTargetDirectory(string targetDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            throw new ArgumentException("A target directory is required.", nameof(targetDirectory));
         }
     }
 

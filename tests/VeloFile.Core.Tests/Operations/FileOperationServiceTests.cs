@@ -43,6 +43,89 @@ public sealed class FileOperationServiceTests
     }
 
     [TestMethod]
+    public async Task Copy_uses_adapter_with_target_directory_and_does_not_offer_undo()
+    {
+        var adapter = new RecordingFileOperationAdapter();
+        var service = new FileOperationService(adapter);
+        var item = Item(@"D:\scratch\source\copy-me.txt", "copy-me.txt");
+
+        await service.CopyAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.AreEqual(FileOperationKind.Copy, adapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\scratch\target", adapter.LastRequest?.TargetDirectory);
+        Assert.IsFalse(service.State.UndoEligibility.CanUndo);
+    }
+
+    [TestMethod]
+    public async Task Move_uses_adapter_with_target_directory_and_records_undo_eligibility()
+    {
+        var adapter = new RecordingFileOperationAdapter();
+        var service = new FileOperationService(adapter);
+        var item = Item(@"D:\scratch\source\move-me.txt", "move-me.txt");
+
+        await service.MoveAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.AreEqual(FileOperationKind.Move, adapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\scratch\target", adapter.LastRequest?.TargetDirectory);
+        Assert.IsTrue(service.State.UndoEligibility.CanUndo);
+        Assert.AreEqual(FileOperationKind.Move, service.State.UndoEligibility.OperationKind);
+    }
+
+    [TestMethod]
+    public async Task Copy_conflict_pauses_for_resolution_and_replace_resumes_operation()
+    {
+        var item = Item(@"D:\scratch\source\copy-me.txt", "copy-me.txt");
+        var adapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.ConflictRequired(
+                "name-conflict",
+                new FileOperationConflict(
+                    FileOperationKind.Copy,
+                    [FileOperationTarget.FromListedItem(item)],
+                    @"D:\scratch\target",
+                    "copy-me.txt"))
+        };
+        var service = new FileOperationService(adapter);
+
+        await service.CopyAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConflict, service.State.Status);
+        Assert.IsNotNull(service.PendingConflict);
+        Assert.AreEqual("copy-me.txt", service.PendingConflict.ExistingName);
+        Assert.AreEqual(1, adapter.Requests.Count);
+
+        adapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: false);
+        await service.ResolveConflictAsync(FileOperationConflictChoice.Replace);
+
+        Assert.AreEqual(2, adapter.Requests.Count);
+        Assert.AreEqual(FileOperationConflictChoice.Replace, adapter.LastRequest?.ConflictChoice);
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.IsNull(service.PendingConflict);
+    }
+
+    [TestMethod]
+    public async Task Move_cancel_after_partial_progress_records_cancelled_status()
+    {
+        var adapter = new PendingFileOperationAdapter(supportsCancellation: true);
+        var service = new FileOperationService(adapter);
+        var item = Item(@"D:\scratch\source\move-me.txt", "move-me.txt");
+
+        var operation = service.MoveAsync([item], @"D:\scratch\target");
+
+        Assert.IsFalse(operation.IsCompleted);
+        Assert.AreEqual(FileOperationKind.Move, service.State.Kind);
+        Assert.IsTrue(service.State.CanCancel);
+
+        service.CancelCurrentOperation();
+        await operation;
+
+        Assert.IsTrue(adapter.CancellationObserved);
+        Assert.AreEqual(FileOperationStatus.Cancelled, service.State.Status);
+    }
+
+    [TestMethod]
     public async Task Unsupported_recycle_bin_delete_requires_permanent_delete_confirmation_before_destructive_fallback()
     {
         var adapter = new RecordingFileOperationAdapter

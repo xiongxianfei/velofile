@@ -31,6 +31,8 @@ public sealed class AppShellViewModel
     private ListedFileItem? _pendingRenameItem;
     private MutationListingTarget? _pendingRenameMutationTarget;
     private MutationListingTarget? _pendingPermanentDeleteMutationTarget;
+    private PendingFileTransfer? _pendingFileTransfer;
+    private MutationListingTarget? _pendingFileTransferMutationTarget;
     private string? _fileOperationRefreshWarning;
 
     public AppShellViewModel(
@@ -115,6 +117,11 @@ public sealed class AppShellViewModel
 
     public PermanentDeleteConfirmationRequest? PendingPermanentDeleteConfirmation =>
         _fileOperationService?.PendingPermanentDeleteConfirmation;
+
+    public FileOperationConflict? PendingFileOperationConflict =>
+        _fileOperationService?.PendingConflict;
+
+    public bool CanPasteFileOperation => _pendingFileTransfer is not null;
 
     public ListedFileItem? PendingRenameItem => _pendingRenameItem;
 
@@ -393,6 +400,15 @@ public sealed class AppShellViewModel
             case VeloFileCommandId.CopyName:
                 _clipboardCommands.CopyName(SelectedFileItems);
                 break;
+            case VeloFileCommandId.Copy:
+                StageFileTransfer(FileOperationKind.Copy);
+                break;
+            case VeloFileCommandId.Cut:
+                StageFileTransfer(FileOperationKind.Move);
+                break;
+            case VeloFileCommandId.Paste:
+                await PasteStagedFileTransferAsync().ConfigureAwait(false);
+                break;
             case VeloFileCommandId.Refresh:
                 RefreshActiveTab();
                 break;
@@ -431,6 +447,75 @@ public sealed class AppShellViewModel
             default:
                 break;
         }
+    }
+
+    public async Task ResolveFileOperationConflictAsync(FileOperationConflictChoice choice)
+    {
+        if (_fileOperationService is null)
+        {
+            return;
+        }
+
+        var mutationTarget = _pendingFileTransferMutationTarget ?? CaptureMutationListingTarget();
+        _fileOperationRefreshWarning = null;
+        await _fileOperationService.ResolveConflictAsync(choice).ConfigureAwait(false);
+        if (FileOperation.Status is FileOperationStatus.Completed)
+        {
+            _pendingFileTransfer = null;
+        }
+
+        if (FileOperation.Status is not FileOperationStatus.WaitingForConflict)
+        {
+            _pendingFileTransferMutationTarget = null;
+        }
+
+        await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void StageFileTransfer(FileOperationKind kind)
+    {
+        if (SelectedFileItems.Count == 0)
+        {
+            return;
+        }
+
+        _pendingFileTransfer = new PendingFileTransfer(kind, SelectedFileItems.ToArray());
+        _pendingFileTransferMutationTarget = null;
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task PasteStagedFileTransferAsync()
+    {
+        if (_fileOperationService is null || _pendingFileTransfer is null)
+        {
+            return;
+        }
+
+        var transfer = _pendingFileTransfer;
+        var mutationTarget = CaptureMutationListingTarget();
+        _fileOperationRefreshWarning = null;
+
+        if (transfer.Kind is FileOperationKind.Move)
+        {
+            await _fileOperationService.MoveAsync(transfer.Items, ActivePath).ConfigureAwait(false);
+        }
+        else
+        {
+            await _fileOperationService.CopyAsync(transfer.Items, ActivePath).ConfigureAwait(false);
+        }
+
+        if (FileOperation.Status is FileOperationStatus.Completed)
+        {
+            _pendingFileTransfer = null;
+        }
+
+        _pendingFileTransferMutationTarget = FileOperation.Status is FileOperationStatus.WaitingForConflict
+            ? mutationTarget
+            : null;
+
+        await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetPendingRenameText(string? targetName)
@@ -523,7 +608,7 @@ public sealed class AppShellViewModel
 
     private CommandContext CreateCommandContext(bool canPaste)
     {
-        return CommandContext.ForSelection(ActivePath, SelectedFileItems, canPaste);
+        return CommandContext.ForSelection(ActivePath, SelectedFileItems, canPaste || CanPasteFileOperation);
     }
 
     private void RefreshActiveListing(bool forceReload = false)
@@ -718,6 +803,8 @@ public sealed class AppShellViewModel
 
         var operation = state.Kind switch
         {
+            FileOperationKind.Copy => "Copy",
+            FileOperationKind.Move => "Move",
             FileOperationKind.Rename => "Rename",
             FileOperationKind.RecycleBinDelete => "Recycle Bin delete",
             FileOperationKind.PermanentDelete => "Permanent delete",
@@ -730,12 +817,19 @@ public sealed class AppShellViewModel
             FileOperationStatus.Cancelling => $"{operation} cancelling",
             FileOperationStatus.WaitingForConfirmation when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} waiting for confirmation: {state.ReasonCode}",
             FileOperationStatus.WaitingForConfirmation => $"{operation} waiting for confirmation",
+            FileOperationStatus.WaitingForConflict when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} waiting for conflict resolution: {state.ReasonCode}",
+            FileOperationStatus.WaitingForConflict => $"{operation} waiting for conflict resolution",
             FileOperationStatus.Completed => $"{operation} completed",
             FileOperationStatus.Cancelled => $"{operation} cancelled",
             FileOperationStatus.Failed when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} failed: {state.ReasonCode}",
             FileOperationStatus.Failed => $"{operation} failed",
             _ => ""
         };
+
+        if (state.UndoEligibility.CanUndo)
+        {
+            statusText = $"{statusText}. Undo available";
+        }
 
         return string.IsNullOrWhiteSpace(_fileOperationRefreshWarning)
             ? statusText
@@ -765,4 +859,8 @@ public sealed class AppShellViewModel
     }
 
     private sealed record MutationListingTarget(string TabId, string Path);
+
+    private sealed record PendingFileTransfer(
+        FileOperationKind Kind,
+        IReadOnlyList<ListedFileItem> Items);
 }

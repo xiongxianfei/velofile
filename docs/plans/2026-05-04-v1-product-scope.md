@@ -659,8 +659,8 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M5 complete.
 - [x] M6 complete.
 - [x] M7 complete.
-- [ ] M8 complete.
-- [ ] M9 complete.
+- [x] M8 complete.
+- [x] M9 complete.
 - [ ] M10 complete.
 - [ ] M11 complete.
 - [ ] M12 complete.
@@ -920,15 +920,23 @@ Each milestone must update validation notes with the commands actually run and a
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope safe-delete -ScratchRoot <scratch-root>` passed with a compliant scratch root.
   - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 corpus tooling tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 194 tests across 4 test assemblies.
+- M9 test-first implementation evidence:
+  - Added Core operation tests, Windows shell-operation tests, App shell-route tests, App contract tests, and operations corpus tests before the copy/move/conflict production APIs existed.
+  - `dotnet test VeloFile.sln -c Debug --filter Operations` first failed for missing copy/move operation APIs, conflict models, Windows collision probe, App paste/conflict properties, and conflict-resolution shell routes.
+  - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope` first failed because `run-compat-corpus.ps1 -Scope operations` still returned the M2 "not implemented" result.
+  - Added Core copy/move requests and conflict state, Windows copy/move mapping and collision classification, App Copy/Cut/Paste staging, visible conflict resolution UI, original-paste-target refresh after conflict resolution, and operations corpus fixture validation.
+  - Added same-slice regressions after review of the first pass: Skip now skips only colliding copy/move targets while unaffected batch items continue, and conflict resolution refreshes the original paste target if the user navigates elsewhere before choosing a conflict option.
+- M9 validation:
+  - `dotnet test VeloFile.sln -c Debug --filter Operations` passed: 13 Core operation tests, 23 App operation shell/route tests, and 12 Windows shell-operation tests.
+  - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 corpus tooling tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope operations -ScratchRoot <scratch-root>` passed with a compliant scratch root.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 208 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, and M8 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, and reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, and safe-delete corpus validation. Later V1 copy/move/conflict, drag/drop, preview, benchmark, and packaging behavior remains assigned to M9-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, and M9 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, and copy/move/conflict behavior with operations corpus validation. Later V1 drag/drop, preview, benchmark, and packaging behavior remains assigned to M10-M16.
 
 ## Readiness
 
-M8 file operation contracts, safe delete, and rename review-resolution is implemented and ready for follow-up `code-review`.
-
-Implementation resumes after M8 review/verify with:
-
-- M9 copy/move, conflicts, progress, cancellation, and undo eligibility.
+M9 copy/move, conflicts, progress, cancellation, and undo eligibility is implemented and ready for `code-review`.

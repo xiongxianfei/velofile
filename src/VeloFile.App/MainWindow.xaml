@@ -386,6 +386,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
@@ -489,6 +490,31 @@
                         x:Name="CancelPermanentDeleteButton"
                         Content="Cancel"
                         Click="CancelPermanentDeleteButton_Click" />
+                </StackPanel>
+                <StackPanel
+                    x:Name="FileOperationConflictPanel"
+                    Grid.Row="4"
+                    Grid.ColumnSpan="6"
+                    Margin="0,6,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="FileOperationConflictText"
+                        VerticalAlignment="Center"
+                        Text="Name conflict" />
+                    <Button
+                        x:Name="SkipConflictButton"
+                        Content="Skip"
+                        Click="SkipConflictButton_Click" />
+                    <Button
+                        x:Name="ReplaceConflictButton"
+                        Content="Replace"
+                        Click="ReplaceConflictButton_Click" />
+                    <Button
+                        x:Name="KeepBothConflictButton"
+                        Content="Keep both"
+                        Click="KeepBothConflictButton_Click" />
                 </StackPanel>
             </Grid>
 

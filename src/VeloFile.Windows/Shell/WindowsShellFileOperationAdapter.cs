@@ -8,6 +8,8 @@ namespace VeloFile.Windows.Shell;
 
 public enum WindowsShellFileOperationKind
 {
+    Copy,
+    Move,
     Rename,
     Delete
 }
@@ -19,10 +21,20 @@ public enum WindowsShellDeleteDisposition
     Permanent
 }
 
+public enum WindowsShellConflictChoice
+{
+    None,
+    Skip,
+    Replace,
+    KeepBoth
+}
+
 public sealed record WindowsShellFileOperationIntent(
     WindowsShellFileOperationKind Kind,
     IReadOnlyList<FileOperationTarget> Targets,
     string? TargetName,
+    string? TargetDirectory,
+    WindowsShellConflictChoice ConflictChoice,
     WindowsShellDeleteDisposition DeleteDisposition,
     bool AllowUndoBypassingDelete);
 
@@ -36,6 +48,15 @@ public enum RecycleBinCapability
 public interface IRecycleBinCapabilityProbe
 {
     RecycleBinCapability GetCapability(IReadOnlyList<FileOperationTarget> targets);
+}
+
+public sealed record FileOperationCollision(
+    FileOperationTarget Target,
+    string ExistingName);
+
+public interface IFileOperationCollisionProbe
+{
+    FileOperationCollision? FindFirstCollision(WindowsShellFileOperationIntent intent);
 }
 
 public interface IWindowsShellFileOperationExecutor
@@ -57,22 +78,47 @@ public static class WindowsShellFileOperationRequestMapper
 
         return request.Kind switch
         {
+            FileOperationKind.Copy => MapCopyMove(request, WindowsShellFileOperationKind.Copy),
+            FileOperationKind.Move => MapCopyMove(request, WindowsShellFileOperationKind.Move),
             FileOperationKind.Rename => MapRename(request),
             FileOperationKind.RecycleBinDelete => new WindowsShellFileOperationIntent(
                 WindowsShellFileOperationKind.Delete,
                 request.Items,
                 TargetName: null,
+                TargetDirectory: null,
+                WindowsShellConflictChoice.None,
                 WindowsShellDeleteDisposition.RecycleBin,
                 AllowUndoBypassingDelete: false),
             FileOperationKind.PermanentDelete when request.ConfirmedPermanentDelete => new WindowsShellFileOperationIntent(
                 WindowsShellFileOperationKind.Delete,
                 request.Items,
                 TargetName: null,
+                TargetDirectory: null,
+                WindowsShellConflictChoice.None,
                 WindowsShellDeleteDisposition.Permanent,
                 AllowUndoBypassingDelete: true),
             FileOperationKind.PermanentDelete => throw new InvalidOperationException("Permanent delete requires a confirmed permanent-delete request."),
             _ => throw new InvalidOperationException($"Unsupported file operation kind '{request.Kind}'.")
         };
+    }
+
+    private static WindowsShellFileOperationIntent MapCopyMove(
+        FileOperationRequest request,
+        WindowsShellFileOperationKind kind)
+    {
+        if (string.IsNullOrWhiteSpace(request.TargetDirectory))
+        {
+            throw new InvalidOperationException("Copy and move require a target directory.");
+        }
+
+        return new WindowsShellFileOperationIntent(
+            kind,
+            request.Items,
+            TargetName: null,
+            request.TargetDirectory,
+            MapConflictChoice(request.ConflictChoice),
+            WindowsShellDeleteDisposition.None,
+            AllowUndoBypassingDelete: false);
     }
 
     private static WindowsShellFileOperationIntent MapRename(FileOperationRequest request)
@@ -91,21 +137,37 @@ public static class WindowsShellFileOperationRequestMapper
             WindowsShellFileOperationKind.Rename,
             request.Items,
             request.TargetName,
+            TargetDirectory: null,
+            WindowsShellConflictChoice.None,
             WindowsShellDeleteDisposition.None,
             AllowUndoBypassingDelete: false);
+    }
+
+    private static WindowsShellConflictChoice MapConflictChoice(FileOperationConflictChoice? conflictChoice)
+    {
+        return conflictChoice switch
+        {
+            FileOperationConflictChoice.Skip => WindowsShellConflictChoice.Skip,
+            FileOperationConflictChoice.Replace => WindowsShellConflictChoice.Replace,
+            FileOperationConflictChoice.KeepBoth => WindowsShellConflictChoice.KeepBoth,
+            _ => WindowsShellConflictChoice.None
+        };
     }
 }
 
 public sealed class WindowsShellFileOperationAdapter : ICancellableFileOperationAdapter
 {
     private readonly IRecycleBinCapabilityProbe _recycleBinCapabilityProbe;
+    private readonly IFileOperationCollisionProbe _collisionProbe;
     private readonly IWindowsShellFileOperationExecutor _executor;
 
     public WindowsShellFileOperationAdapter(
         IRecycleBinCapabilityProbe? recycleBinCapabilityProbe = null,
-        IWindowsShellFileOperationExecutor? executor = null)
+        IWindowsShellFileOperationExecutor? executor = null,
+        IFileOperationCollisionProbe? collisionProbe = null)
     {
         _recycleBinCapabilityProbe = recycleBinCapabilityProbe ?? DefaultRecycleBinCapabilityProbe.Instance;
+        _collisionProbe = collisionProbe ?? DefaultFileOperationCollisionProbe.Instance;
         _executor = executor ?? VisualBasicShellFileOperationExecutor.Instance;
     }
 
@@ -137,9 +199,21 @@ public sealed class WindowsShellFileOperationAdapter : ICancellableFileOperation
                 return FileOperationAdapterResult.RecycleBinUnavailable("recycle-bin-unavailable");
             }
 
+            var collision = _collisionProbe.FindFirstCollision(intent);
+            if (collision is not null && intent.ConflictChoice is WindowsShellConflictChoice.None)
+            {
+                return FileOperationAdapterResult.ConflictRequired(
+                    "name-conflict",
+                    new FileOperationConflict(
+                        request.Kind,
+                        request.Items,
+                        request.TargetDirectory!,
+                        collision.ExistingName));
+            }
+
             progress?.Report(new FileOperationProgress(request.Kind, 0, request.Items.Count, "Starting"));
             _executor.Execute(intent, progress, cancellationToken);
-            return FileOperationAdapterResult.Completed(undoSupported: request.Kind is not FileOperationKind.PermanentDelete);
+            return FileOperationAdapterResult.Completed(undoSupported: request.Kind is FileOperationKind.Move or FileOperationKind.Rename or FileOperationKind.RecycleBinDelete);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -226,6 +300,35 @@ public sealed class DefaultRecycleBinCapabilityProbe : IRecycleBinCapabilityProb
     }
 }
 
+public sealed class DefaultFileOperationCollisionProbe : IFileOperationCollisionProbe
+{
+    public static DefaultFileOperationCollisionProbe Instance { get; } = new();
+
+    public FileOperationCollision? FindFirstCollision(WindowsShellFileOperationIntent intent)
+    {
+        if (intent.Kind is not (WindowsShellFileOperationKind.Copy or WindowsShellFileOperationKind.Move)
+            || string.IsNullOrWhiteSpace(intent.TargetDirectory))
+        {
+            return null;
+        }
+
+        foreach (var target in intent.Targets)
+        {
+            var destination = Path.Combine(intent.TargetDirectory, target.Name);
+            var exists = target.Kind is FileSystemEntryKind.Directory
+                ? Directory.Exists(destination)
+                : File.Exists(destination);
+
+            if (exists)
+            {
+                return new FileOperationCollision(target, target.Name);
+            }
+        }
+
+        return null;
+    }
+}
+
 public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOperationExecutor
 {
     public static VisualBasicShellFileOperationExecutor Instance { get; } = new();
@@ -242,6 +345,12 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
 
             switch (intent.Kind)
             {
+                case WindowsShellFileOperationKind.Copy:
+                    Copy(target, intent.TargetDirectory!, intent.ConflictChoice);
+                    break;
+                case WindowsShellFileOperationKind.Move:
+                    Move(target, intent.TargetDirectory!, intent.ConflictChoice);
+                    break;
                 case WindowsShellFileOperationKind.Rename:
                     Rename(target, intent.TargetName!);
                     break;
@@ -253,6 +362,50 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
             }
 
             progress?.Report(new FileOperationProgress(ToCoreKind(intent), index + 1, intent.Targets.Count, "Completed"));
+        }
+    }
+
+    private static void Copy(
+        FileOperationTarget target,
+        string targetDirectory,
+        WindowsShellConflictChoice conflictChoice)
+    {
+        if (conflictChoice is WindowsShellConflictChoice.Skip
+            && Exists(Path.Combine(targetDirectory, target.Name), target.Kind))
+        {
+            return;
+        }
+
+        var destination = DestinationPath(target, targetDirectory, conflictChoice);
+        if (target.Kind is FileSystemEntryKind.Directory)
+        {
+            VisualBasicFileSystem.CopyDirectory(target.Path, destination, overwrite: conflictChoice is WindowsShellConflictChoice.Replace);
+        }
+        else
+        {
+            VisualBasicFileSystem.CopyFile(target.Path, destination, overwrite: conflictChoice is WindowsShellConflictChoice.Replace);
+        }
+    }
+
+    private static void Move(
+        FileOperationTarget target,
+        string targetDirectory,
+        WindowsShellConflictChoice conflictChoice)
+    {
+        if (conflictChoice is WindowsShellConflictChoice.Skip
+            && Exists(Path.Combine(targetDirectory, target.Name), target.Kind))
+        {
+            return;
+        }
+
+        var destination = DestinationPath(target, targetDirectory, conflictChoice);
+        if (target.Kind is FileSystemEntryKind.Directory)
+        {
+            VisualBasicFileSystem.MoveDirectory(target.Path, destination, overwrite: conflictChoice is WindowsShellConflictChoice.Replace);
+        }
+        else
+        {
+            VisualBasicFileSystem.MoveFile(target.Path, destination, overwrite: conflictChoice is WindowsShellConflictChoice.Replace);
         }
     }
 
@@ -284,10 +437,53 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
         }
     }
 
+    private static string DestinationPath(
+        FileOperationTarget target,
+        string targetDirectory,
+        WindowsShellConflictChoice conflictChoice)
+    {
+        var destination = Path.Combine(targetDirectory, target.Name);
+        return conflictChoice is WindowsShellConflictChoice.KeepBoth
+            ? KeepBothDestination(destination, target.Kind)
+            : destination;
+    }
+
+    private static string KeepBothDestination(string destination, FileSystemEntryKind kind)
+    {
+        if (!Exists(destination, kind))
+        {
+            return destination;
+        }
+
+        var directory = Path.GetDirectoryName(destination) ?? "";
+        var nameWithoutExtension = kind is FileSystemEntryKind.Directory
+            ? Path.GetFileName(destination)
+            : Path.GetFileNameWithoutExtension(destination);
+        var extension = kind is FileSystemEntryKind.Directory ? "" : Path.GetExtension(destination);
+
+        for (var index = 2; index < 10_000; index++)
+        {
+            var candidate = Path.Combine(directory, $"{nameWithoutExtension} ({index}){extension}");
+            if (!Exists(candidate, kind))
+            {
+                return candidate;
+            }
+        }
+
+        throw new IOException("Could not find an available keep-both destination name.");
+    }
+
+    private static bool Exists(string path, FileSystemEntryKind kind)
+    {
+        return kind is FileSystemEntryKind.Directory ? Directory.Exists(path) : File.Exists(path);
+    }
+
     private static FileOperationKind ToCoreKind(WindowsShellFileOperationIntent intent)
     {
         return intent.Kind switch
         {
+            WindowsShellFileOperationKind.Copy => FileOperationKind.Copy,
+            WindowsShellFileOperationKind.Move => FileOperationKind.Move,
             WindowsShellFileOperationKind.Rename => FileOperationKind.Rename,
             WindowsShellFileOperationKind.Delete when intent.DeleteDisposition is WindowsShellDeleteDisposition.Permanent => FileOperationKind.PermanentDelete,
             WindowsShellFileOperationKind.Delete => FileOperationKind.RecycleBinDelete,

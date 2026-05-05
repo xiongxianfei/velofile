@@ -58,36 +58,36 @@ internal static class CorpusCli
 
         if (StringComparer.Ordinal.Equals(scope, "safe-delete"))
         {
-            var safeDeleteRoot = ScratchRootGuard.Prepare(options.Required("root"));
-            CorpusProfileGenerator.Generate(safeDeleteRoot, "operations");
+            return RunOperationsCompat(
+                options,
+                output,
+                scope,
+                [
+                    "operations/rename-source.txt",
+                    "operations/delete-target.txt"
+                ],
+                "safe-delete-result.json",
+                "Compatibility safe-delete corpus passed.");
+        }
 
-            var fixturePaths = new[]
-            {
-                Path.Combine("operations", "rename-source.txt"),
-                Path.Combine("operations", "delete-target.txt")
-            };
-
-            foreach (var fixture in fixturePaths)
-            {
-                var fixturePath = ScratchRootGuard.PathUnderRoot(safeDeleteRoot, "corpora", "operations", fixture);
-                if (!File.Exists(fixturePath))
-                {
-                    throw new CorpusException($"Safe-delete fixture '{fixture}' was not generated.");
-                }
-            }
-
-            var safeDeleteResult = new
-            {
-                documentType = "velofileCompatCorpusResult",
-                schemaVersion = 1,
-                scope = "safe-delete",
-                result = "passed",
-                checkedFixtures = fixturePaths.Select(fixture => fixture.Replace(Path.DirectorySeparatorChar, '/')).ToArray()
-            };
-
-            WriteJson(ScratchRootGuard.PathUnderRoot(safeDeleteRoot, "corpora", "operations", "compat", "safe-delete-result.json"), safeDeleteResult);
-            output.WriteLine("Compatibility safe-delete corpus passed.");
-            return 0;
+        if (StringComparer.Ordinal.Equals(scope, "operations"))
+        {
+            return RunOperationsCompat(
+                options,
+                output,
+                scope,
+                [
+                    "operations/copy/source.txt",
+                    "operations/move/source.txt",
+                    "operations/rename-source.txt",
+                    "operations/delete-target.txt",
+                    "operations/collisions/existing-name.txt",
+                    "operations/collisions/incoming-name.txt",
+                    "operations/batch/partial-0001.txt",
+                    "operations/batch/partial-0002.txt"
+                ],
+                "operations-result.json",
+                "Compatibility operations corpus passed.");
         }
 
         if (!StringComparer.Ordinal.Equals(scope, "smoke"))
@@ -111,6 +111,50 @@ internal static class CorpusCli
 
         WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "smoke", "compat", "compat-smoke-result.json"), result);
         output.WriteLine("Compatibility smoke corpus passed.");
+        return 0;
+    }
+
+    private static int RunOperationsCompat(
+        CliOptions options,
+        TextWriter output,
+        string scope,
+        IReadOnlyList<string> fixturePaths,
+        string resultFileName,
+        string successMessage)
+    {
+        var root = ScratchRootGuard.Prepare(options.Required("root"));
+        CorpusProfileGenerator.Generate(root, "operations");
+
+        foreach (var fixture in fixturePaths)
+        {
+            var segments = fixture.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var fixturePath = ScratchRootGuard.PathUnderRoot(root, ["corpora", "operations", .. segments]);
+            if (!File.Exists(fixturePath))
+            {
+                throw new CorpusException($"Operations fixture '{fixture}' was not generated.");
+            }
+        }
+
+        var result = new
+        {
+            documentType = "velofileCompatCorpusResult",
+            schemaVersion = 1,
+            scope,
+            result = "passed",
+            checkedFixtures = fixturePaths.ToArray(),
+            checkedDirectories = new[]
+            {
+                "operations/copy",
+                "operations/copy-target",
+                "operations/move",
+                "operations/move-target",
+                "operations/collisions",
+                "operations/batch"
+            }
+        };
+
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "operations", "compat", resultFileName), result);
+        output.WriteLine(successMessage);
         return 0;
     }
 
@@ -310,6 +354,11 @@ internal static class CorpusProfileGenerator
         Directory.CreateDirectory(profileRoot.FullName);
 
         var fixtures = FixturesFor(normalizedProfile);
+        foreach (var directory in DirectoriesFor(normalizedProfile))
+        {
+            Directory.CreateDirectory(ScratchRootGuard.PathUnderRoot(profileRoot, directory.Split('/', StringSplitOptions.RemoveEmptyEntries)));
+        }
+
         var files = fixtures
             .Select(fixture => WriteFixture(profileRoot, fixture.SegmentsAndContent))
             .OrderBy(file => file.RelativePath, StringComparer.Ordinal)
@@ -339,10 +388,14 @@ internal static class CorpusProfileGenerator
             ],
             "operations" =>
             [
+                new CorpusFixture(["operations", "copy", "source.txt", "Copy source placeholder." + Environment.NewLine]),
+                new CorpusFixture(["operations", "move", "source.txt", "Move source placeholder." + Environment.NewLine]),
                 new CorpusFixture(["operations", "rename-source.txt", "Rename source placeholder." + Environment.NewLine]),
                 new CorpusFixture(["operations", "delete-target.txt", "Recycle Bin delete placeholder." + Environment.NewLine]),
                 new CorpusFixture(["operations", "collisions", "existing-name.txt", "Existing collision placeholder." + Environment.NewLine]),
-                new CorpusFixture(["operations", "collisions", "incoming-name.txt", "Incoming collision placeholder." + Environment.NewLine])
+                new CorpusFixture(["operations", "collisions", "incoming-name.txt", "Incoming collision placeholder." + Environment.NewLine]),
+                new CorpusFixture(["operations", "batch", "partial-0001.txt", "Partial batch placeholder 0001." + Environment.NewLine]),
+                new CorpusFixture(["operations", "batch", "partial-0002.txt", "Partial batch placeholder 0002." + Environment.NewLine])
             ],
             "preview" =>
             [
@@ -373,7 +426,7 @@ internal static class CorpusProfileGenerator
         return profile switch
         {
             "smoke" => ["small", "preview", "compat", "compat/paths", "operations"],
-            "operations" => ["operations", "operations/collisions"],
+            "operations" => ["operations", "operations/copy", "operations/copy-target", "operations/move", "operations/move-target", "operations/collisions", "operations/batch"],
             "preview" => ["preview"],
             "search" => ["search", "search/deep", "search/deep/level01", "search/deep/level01/level02", "search/many"],
             "large-folder" => ["large-folder", "large-folder/items"],
@@ -386,6 +439,7 @@ internal static class CorpusProfileGenerator
         return profile switch
         {
             "smoke" => ["generate:smoke", "compat:smoke", "preview:smoke", "benchmarks:non-gating"],
+            "operations" => ["generate:operations", "compat:operations", "compat:safe-delete"],
             _ => [$"generate:{profile}"]
         };
     }

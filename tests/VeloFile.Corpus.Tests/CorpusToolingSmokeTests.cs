@@ -56,9 +56,30 @@ public sealed class CorpusToolingSmokeTests
         AssertCommandSucceeded(RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "smoke", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "safe-delete", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
 
-        var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-ScratchRoot", scratch.Root);
+        var operationsResultPath = Path.Combine(scratch.Root, "corpora", "operations", "compat", "operations-result.json");
+        Assert.IsTrue(File.Exists(operationsResultPath), "Operations compatibility runner must write a result document.");
+
+        var operationsResult = JsonNode.Parse(File.ReadAllText(operationsResultPath))!.AsObject();
+        Assert.AreEqual("velofileCompatCorpusResult", (string?)operationsResult["documentType"]);
+        Assert.AreEqual("operations", (string?)operationsResult["scope"]);
+        CollectionAssert.AreEquivalent(
+            new[]
+            {
+                "operations/copy/source.txt",
+                "operations/move/source.txt",
+                "operations/rename-source.txt",
+                "operations/delete-target.txt",
+                "operations/collisions/existing-name.txt",
+                "operations/collisions/incoming-name.txt",
+                "operations/batch/partial-0001.txt",
+                "operations/batch/partial-0002.txt"
+            },
+            operationsResult["checkedFixtures"]!.AsArray().Select(value => (string)value!).ToArray());
+
+        var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "future-scope", "-ScratchRoot", scratch.Root);
 
         Assert.AreNotEqual(0, unimplemented.ExitCode);
         StringAssert.Contains(unimplemented.AllOutput, "not implemented");

@@ -1,0 +1,51 @@
+id: 2026-05-05-m9-copy-move-conflicts
+title: M9 copy/move, conflicts, progress, cancellation, and undo eligibility
+status: implemented
+milestone: M9
+requirements:
+  - R36
+  - R37
+  - R41
+  - R42
+  - R43
+  - R44
+  - R45
+  - R46
+  - EC13
+  - EC14
+  - AC7
+  - QS-SAFE-DELETE-01
+architecture:
+  - ADR 0002
+  - docs/architecture/system/architecture.md#file-operations
+files:
+  - src/VeloFile.Core/Operations/
+  - src/VeloFile.Windows/Shell/WindowsShellFileOperationAdapter.cs
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tools/VeloFile.Corpus/Program.cs
+  - tests/VeloFile.Core.Tests/Operations/
+  - tests/VeloFile.Windows.Tests/ShellOperations/
+  - tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter Operations
+    result: first failed for missing copy/move/conflict contracts; final targeted run passed with 13 Core operation tests, 23 App operation shell/route tests, and 12 Windows shell-operation tests
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug
+    result: passed 6 corpus tooling tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope operations -ScratchRoot <scratch-root>
+    result: passed after adding the operations compatibility fixture checks
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build with 0 warnings and 0 errors, and 208 tests across Windows, App, Core, and Corpus test assemblies
+notes:
+  - Copy and Cut stage file transfers in the app shell; Paste routes staged transfers through the operation service against the active target folder.
+  - Copy and Move are explicit Core operation kinds with target-directory validation, visible running/completed/failed/cancelled/conflict states, and cancellation propagation through the adapter boundary.
+  - Name collisions return a `WaitingForConflict` state with Skip, Replace, and Keep both choices. Conflict resolution resumes the original operation and refreshes the original paste target, not whichever folder is active later.
+  - Windows copy/move mapping stays behind `VeloFile.Windows`; the adapter probes same-name collisions before execution and never performs hidden permanent-delete behavior.
+  - Copy is never undo-eligible. Move, rename, and Recycle Bin delete remain undo-eligible only when the adapter reports support. Permanent delete remains non-undoable.
+  - Batch Skip handling skips only colliding destinations and continues unaffected copy/move items.
+  - The operations corpus profile now includes copy, move, collision, delete, rename, and partial-batch placeholders, and the operations compatibility runner validates those fixtures under a scratch root.
