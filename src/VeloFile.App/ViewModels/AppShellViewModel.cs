@@ -6,6 +6,7 @@ using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Operations;
 using VeloFile.Core.Persistence;
+using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
@@ -24,6 +25,7 @@ public sealed class AppShellViewModel
     private readonly FolderListingCoordinator? _listingCoordinator;
     private readonly IRecursiveSearchService? _recursiveSearchService;
     private readonly FileOperationService? _fileOperationService;
+    private readonly PreviewController? _previewController;
     private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _activeListingItems = [];
     private IReadOnlyList<ListedFileItem> _fileItems = [];
@@ -43,6 +45,7 @@ public sealed class AppShellViewModel
         FolderListingCoordinator? listingCoordinator = null,
         IRecursiveSearchService? recursiveSearchService = null,
         FileOperationService? fileOperationService = null,
+        PreviewController? previewController = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
@@ -53,10 +56,15 @@ public sealed class AppShellViewModel
         _listingCoordinator = listingCoordinator;
         _recursiveSearchService = recursiveSearchService;
         _fileOperationService = fileOperationService;
+        _previewController = previewController;
         _viewportItemCount = viewportItemCount;
         if (_fileOperationService is not null)
         {
             _fileOperationService.StateChanged += (_, _) => ShellStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+        if (_previewController is not null)
+        {
+            _previewController.StateChanged += (_, _) => ShellStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         RefreshActiveListing();
@@ -146,6 +154,16 @@ public sealed class AppShellViewModel
     public bool DropActionIndicatorVisible => CurrentDropAction.CanDrop || DropFailureVisible(CurrentDropAction.ReasonCode);
 
     public string DropActionIndicatorText => CurrentDropAction.IndicatorText;
+
+    public bool IsPreviewPaneOpen { get; private set; }
+
+    public PreviewState Preview => _previewController?.State ?? PreviewState.Empty;
+
+    public PreviewStatus PreviewStatus => Preview.Status;
+
+    public string PreviewStatusText => FormatPreviewStatus();
+
+    public IReadOnlyList<PreviewMetadataField> PreviewMetadataFields => Preview.Metadata?.Fields() ?? [];
 
     public PathSubmissionResult SubmitPath(string path)
     {
@@ -258,6 +276,7 @@ public sealed class AppShellViewModel
     public void SwitchToTab(int index)
     {
         CommandSurface.SwitchToTab(index);
+        ClearPreviewSelection();
         ClearSearchForPathChange();
         RefreshActiveListing();
     }
@@ -265,6 +284,7 @@ public sealed class AppShellViewModel
     public void SwitchNextTab()
     {
         CommandSurface.SwitchNextTab();
+        ClearPreviewSelection();
         ClearSearchForPathChange();
         RefreshActiveListing();
     }
@@ -272,6 +292,7 @@ public sealed class AppShellViewModel
     public void SwitchPreviousTab()
     {
         CommandSurface.SwitchPreviousTab();
+        ClearPreviewSelection();
         ClearSearchForPathChange();
         RefreshActiveListing();
     }
@@ -361,6 +382,22 @@ public sealed class AppShellViewModel
         _recursiveSearchGeneration++;
         RecursiveSearch = RecursiveSearchState.NotStarted;
         SelectedFileItems = [];
+        ClearPreviewSelection();
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void TogglePreviewPane()
+    {
+        IsPreviewPaneOpen = !IsPreviewPaneOpen;
+        if (!IsPreviewPaneOpen)
+        {
+            _previewController?.Clear();
+        }
+        else
+        {
+            UpdatePreviewForSelection();
+        }
+
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -699,6 +736,7 @@ public sealed class AppShellViewModel
         SelectedFileItems = VisibleItems
             .Where(item => selectedPaths.Contains(item.FullPath))
             .ToArray();
+        UpdatePreviewForSelection();
     }
 
     private CommandContext CreateCommandContext(bool canPaste)
@@ -865,6 +903,22 @@ public sealed class AppShellViewModel
     {
         _fileItems = _filterService.Apply(_activeListingItems, CurrentFolderFilterText);
         SelectedFileItems = [];
+        ClearPreviewSelection();
+    }
+
+    private void UpdatePreviewForSelection()
+    {
+        if (!IsPreviewPaneOpen)
+        {
+            return;
+        }
+
+        _previewController?.StartPreview(SelectedFileItems.Count == 1 ? SelectedFileItems[0] : null);
+    }
+
+    private void ClearPreviewSelection()
+    {
+        _previewController?.Clear();
     }
 
     private string FormatRecursiveSearchStatus()
@@ -936,6 +990,20 @@ public sealed class AppShellViewModel
         return string.IsNullOrWhiteSpace(_fileOperationRefreshWarning)
             ? statusText
             : $"{statusText}. {_fileOperationRefreshWarning}.";
+    }
+
+    private string FormatPreviewStatus()
+    {
+        return Preview.Status switch
+        {
+            PreviewStatus.Loading => "Preview loading",
+            PreviewStatus.Success => "Preview ready",
+            PreviewStatus.Unsupported when !string.IsNullOrWhiteSpace(Preview.ReasonCode) => $"Preview unsupported: {Preview.ReasonCode}",
+            PreviewStatus.Unsupported => "Preview unsupported",
+            PreviewStatus.Failed when !string.IsNullOrWhiteSpace(Preview.ReasonCode) => $"Preview failed: {Preview.ReasonCode}",
+            PreviewStatus.Failed => "Preview failed",
+            _ => ""
+        };
     }
 
     private static bool IsValidRenameText(string? targetName)

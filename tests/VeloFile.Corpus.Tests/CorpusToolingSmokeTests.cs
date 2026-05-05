@@ -60,6 +60,7 @@ public sealed class CorpusToolingSmokeTests
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "dragdrop", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "paths", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "contract", "-ScratchRoot", scratch.Root));
 
         var operationsResultPath = Path.Combine(scratch.Root, "corpora", "operations", "compat", "operations-result.json");
         Assert.IsTrue(File.Exists(operationsResultPath), "Operations compatibility runner must write a result document.");
@@ -132,6 +133,35 @@ public sealed class CorpusToolingSmokeTests
 
         Assert.AreNotEqual(0, unimplemented.ExitCode);
         StringAssert.Contains(unimplemented.AllOutput, "not implemented");
+    }
+
+    [TestMethod]
+    [TestCategory("PreviewContract")]
+    public void PreviewContract_scope_records_contract_behavior_evidence()
+    {
+        using var scratch = ScratchWorkspace.Create();
+
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "contract", "-ScratchRoot", scratch.Root));
+
+        var resultPath = Path.Combine(
+            scratch.Root,
+            "corpora",
+            "preview",
+            "preview",
+            "preview-contract-result.json");
+        Assert.IsTrue(File.Exists(resultPath), "Preview contract scope must write a durable result document.");
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        var cases = result["caseResults"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+
+        Assert.AreEqual("contract", (string?)result["scope"]);
+        Assert.AreEqual("verified", (string?)result["status"]);
+        Assert.IsTrue((bool?)result["behaviorVerifierInvoked"]);
+        Assert.IsTrue((bool?)result["verifiedBehavior"]);
+        CollectionAssert.IsSubsetOf(
+            new[] { "loading-delay", "timeout", "metadata-fallback", "stale-selection" },
+            cases.Select(value => (string)value["caseId"]!).ToArray());
     }
 
     [TestMethod]

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Runtime.CompilerServices;
 using VeloFile.Core;
 using VeloFile.Core.Listing;
+using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Visibility;
 
@@ -768,6 +769,32 @@ internal static class CorpusCli
     {
         var scope = options.ValueOrDefault("scope", "smoke");
 
+        if (StringComparer.OrdinalIgnoreCase.Equals(scope, "contract"))
+        {
+            var contractRoot = ScratchRootGuard.Prepare(options.Required("root"));
+            CorpusProfileGenerator.Generate(contractRoot, "preview");
+            var caseResults = PreviewContractCorpusVerifier.Verify();
+            var failedCount = caseResults.Count(result => result.Status is not "verified");
+
+            var contractResult = new
+            {
+                documentType = "velofilePreviewCorpusResult",
+                schemaVersion = 1,
+                scope = "contract",
+                status = failedCount == 0 ? "verified" : "failed",
+                behaviorVerifierInvoked = caseResults.All(result => result.BehaviorVerifierInvoked),
+                verifiedBehavior = caseResults.All(result => result.VerifiedBehavior),
+                evidenceKind = "preview-contract",
+                caseResults
+            };
+
+            WriteJson(ScratchRootGuard.PathUnderRoot(contractRoot, "corpora", "preview", "preview", "preview-contract-result.json"), contractResult);
+            output.WriteLine(failedCount == 0
+                ? "Preview contract corpus passed."
+                : "Preview contract corpus failed.");
+            return failedCount == 0 ? 0 : 1;
+        }
+
         if (!StringComparer.OrdinalIgnoreCase.Equals(scope, "smoke"))
         {
             ScratchRootGuard.ValidateOnly(options.Required("root"));
@@ -822,6 +849,233 @@ internal static class CorpusCli
         File.WriteAllText(fullPath, JsonSerializer.Serialize(document, JsonOptions) + Environment.NewLine, Encoding.UTF8);
     }
 }
+
+internal static class PreviewContractCorpusVerifier
+{
+    public static IReadOnlyList<PreviewContractCaseResult> Verify()
+    {
+        return VerifyAsync().GetAwaiter().GetResult();
+    }
+
+    private static async Task<IReadOnlyList<PreviewContractCaseResult>> VerifyAsync()
+    {
+        return
+        [
+            await VerifyCaseAsync("loading-delay", VerifyLoadingDelayAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("timeout", VerifyTimeoutAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("metadata-fallback", VerifyMetadataFallbackAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("stale-selection", VerifyStaleSelectionAsync).ConfigureAwait(false)
+        ];
+    }
+
+    private static async Task<PreviewContractCaseResult> VerifyCaseAsync(
+        string caseId,
+        Func<Task<bool>> verify)
+    {
+        try
+        {
+            var verified = await verify().ConfigureAwait(false);
+            return new PreviewContractCaseResult(
+                caseId,
+                verified ? "verified" : "failed",
+                true,
+                verified,
+                "preview-contract",
+                verified ? "verified" : caseId + "-failed");
+        }
+        catch (OperationCanceledException)
+        {
+            return new PreviewContractCaseResult(
+                caseId,
+                "failed",
+                true,
+                false,
+                "preview-contract",
+                "preview-contract-timeout");
+        }
+        catch
+        {
+            return new PreviewContractCaseResult(
+                caseId,
+                "failed",
+                true,
+                false,
+                "preview-contract",
+                "preview-contract-exception");
+        }
+    }
+
+    private static async Task<bool> VerifyLoadingDelayAsync()
+    {
+        var provider = new ContractPreviewProvider();
+        provider.Pending("loading.txt");
+        var controller = CreateController(provider, loadingDelayMs: 60, timeoutMs: 500);
+
+        controller.StartPreview(Item("loading.txt", length: 17));
+        await Task.Delay(20).ConfigureAwait(false);
+        if (controller.State.Status is not PreviewStatus.Empty)
+        {
+            return false;
+        }
+
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Loading).ConfigureAwait(false);
+        provider.Complete("loading.txt", PreviewProviderResult.Success(PreviewContent.Text("loaded", truncated: false)));
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Success).ConfigureAwait(false);
+
+        return controller.State.Metadata?.Name == "loading.txt"
+            && controller.State.Content?.TextContent == "loaded";
+    }
+
+    private static async Task<bool> VerifyTimeoutAsync()
+    {
+        var provider = new ContractPreviewProvider();
+        provider.Pending("timeout.txt");
+        var controller = CreateController(provider, loadingDelayMs: 5, timeoutMs: 80);
+
+        controller.StartPreview(Item("timeout.txt", length: 12));
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Failed).ConfigureAwait(false);
+
+        return controller.State.ReasonCode == "timeout"
+            && controller.State.Metadata?.Name == "timeout.txt";
+    }
+
+    private static async Task<bool> VerifyMetadataFallbackAsync()
+    {
+        var provider = new ContractPreviewProvider();
+        provider.Immediate("unsupported.bin", PreviewProviderResult.Unsupported("unsupported"));
+        var controller = CreateController(provider, loadingDelayMs: 60, timeoutMs: 500);
+
+        controller.StartPreview(Item("unsupported.bin", length: 1024));
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Unsupported).ConfigureAwait(false);
+
+        var fields = controller.State.Metadata?.Fields() ?? [];
+        return controller.State.ReasonCode == "unsupported"
+            && fields.Any(field => field.Label == "Size" && field.Value.Contains("1024", StringComparison.Ordinal));
+    }
+
+    private static async Task<bool> VerifyStaleSelectionAsync()
+    {
+        var provider = new ContractPreviewProvider();
+        provider.Pending("old.txt");
+        provider.Immediate("new.txt", PreviewProviderResult.Success(PreviewContent.Text("new", truncated: false)));
+        var controller = CreateController(provider, loadingDelayMs: 60, timeoutMs: 500);
+
+        controller.StartPreview(Item("old.txt", length: 9));
+        await WaitUntilAsync(() => provider.Started("old.txt")).ConfigureAwait(false);
+
+        controller.StartPreview(Item("new.txt", length: 10));
+        await WaitUntilAsync(() => provider.Cancelled("old.txt")).ConfigureAwait(false);
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Success).ConfigureAwait(false);
+
+        provider.Complete("old.txt", PreviewProviderResult.Success(PreviewContent.Text("old", truncated: false)));
+        await Task.Delay(20).ConfigureAwait(false);
+
+        return controller.State.Metadata?.Name == "new.txt"
+            && controller.State.Content?.TextContent == "new";
+    }
+
+    private static PreviewController CreateController(
+        ContractPreviewProvider provider,
+        int loadingDelayMs,
+        int timeoutMs)
+    {
+        return new PreviewController(
+            [provider],
+            new PreviewMetadataProvider(),
+            new PreviewControllerOptions(
+                TimeSpan.FromMilliseconds(loadingDelayMs),
+                TimeSpan.FromMilliseconds(timeoutMs)));
+    }
+
+    private static ListedFileItem Item(string name, long? length)
+    {
+        return new ListedFileItem(
+            @"C:\velofile-preview\" + name,
+            name,
+            name,
+            FileSystemEntryKind.File,
+            length,
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            FileAttributes.Archive,
+            IsHidden: false,
+            IsProtectedOperatingSystemFile: false,
+            IsVisuallyDimmed: false);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (!condition())
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+        }
+    }
+
+    private sealed class ContractPreviewProvider : IPreviewProvider
+    {
+        private readonly Dictionary<string, TaskCompletionSource<PreviewProviderResult>> _pending = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, PreviewProviderResult> _immediate = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _cancelled = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool CanPreview(PreviewRequest request)
+        {
+            return true;
+        }
+
+        public ValueTask<PreviewProviderResult> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken)
+        {
+            _started.Add(request.Item.Name);
+            cancellationToken.Register(() => _cancelled.Add(request.Item.Name));
+
+            if (_pending.TryGetValue(request.Item.Name, out var pending))
+            {
+                return new ValueTask<PreviewProviderResult>(pending.Task);
+            }
+
+            return _immediate.TryGetValue(request.Item.Name, out var result)
+                ? ValueTask.FromResult(result)
+                : ValueTask.FromResult(PreviewProviderResult.Unsupported("unsupported"));
+        }
+
+        public void Pending(string name)
+        {
+            _pending[name] = new TaskCompletionSource<PreviewProviderResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        public void Immediate(string name, PreviewProviderResult result)
+        {
+            _immediate[name] = result;
+        }
+
+        public void Complete(string name, PreviewProviderResult result)
+        {
+            if (_pending.TryGetValue(name, out var pending))
+            {
+                pending.TrySetResult(result);
+            }
+        }
+
+        public bool Started(string name)
+        {
+            return _started.Contains(name);
+        }
+
+        public bool Cancelled(string name)
+        {
+            return _cancelled.Contains(name);
+        }
+    }
+}
+
+internal sealed record PreviewContractCaseResult(
+    string CaseId,
+    string Status,
+    bool BehaviorVerifierInvoked,
+    bool VerifiedBehavior,
+    string EvidenceKind,
+    string ReasonCode);
 
 internal static class ScratchRootGuard
 {

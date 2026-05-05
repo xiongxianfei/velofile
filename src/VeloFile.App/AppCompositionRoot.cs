@@ -5,6 +5,7 @@ using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Operations;
 using VeloFile.Core.Persistence;
+using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
@@ -87,7 +88,18 @@ public static class AppCompositionRoot
             new FolderListingService(folderEntrySource));
         var searchService = new RecursiveSearchService(folderEntrySource);
         var fileOperationService = new FileOperationService(new WindowsShellFileOperationAdapter());
-        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator, searchService, fileOperationService);
+        var previewController = new PreviewController(
+            [new MetadataOnlyPreviewProvider()],
+            new PreviewMetadataProvider(),
+            diagnostics: diagnostics,
+            pathRedactor: CreatePathRedactor(appDataRoot));
+        return new AppShellViewModel(
+            startupState,
+            new WindowsClipboardTextWriter(),
+            listingCoordinator,
+            searchService,
+            fileOperationService,
+            previewController);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()
@@ -98,5 +110,30 @@ public static class AppCompositionRoot
     private static IReadOnlyList<DriveEntry> ReadDriveEntries()
     {
         return new WindowsDriveEntrySource().GetDrives();
+    }
+
+    private static PathRedactor CreatePathRedactor(string appDataRoot)
+    {
+        var saltPath = Path.Combine(appDataRoot, "diagnostics", "path-redaction-salt.bin");
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(saltPath)!);
+            if (File.Exists(saltPath))
+            {
+                var existing = File.ReadAllBytes(saltPath);
+                if (existing.Length >= 16)
+                {
+                    return new PathRedactor(existing);
+                }
+            }
+
+            var salt = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+            File.WriteAllBytes(saltPath, salt);
+            return new PathRedactor(salt);
+        }
+        catch
+        {
+            return new PathRedactor(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        }
     }
 }

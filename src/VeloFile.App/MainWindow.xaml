@@ -42,12 +42,13 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="248" />
             <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="PreviewColumn" Width="0" />
         </Grid.ColumnDefinitions>
 
         <Border
             x:Name="TabStrip"
             Grid.Row="0"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             BorderThickness="0,0,0,1"
             BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
             <Grid>
@@ -577,5 +578,52 @@
             VerticalAlignment="Center"
             Text="0 items selected"
             Opacity="0.7" />
+
+        <Border
+            x:Name="PreviewPane"
+            Grid.Row="1"
+            Grid.RowSpan="3"
+            Grid.Column="2"
+            Padding="12,8"
+            BorderThickness="1,0,0,0"
+            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+            Visibility="Collapsed"
+            AutomationProperties.Name="Preview pane">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    Text="Preview"
+                    FontWeight="SemiBold" />
+                <TextBlock
+                    x:Name="PreviewStatusText"
+                    Grid.Row="1"
+                    Text="Preview unavailable"
+                    Opacity="0.75" />
+                <ListView
+                    x:Name="PreviewMetadataList"
+                    Grid.Row="2"
+                    AutomationProperties.Name="Preview metadata">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="0,3" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="92" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Label}" Opacity="0.72" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{Binding Value}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

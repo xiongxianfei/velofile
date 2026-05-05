@@ -78,6 +78,8 @@ public static class DiagnosticStringSanitizer
         "canonical-and-backup-unreadable",
         "canonical-unreadable",
         "cancelled",
+        "corrupt",
+        "decode-error",
         "field-fallback",
         "invalid-path",
         "io-error",
@@ -87,6 +89,8 @@ public static class DiagnosticStringSanitizer
         "primary-read-failed",
         "safe-defaults-used",
         "security-denied",
+        "timeout",
+        "unsupported",
         "unknown"
     };
 

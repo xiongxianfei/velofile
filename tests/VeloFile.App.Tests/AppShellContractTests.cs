@@ -206,6 +206,23 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    [TestCategory("PreviewContract")]
+    public void PreviewContract_main_window_preview_pane_is_wired_to_view_model_preview_contract_state()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"PreviewPane\"");
+        StringAssert.Contains(xaml, "x:Name=\"PreviewStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"PreviewMetadataList\"");
+        StringAssert.Contains(xaml, "Key=\"P\" Modifiers=\"Control\" Invoked=\"TogglePreviewAccelerator_Invoked\"");
+        StringAssert.Contains(codeBehind, "ViewModel.TogglePreviewPane()");
+        StringAssert.Contains(codeBehind, "ViewModel.PreviewStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.PreviewMetadataFields");
+    }
+
+    [TestMethod]
     public void Main_window_file_list_binds_real_items_and_maps_selection_to_listed_file_models()
     {
         var repoRoot = FindRepoRoot();

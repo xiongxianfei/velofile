@@ -1,0 +1,50 @@
+id: 2026-05-05-m11-preview-contract
+title: M11 preview contract and metadata fallback
+status: implemented
+milestone: M11
+requirements:
+  - R60
+  - R67
+  - R68
+  - R69
+  - R70
+  - R71
+  - R72
+  - I3
+  - S7
+  - EC9
+  - EC27
+  - AC10
+  - AC11
+  - QS-PREVIEW-TIMEOUT-01
+architecture:
+  - ADR 0004
+  - docs/architecture/system/architecture.md#building-block-view
+files:
+  - src/VeloFile.Core/Preview/
+  - src/VeloFile.Core/Diagnostics/DiagnosticStringSanitizer.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tools/VeloFile.Corpus/Program.cs
+  - tests/VeloFile.Core.Tests/Preview/
+  - tests/VeloFile.App.Tests/Preview/
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter PreviewContract
+    result: first failed for missing preview namespace/types; final run passed 5 Core, 4 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>
+    result: passed with a compliant scratch root and in-process preview behavior verifier evidence
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build with 0 warnings and 0 errors, and 250 tests across Windows, App, Core, and Corpus test assemblies
+notes:
+  - The preview controller owns request generation, previous-preview cancellation, delayed loading, timeout failure, terminal unsupported/failed/success states, and stale-result suppression.
+  - M11 ships metadata-only fallback and state plumbing; rich image/text/PDF content providers remain assigned to M12.
+  - The app composition root injects a metadata-only preview provider, a preview controller, redacted diagnostics, and a retained path-redaction salt.
+  - Ctrl+P toggles the preview pane, single selection starts preview, non-single selection clears preview, and tab/listing/search changes clear stale preview state.
+  - Preview failure diagnostics use controlled reason codes and redacted paths; raw file contents and raw paths are not diagnostic fields.
+  - The preview corpus `contract` scope now invokes the preview controller behavior verifier before reporting verified evidence.

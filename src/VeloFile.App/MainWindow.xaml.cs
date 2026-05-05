@@ -157,6 +157,7 @@ public sealed partial class MainWindow : Window
     private void FileListSurface_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems));
+        RefreshShellBindings();
     }
 
     private void CurrentFolderFilterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -400,7 +401,9 @@ public sealed partial class MainWindow : Window
 
     private void TogglePreviewAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
+        ViewModel.TogglePreviewPane();
         args.Handled = true;
+        RefreshShellBindings();
     }
 
     private void BuiltInFileContextMenu_Opening(object sender, object e)
@@ -673,6 +676,10 @@ public sealed partial class MainWindow : Window
             FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
             DropActionIndicatorText.Text = ViewModel.DropActionIndicatorText;
             DropActionIndicatorText.Visibility = ViewModel.DropActionIndicatorVisible ? Visibility.Visible : Visibility.Collapsed;
+            PreviewColumn.Width = ViewModel.IsPreviewPaneOpen ? new GridLength(320) : new GridLength(0);
+            PreviewPane.Visibility = ViewModel.IsPreviewPaneOpen ? Visibility.Visible : Visibility.Collapsed;
+            PreviewStatusText.Text = ViewModel.PreviewStatusText;
+            PreviewMetadataList.ItemsSource = ViewModel.PreviewMetadataFields;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
             CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;
             RenamePanel.Visibility = ViewModel.IsRenameActive ? Visibility.Visible : Visibility.Collapsed;

@@ -662,7 +662,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M8 complete.
 - [x] M9 complete.
 - [x] M10 complete.
-- [ ] M11 complete.
+- [x] M11 complete.
 - [ ] M12 complete.
 - [ ] M13 complete.
 - [ ] M14 complete.
@@ -1001,11 +1001,24 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `dotnet test VeloFile.sln -c Debug --filter DragDrop` passed: 5 Core, 13 App, and 4 Windows drag/drop tests; Corpus tests had no matching DragDrop filter.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 240 tests across 4 test assemblies.
+- M11 test-first implementation evidence:
+  - Added Core preview contract tests before the `VeloFile.Core.Preview` namespace and models existed; the first targeted `dotnet test VeloFile.sln -c Debug --filter PreviewContract` failed for missing preview types.
+  - Added App preview shell tests and a shell contract test for the Ctrl+P/preview-pane route before the view model and XAML exposed preview state.
+  - Added a preview corpus contract test before `run-preview-corpus.ps1 -Scope contract` had behavior-verifier output.
+  - Added `PreviewController`, preview request/result/content/metadata models, metadata fallback provider, delayed loading, timeout, cancellation/ignore gating, terminal state mapping, and redacted failure diagnostics.
+  - Wired production app composition to a metadata-only preview provider and preview controller, with a retained local diagnostics redaction salt.
+  - Wired the shell preview pane, metadata list, Ctrl+P toggle, single-selection preview start, non-single selection clear, pane close clear, tab/listing/search clear paths, and zero-width collapsed preview column.
+  - Expanded the preview corpus `contract` scope to invoke an in-process preview behavior verifier for loading delay, timeout, metadata fallback, and stale selection before writing verified evidence.
+- M11 validation:
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewContract` passed: 5 Core, 4 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>` first failed when the scratch-root leaf omitted the required `corpus` safety token; rerun with a compliant scratch root passed.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 250 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, M8, M9, and M10 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, and drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases. Later V1 preview, terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M11-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, and M11 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, and a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, and preview corpus contract evidence. Later V1 content preview providers, terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M12-M16.
 
 ## Readiness
 
-M10 drag/drop and compatibility corpus second-pass review resolution plus all-or-nothing storage-item projection follow-up are implemented and reviewed; ready for `verify`.
+M11 preview contract and metadata fallback are implemented and validated; ready for `code-review`.
