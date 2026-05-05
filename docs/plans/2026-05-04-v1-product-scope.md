@@ -663,7 +663,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M9 complete.
 - [x] M10 complete.
 - [x] M11 complete.
-- [ ] M12 complete.
+- [x] M12 complete.
 - [ ] M13 complete.
 - [ ] M14 complete.
 - [ ] M15 complete.
@@ -1040,16 +1040,20 @@ Each milestone must update validation notes with the commands actually run and a
   - Production app composition now injects the Windows provider chain before metadata fallback.
   - The preview corpus `providers` scope now writes behavior-verifier evidence for image artifact success, text truncation, PDF page artifact success, over-size fallback, and source non-mutation using decodable fixtures.
   - Validation exposed that the corpus wrapper's shared intermediate-output overrides corrupt project-reference `.deps.json` generation once the corpus tool references both Core and Windows projects. The wrapper now lets each copied scratch project use its own default scratch-local `bin/obj` folders and still publishes to the existing scratch-local publish path.
+  - Review-resolution for the real-boundary byte-cap blocker added sparse-file tests where listing metadata is null or stale. `WindowsImagePreviewDecoder` and `WindowsPdfPageRenderer` now check the opened stream length before BitmapDecoder/PdfDocument work; over-limit inputs return metadata-only unsupported reasons and unavailable stream length fails closed.
+  - Review-resolution for the shell PDF navigation blocker added Previous/Next preview-pane controls and view-model command properties so later-page rendering is reachable through the production shell route.
+  - Validation exposed that `CorpusToolingSmokeTests.RunScript` could deadlock while reading redirected stdout/stderr sequentially from corpus subprocesses. The harness now drains both streams concurrently before collecting the result, which unblocks solution-level filtered validation.
 - M12 validation:
-  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders` passed: 8 Windows provider tests.
+  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders` first failed for the real-boundary byte-cap regression: oversized sparse image/PDF files with null listing length returned failed/corrupt states instead of size-limit unsupported states. Final run passed 12 Windows provider tests.
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewProviders` passed: 1 App composition test.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "PreviewContract_pdf_page_navigation|PreviewContract_main_window_preview_pane"` passed: 2 App shell/view-model PDF navigation tests.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter PreviewProviders` passed: 1 Corpus provider evidence test.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>` passed with a compliant scratch root.
-  - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders` passed: 1 App, 8 Windows, and 1 Corpus provider tests; Core tests had no matching filter.
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders` first timed out because the Corpus test harness deadlocked on redirected output; after fixing the harness, it passed 1 App, 12 Windows, and 1 Corpus provider tests; Core tests had no matching filter.
   - `dotnet test VeloFile.sln -c Debug --filter PreviewContract` passed: 18 Core, 5 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` first failed because the corpus wrapper used one shared intermediate-output directory for multiple copied project references; final run passed 8 Corpus tests.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` review-resolution run passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 274 tests across 4 test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` review-resolution run passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 278 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
@@ -1057,4 +1061,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, and M12 complete. The repository n
 
 ## Readiness
 
-M12 image, text, and PDF preview providers are implemented and targeted validation is passing; ready for `code-review`.
+M12 image, text, and PDF preview providers are implemented, review-resolution validation is passing, and the slice is ready for `code-review`.

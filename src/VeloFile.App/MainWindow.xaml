@@ -612,6 +612,25 @@
                         TextWrapping="WrapWholeWords"
                         TextTrimming="CharacterEllipsis"
                         AutomationProperties.Name="Preview content" />
+                    <StackPanel
+                        x:Name="PdfPageNavigationPanel"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="PDF page navigation">
+                        <Button
+                            x:Name="PdfPreviousPageButton"
+                            Content="Previous"
+                            Click="PdfPreviousPageButton_Click" />
+                        <TextBlock
+                            x:Name="PdfPageIndicatorText"
+                            VerticalAlignment="Center"
+                            Opacity="0.75" />
+                        <Button
+                            x:Name="PdfNextPageButton"
+                            Content="Next"
+                            Click="PdfNextPageButton_Click" />
+                    </StackPanel>
                     <Image
                         x:Name="PreviewImageSurface"
                         MaxHeight="240"

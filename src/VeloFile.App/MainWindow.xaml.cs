@@ -410,6 +410,22 @@ public sealed partial class MainWindow : Window
         RefreshShellBindings();
     }
 
+    private void PdfPreviousPageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.RequestPreviousPdfPage())
+        {
+            RefreshShellBindings();
+        }
+    }
+
+    private void PdfNextPageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.RequestNextPdfPage())
+        {
+            RefreshShellBindings();
+        }
+    }
+
     private void BuiltInFileContextMenu_Opening(object sender, object e)
     {
         RefreshFileContextMenuAvailability();
@@ -684,6 +700,10 @@ public sealed partial class MainWindow : Window
             PreviewPane.Visibility = ViewModel.IsPreviewPaneOpen ? Visibility.Visible : Visibility.Collapsed;
             PreviewStatusText.Text = ViewModel.PreviewStatusText;
             PreviewContentText.Text = ViewModel.PreviewContentText;
+            PdfPageNavigationPanel.Visibility = ViewModel.CanNavigatePdfPages ? Visibility.Visible : Visibility.Collapsed;
+            PdfPageIndicatorText.Text = ViewModel.PreviewContentText;
+            PdfPreviousPageButton.IsEnabled = ViewModel.CanRequestPreviousPdfPage;
+            PdfNextPageButton.IsEnabled = ViewModel.CanRequestNextPdfPage;
             _ = SetPreviewArtifactAsync(ViewModel.Preview.Content, ++_previewArtifactVersion);
             PreviewMetadataList.ItemsSource = ViewModel.PreviewMetadataFields;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;

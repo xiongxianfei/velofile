@@ -14,11 +14,15 @@ M12 adds bounded Windows preview providers on top of the M11 preview contract. T
 
 `PreviewContent` now carries image and PDF page render artifacts with encoded bytes, dimensions, format, and PDF page metadata. The app preview pane exposes content text and an image surface that loads those artifact bytes for image/PDF previews.
 
+The final M12 review-resolution tightened two production boundaries. `WindowsImagePreviewDecoder` and `WindowsPdfPageRenderer` now enforce the actual opened stream length before BitmapDecoder or PdfDocument work begins, so null or stale listing metadata cannot bypass the 100 MB image cap or 500 MB PDF cap. The preview pane also exposes visible PDF Previous/Next controls that call view-model page commands, making later-page rendering reachable from the production shell route rather than only from direct tests.
+
 `AppCompositionRoot` now uses the Windows provider factory instead of the metadata-only provider list. Metadata fallback remains last in the provider chain.
 
 `tools/VeloFile.Corpus` now supports `preview --scope providers`. The corpus wrapper copies `src/VeloFile.Windows` into its scratch build so provider evidence runs in the same isolated tool environment as other corpus scopes.
 
 While validating the full Corpus test assembly, the added Windows project reference exposed an existing wrapper weakness: the wrapper forced all copied projects to share one intermediate-output directory, which could produce a `.deps.json` missing `VeloFile.Core`. The wrapper now relies on each copied scratch project’s default `bin/obj` folders and still publishes the final tool to the existing scratch-local publish directory.
+
+While rerunning solution-level provider validation, the Corpus test harness could deadlock while reading redirected subprocess output sequentially. The harness now starts asynchronous stdout and stderr reads before waiting for the corpus subprocess to exit, which keeps the validation wrapper from blocking while scripts are still writing output.
 
 ## Test-First Evidence
 
@@ -34,6 +38,8 @@ Windows provider tests cover:
 
 - PNG and JPEG decode success with non-empty render artifacts;
 - image over-size fallback;
+- image over-size fallback when listing length is null or stale and actual opened stream length is over the cap;
+- exact image-cap behavior and unavailable stream-length fail-closed behavior;
 - image decoded-dimension fallback;
 - corrupt image body failure so header-only fixtures cannot pass;
 - text 1 MB prefix limit and truncation;
@@ -42,11 +48,12 @@ Windows provider tests cover:
 - PDF first-page render artifact success;
 - PDF later-page rendering only after explicit navigation;
 - PDF over-size fallback;
+- PDF over-size fallback when listing length is null or stale and actual opened stream length is over the cap;
 - corrupt PDF failure;
 - source non-mutation for image, text, and PDF provider paths;
 - production provider factory order.
 
-Core and App tests prove the PDF page navigation hook: initial preview requests page 1 only, and a later page is rendered only after the shell/view model requests it. App tests also prove production composition uses the Windows provider factory and no longer stops at metadata-only preview.
+Core and App tests prove the PDF page navigation hook: initial preview requests page 1 only, and a later page is rendered only after the shell/view model requests it. App tests also prove the preview pane declares Previous/Next controls and code-behind handlers that call `RequestPreviousPdfPage()` and `RequestNextPdfPage()`, and that production composition uses the Windows provider factory instead of stopping at metadata-only preview.
 
 Corpus tests prove `preview --scope providers` writes provider behavior-verifier evidence for image artifact success, text truncation, PDF page artifact success, over-size fallback, and source non-mutation. The provider corpus fixtures now use decodable image/PDF files and verify non-empty artifact bytes.
 

@@ -171,6 +171,18 @@ public sealed class AppShellViewModel
 
     public bool CanNavigatePdfPages => (PdfPageCount ?? 0) > 1;
 
+    public bool IsPdfPreview => Preview.Content?.Kind is PreviewContentKind.Pdf;
+
+    public bool CanRequestPreviousPdfPage =>
+        PreviewStatus is PreviewStatus.Success
+        && CurrentPdfPageNumber is > 1;
+
+    public bool CanRequestNextPdfPage =>
+        PreviewStatus is PreviewStatus.Success
+        && CurrentPdfPageNumber is int currentPage
+        && PdfPageCount is int pageCount
+        && currentPage < pageCount;
+
     public IReadOnlyList<PreviewMetadataField> PreviewMetadataFields => Preview.Metadata?.Fields() ?? [];
 
     public PathSubmissionResult SubmitPath(string path)
@@ -418,6 +430,20 @@ public sealed class AppShellViewModel
         }
 
         return false;
+    }
+
+    public bool RequestPreviousPdfPage()
+    {
+        return CurrentPdfPageNumber is int pageNumber
+            && CanRequestPreviousPdfPage
+            && RequestPdfPage(pageNumber - 1);
+    }
+
+    public bool RequestNextPdfPage()
+    {
+        return CurrentPdfPageNumber is int pageNumber
+            && CanRequestNextPdfPage
+            && RequestPdfPage(pageNumber + 1);
     }
 
     public IReadOnlyList<BuiltInContextMenuItem> BuildFileContextMenu(bool canPaste)

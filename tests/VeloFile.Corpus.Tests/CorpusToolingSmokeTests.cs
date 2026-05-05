@@ -284,11 +284,14 @@ public sealed class CorpusToolingSmokeTests
         }
 
         using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start pwsh.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
 
-        return new CommandResult(process.ExitCode, stdout, stderr);
+        return new CommandResult(
+            process.ExitCode,
+            stdoutTask.GetAwaiter().GetResult(),
+            stderrTask.GetAwaiter().GetResult());
     }
 
     private static DirectoryInfo FindRepoRoot()

@@ -12,6 +12,9 @@ namespace VeloFile.Windows.Tests.Preview;
 [TestCategory("PreviewProviders")]
 public sealed class WindowsPreviewProviderTests
 {
+    private const long MaxImageBytes = 100L * 1024 * 1024;
+    private const long MaxPdfBytes = 500L * 1024 * 1024;
+
     [TestMethod]
     public async Task PreviewProviders_image_provider_decodes_png_and_jpeg_to_render_artifacts()
     {
@@ -89,6 +92,50 @@ public sealed class WindowsPreviewProviderTests
             CancellationToken.None);
         Assert.AreEqual(PreviewProviderResultStatus.Failed, accessDenied.Status);
         Assert.AreEqual("access-denied", accessDenied.ReasonCode);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_image_provider_enforces_actual_stream_byte_cap_when_listing_length_is_null_or_stale()
+    {
+        var provider = new WindowsImagePreviewProvider();
+
+        using var nullLength = ScratchFile.CreateSparse("oversized-null-length.png", MaxImageBytes + 1);
+        var beforeNullLength = nullLength.MetadataSnapshot();
+        var nullLengthResult = await provider.PreviewAsync(
+            Request(nullLength.ToListedFileItem(useActualLengthWhenNull: false)),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, nullLengthResult.Status);
+        Assert.AreEqual("image-too-large", nullLengthResult.ReasonCode);
+        nullLength.AssertMetadataUnchanged(beforeNullLength);
+
+        using var staleSmallLength = ScratchFile.CreateSparse("oversized-stale-length.png", MaxImageBytes + 1);
+        var beforeStaleLength = staleSmallLength.MetadataSnapshot();
+        var staleLengthResult = await provider.PreviewAsync(
+            Request(staleSmallLength.ToListedFileItem(length: 1024)),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, staleLengthResult.Status);
+        Assert.AreEqual("image-too-large", staleLengthResult.ReasonCode);
+        staleSmallLength.AssertMetadataUnchanged(beforeStaleLength);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_image_provider_allows_file_exactly_at_actual_stream_byte_cap()
+    {
+        var provider = new WindowsImagePreviewProvider();
+        var jpegBytes = await CreateBitmapBytesAsync(BitmapEncoder.JpegEncoderId, width: 12, height: 10);
+        using var exactCap = ScratchFile.CreateSparseWithPrefix("exact-cap.jpg", jpegBytes, MaxImageBytes);
+
+        var result = await provider.PreviewAsync(
+            Request(exactCap.ToListedFileItem(useActualLengthWhenNull: false)),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Success, result.Status);
+        AssertImageArtifact(result.Content, expectedWidth: 12, expectedHeight: 10);
     }
 
     [TestMethod]
@@ -197,6 +244,64 @@ public sealed class WindowsPreviewProviderTests
             CancellationToken.None);
         Assert.AreEqual(PreviewProviderResultStatus.Failed, accessDenied.Status);
         Assert.AreEqual("access-denied", accessDenied.ReasonCode);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_pdf_provider_enforces_actual_stream_byte_cap_when_listing_length_is_null_or_stale()
+    {
+        var provider = new WindowsPdfPreviewProvider();
+
+        using var nullLength = ScratchFile.CreateSparse("oversized-null-length.pdf", MaxPdfBytes + 1);
+        var beforeNullLength = nullLength.MetadataSnapshot();
+        var nullLengthResult = await provider.PreviewAsync(
+            Request(nullLength.ToListedFileItem(useActualLengthWhenNull: false)),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, nullLengthResult.Status);
+        Assert.AreEqual("pdf-too-large", nullLengthResult.ReasonCode);
+        nullLength.AssertMetadataUnchanged(beforeNullLength);
+
+        using var staleSmallLength = ScratchFile.CreateSparse("oversized-stale-length.pdf", MaxPdfBytes + 1);
+        var beforeStaleLength = staleSmallLength.MetadataSnapshot();
+        var staleLengthResult = await provider.PreviewAsync(
+            Request(staleSmallLength.ToListedFileItem(length: 1024)),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, staleLengthResult.Status);
+        Assert.AreEqual("pdf-too-large", staleLengthResult.ReasonCode);
+        staleSmallLength.AssertMetadataUnchanged(beforeStaleLength);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_provider_boundaries_fail_closed_when_actual_stream_length_is_unavailable()
+    {
+        using var image = ScratchFile.CreateBytes(
+            "normal.png",
+            await CreateBitmapBytesAsync(BitmapEncoder.PngEncoderId, width: 16, height: 16));
+        var imageProvider = new WindowsImagePreviewProvider(
+            new ThrowingImagePreviewDecoder(new PreviewInputLengthUnavailableException(new NotSupportedException())));
+
+        var imageResult = await imageProvider.PreviewAsync(
+            Request(image.ToListedFileItem(length: 1024)),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, imageResult.Status);
+        Assert.AreEqual("preview-input-length-unavailable", imageResult.ReasonCode);
+
+        using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes());
+        var pdfProvider = new WindowsPdfPreviewProvider(
+            new ThrowingPdfPageRenderer(new PreviewInputLengthUnavailableException(new NotSupportedException())));
+
+        var pdfResult = await pdfProvider.PreviewAsync(
+            Request(pdf.ToListedFileItem(length: 1024)),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, pdfResult.Status);
+        Assert.AreEqual("preview-input-length-unavailable", pdfResult.ReasonCode);
     }
 
     [TestMethod]
@@ -443,7 +548,32 @@ public sealed class WindowsPreviewProviderTests
             return file;
         }
 
-        public ListedFileItem ToListedFileItem(long? length = null)
+        public static ScratchFile CreateSparse(string fileName, long length)
+        {
+            var file = CreateEmpty(fileName);
+            using (var stream = new FileStream(file.Path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete))
+            {
+                stream.SetLength(length);
+            }
+
+            SetStableMetadata(file.Path);
+            return file;
+        }
+
+        public static ScratchFile CreateSparseWithPrefix(string fileName, byte[] prefix, long length)
+        {
+            var file = CreateEmpty(fileName);
+            using (var stream = new FileStream(file.Path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete))
+            {
+                stream.Write(prefix);
+                stream.SetLength(length);
+            }
+
+            SetStableMetadata(file.Path);
+            return file;
+        }
+
+        public ListedFileItem ToListedFileItem(long? length = null, bool useActualLengthWhenNull = true)
         {
             var info = new FileInfo(Path);
             return new ListedFileItem(
@@ -451,7 +581,7 @@ public sealed class WindowsPreviewProviderTests
                 info.Name,
                 info.Name,
                 FileSystemEntryKind.File,
-                length ?? info.Length,
+                length ?? (useActualLengthWhenNull ? info.Length : null),
                 info.LastWriteTimeUtc,
                 info.Attributes,
                 IsHidden: false,
@@ -472,11 +602,30 @@ public sealed class WindowsPreviewProviderTests
                 Attributes: info.Attributes);
         }
 
+        public FileMetadataSnapshot MetadataSnapshot()
+        {
+            var info = new FileInfo(Path);
+            return new FileMetadataSnapshot(
+                Length: info.Length,
+                CreationTimeUtc: info.CreationTimeUtc,
+                LastWriteTimeUtc: info.LastWriteTimeUtc,
+                Attributes: info.Attributes);
+        }
+
         public void AssertUnchanged(FileSnapshot before)
         {
             var after = Snapshot();
             Assert.AreEqual(before.Length, after.Length);
             Assert.AreEqual(before.Sha256, after.Sha256);
+            Assert.AreEqual(before.CreationTimeUtc, after.CreationTimeUtc);
+            Assert.AreEqual(before.LastWriteTimeUtc, after.LastWriteTimeUtc);
+            Assert.AreEqual(before.Attributes, after.Attributes);
+        }
+
+        public void AssertMetadataUnchanged(FileMetadataSnapshot before)
+        {
+            var after = MetadataSnapshot();
+            Assert.AreEqual(before.Length, after.Length);
             Assert.AreEqual(before.CreationTimeUtc, after.CreationTimeUtc);
             Assert.AreEqual(before.LastWriteTimeUtc, after.LastWriteTimeUtc);
             Assert.AreEqual(before.Attributes, after.Attributes);
@@ -518,6 +667,12 @@ public sealed class WindowsPreviewProviderTests
     private sealed record FileSnapshot(
         long Length,
         string Sha256,
+        DateTime CreationTimeUtc,
+        DateTime LastWriteTimeUtc,
+        FileAttributes Attributes);
+
+    private sealed record FileMetadataSnapshot(
+        long Length,
         DateTime CreationTimeUtc,
         DateTime LastWriteTimeUtc,
         FileAttributes Attributes);

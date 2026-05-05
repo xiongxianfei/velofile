@@ -95,12 +95,23 @@ public sealed class AppShellPreviewTests
         Assert.AreEqual(1, viewModel.CurrentPdfPageNumber);
         Assert.AreEqual(3, viewModel.PdfPageCount);
         Assert.IsTrue(viewModel.CanNavigatePdfPages);
+        Assert.IsFalse(viewModel.CanRequestPreviousPdfPage);
+        Assert.IsTrue(viewModel.CanRequestNextPdfPage);
 
-        Assert.IsTrue(viewModel.RequestPdfPage(2));
+        Assert.IsTrue(viewModel.RequestNextPdfPage());
         await WaitUntilAsync(() => viewModel.CurrentPdfPageNumber == 2);
 
         CollectionAssert.AreEqual(new[] { 1, 2 }, provider.RequestedPages.ToArray());
         Assert.AreEqual("PDF page 2 of 3", viewModel.PreviewContentText);
+        Assert.IsTrue(viewModel.CanRequestPreviousPdfPage);
+        Assert.IsTrue(viewModel.CanRequestNextPdfPage);
+
+        Assert.IsTrue(viewModel.RequestPreviousPdfPage());
+        await WaitUntilAsync(() => viewModel.CurrentPdfPageNumber == 1);
+
+        CollectionAssert.AreEqual(new[] { 1, 2, 1 }, provider.RequestedPages.ToArray());
+        Assert.AreEqual("PDF page 1 of 3", viewModel.PreviewContentText);
+        Assert.IsFalse(viewModel.CanRequestPreviousPdfPage);
     }
 
     private static PreviewController CreatePreviewController(IPreviewProvider provider)

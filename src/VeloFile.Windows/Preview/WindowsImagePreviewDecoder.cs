@@ -17,6 +17,10 @@ public sealed class WindowsImagePreviewDecoder : IImagePreviewDecoder
             FileShare.ReadWrite | FileShare.Delete,
             bufferSize: 81920,
             useAsync: true);
+        PreviewInputLengthGuard.EnsureWithinLimit(
+            fileStream,
+            WindowsPreviewLimits.MaxImageBytes,
+            static () => new ImagePreviewInputTooLargeException());
         using var imageStream = fileStream.AsRandomAccessStream();
 
         var decoder = await BitmapDecoder.CreateAsync(imageStream)

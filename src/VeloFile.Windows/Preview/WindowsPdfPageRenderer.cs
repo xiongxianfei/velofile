@@ -25,6 +25,10 @@ public sealed class WindowsPdfPageRenderer : IPdfPageRenderer
             FileShare.ReadWrite | FileShare.Delete,
             bufferSize: 81920,
             useAsync: true);
+        PreviewInputLengthGuard.EnsureWithinLimit(
+            fileStream,
+            WindowsPreviewLimits.MaxPdfBytes,
+            static () => new PdfPreviewInputTooLargeException());
         using var pdfStream = fileStream.AsRandomAccessStream();
         var document = await PdfDocument.LoadFromStreamAsync(pdfStream)
             .AsTask(cancellationToken)

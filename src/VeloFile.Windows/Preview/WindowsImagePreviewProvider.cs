@@ -63,6 +63,14 @@ public sealed class WindowsImagePreviewProvider : IPreviewProvider
         {
             throw;
         }
+        catch (ImagePreviewInputTooLargeException)
+        {
+            return PreviewProviderResult.Unsupported("image-too-large");
+        }
+        catch (PreviewInputLengthUnavailableException)
+        {
+            return PreviewProviderResult.Unsupported("preview-input-length-unavailable");
+        }
         catch (ImagePreviewDimensionsTooLargeException)
         {
             return PreviewProviderResult.Unsupported("image-dimensions-too-large");

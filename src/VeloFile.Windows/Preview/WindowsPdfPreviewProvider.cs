@@ -57,6 +57,14 @@ public sealed class WindowsPdfPreviewProvider : IPagedPreviewProvider
         {
             throw;
         }
+        catch (PdfPreviewInputTooLargeException)
+        {
+            return PreviewProviderResult.Unsupported("pdf-too-large");
+        }
+        catch (PreviewInputLengthUnavailableException)
+        {
+            return PreviewProviderResult.Unsupported("preview-input-length-unavailable");
+        }
         catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
         {
             return PreviewProviderResult.Failed(ExpectedFileSystemExceptions.ReasonCode(ex));
