@@ -13,7 +13,9 @@ public sealed record FileSystemEntrySnapshot(
     FileSystemEntryKind Kind,
     long? Length,
     DateTimeOffset? LastWriteTimeUtc,
-    FileAttributes Attributes)
+    FileAttributes Attributes,
+    DateTimeOffset? CreationTimeUtc = null,
+    DateTimeOffset? LastAccessTimeUtc = null)
 {
     public bool IsHidden => Attributes.HasFlag(FileAttributes.Hidden);
 
@@ -32,4 +34,6 @@ public sealed record ListedFileItem(
     FileAttributes Attributes,
     bool IsHidden,
     bool IsProtectedOperatingSystemFile,
-    bool IsVisuallyDimmed);
+    bool IsVisuallyDimmed,
+    DateTimeOffset? CreationTimeUtc = null,
+    DateTimeOffset? LastAccessTimeUtc = null);

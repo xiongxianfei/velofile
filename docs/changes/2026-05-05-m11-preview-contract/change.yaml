@@ -41,6 +41,18 @@ validation:
     result: passed with 0 warnings and 0 errors
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed restore, build with 0 warnings and 0 errors, and 250 tests across Windows, App, Core, and Corpus test assemblies
+  - command: dotnet test VeloFile.sln -c Debug --filter PreviewContract
+    result: review-resolution run passed 17 Core, 4 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>
+    result: review-resolution run passed with a compliant scratch root
+  - command: dotnet build VeloFile.sln -c Debug
+    result: review-resolution build passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter "Listing|Visibility"
+    result: review-resolution run passed 29 Core, 3 App, and 4 Windows tests; Corpus tests had no matching filter
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope
+    result: first failed because the updated assertion used the wrong Assert.IsGreaterThanOrEqualTo parameter order; final run passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: review-resolution final run passed restore, build with 0 warnings and 0 errors, and 262 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - The preview controller owns request generation, previous-preview cancellation, delayed loading, timeout failure, terminal unsupported/failed/success states, and stale-result suppression.
   - M11 ships metadata-only fallback and state plumbing; rich image/text/PDF content providers remain assigned to M12.
@@ -48,3 +60,5 @@ notes:
   - Ctrl+P toggles the preview pane, single selection starts preview, non-single selection clears preview, and tab/listing/search changes clear stale preview state.
   - Preview failure diagnostics use controlled reason codes and redacted paths; raw file contents and raw paths are not diagnostic fields.
   - The preview corpus `contract` scope now invokes the preview controller behavior verifier before reporting verified evidence.
+  - Review resolution adds provider-operation timeout policy for the R67 budgets and direct scratch-file non-mutation proof for preview controller/provider paths.
+  - Metadata fallback now carries and exposes size, created/modified/accessed timestamps, attributes, and type when those values are available.

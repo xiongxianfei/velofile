@@ -1014,6 +1014,19 @@ Each milestone must update validation notes with the commands actually run and a
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>` first failed when the scratch-root leaf omitted the required `corpus` safety token; rerun with a compliant scratch root passed.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 250 tests across 4 test assemblies.
+- M11 review-resolution:
+  - First-pass `code-review` requested provider-specific preview timeout policy and direct scratch-file proof for non-mutation plus complete metadata fallback.
+  - Added `PreviewOperation`, `PreviewProviderContext`, and `PreviewTimeoutPolicy.Default` with the R67 image/text/PDF/thumbnail budgets and thumbnail concurrency limit.
+  - The preview controller now enforces timeout using the selected provider operation budget rather than a single global preview timeout.
+  - Expanded listed-item and preview metadata to carry created, modified, and accessed timestamps when available, and updated Windows listing projection to populate them.
+  - Added scratch-file preview tests that compare content hash, length, creation time, last-write time, and attributes after image/text/PDF-operation fake providers run through the controller path.
+  - Added unsupported metadata fallback and unavailable-metadata tests, plus App shell proof that the expanded metadata fields are exposed.
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewContract` passed: 17 Core, 4 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>` passed with a compliant scratch root.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --filter "Listing|Visibility"` passed: 29 Core, 3 App, and 4 Windows tests; Corpus tests had no matching filter.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope` first failed because the assertion cleanup used the wrong `Assert.IsGreaterThanOrEqualTo` parameter order; final run passed.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` first failed for the same corpus assertion issue; final run passed restore, build with 0 warnings and 0 errors, and 262 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
@@ -1021,4 +1034,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, and M11 complete. The repository now ha
 
 ## Readiness
 
-M11 preview contract and metadata fallback are implemented and validated; ready for `code-review`.
+M11 preview contract and metadata fallback review resolution is implemented and validated; ready for rerun `code-review`.

@@ -9,7 +9,9 @@ public sealed class PreviewMetadataProvider
         return new PreviewMetadata(
             item.Name,
             item.Length,
+            item.CreationTimeUtc,
             item.LastWriteTimeUtc,
+            item.LastAccessTimeUtc,
             item.Attributes,
             TypeDescription(item),
             ExtensionClass(item));
@@ -37,12 +39,17 @@ public sealed class PreviewMetadataProvider
 
 public sealed class MetadataOnlyPreviewProvider : IPreviewProvider
 {
+    public PreviewOperation Operation => PreviewOperation.MetadataFallback;
+
     public bool CanPreview(PreviewRequest request)
     {
         return true;
     }
 
-    public ValueTask<PreviewProviderResult> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken)
+    public ValueTask<PreviewProviderResult> PreviewAsync(
+        PreviewRequest request,
+        PreviewProviderContext context,
+        CancellationToken cancellationToken)
     {
         return ValueTask.FromResult(PreviewProviderResult.Unsupported("unsupported"));
     }

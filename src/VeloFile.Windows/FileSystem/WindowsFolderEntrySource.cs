@@ -39,7 +39,9 @@ public sealed class WindowsFolderEntrySource : IFolderEntrySource
                 Kind: kind,
                 Length: kind is FileSystemEntryKind.File && entry is FileInfo file ? file.Length : null,
                 LastWriteTimeUtc: entry.LastWriteTimeUtc,
-                Attributes: attributes);
+                Attributes: attributes,
+                CreationTimeUtc: entry.CreationTimeUtc,
+                LastAccessTimeUtc: entry.LastAccessTimeUtc);
         }
         catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
         {

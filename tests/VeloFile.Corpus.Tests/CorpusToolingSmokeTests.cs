@@ -97,7 +97,7 @@ public sealed class CorpusToolingSmokeTests
         var pathCases = pathsResult["caseResults"]!.AsArray()
             .Select(value => value!.AsObject())
             .ToArray();
-        Assert.IsTrue(pathCases.Length >= 6, "Path compatibility must report individual case outcomes.");
+        Assert.IsGreaterThanOrEqualTo(6, pathCases.Length, "Path compatibility must report individual case outcomes.");
         Assert.IsFalse(pathCases.Any(result => ((string?)result["caseId"])?.Contains("placeholder", StringComparison.OrdinalIgnoreCase) == true));
         Assert.IsFalse(pathCases.Any(result => string.Equals((string?)result["status"], "passed", StringComparison.OrdinalIgnoreCase)));
         Assert.IsTrue(pathCases.Any(result => string.Equals((string?)result["status"], "verified", StringComparison.Ordinal)));
@@ -118,7 +118,7 @@ public sealed class CorpusToolingSmokeTests
                 Assert.IsTrue((bool?)pathCase["behaviorVerifierInvoked"], "Verified cases must invoke a behavior verifier.");
                 Assert.IsTrue((bool?)pathCase["verifiedBehavior"], "Verified cases must check behavior.");
                 Assert.AreNotEqual("fixture-only", (string?)pathCase["evidenceKind"], "Fixture creation alone is not compatibility behavior.");
-                Assert.IsFalse((bool?)pathCase["blocksReleaseEvidence"] == true, "Verified cases must count as release evidence.");
+                Assert.AreNotEqual(true, (bool?)pathCase["blocksReleaseEvidence"], "Verified cases must count as release evidence.");
             }
             else
             {
@@ -160,7 +160,7 @@ public sealed class CorpusToolingSmokeTests
         Assert.IsTrue((bool?)result["behaviorVerifierInvoked"]);
         Assert.IsTrue((bool?)result["verifiedBehavior"]);
         CollectionAssert.IsSubsetOf(
-            new[] { "loading-delay", "timeout", "metadata-fallback", "stale-selection" },
+            new[] { "loading-delay", "timeout-policy", "timeout", "metadata-fallback", "stale-selection" },
             cases.Select(value => (string)value["caseId"]!).ToArray());
     }
 

@@ -14,6 +14,14 @@ M11 establishes the preview contract before rich content decoders are added. The
 
 `tools/VeloFile.Corpus` now supports `preview --scope contract`. The contract result is no longer a static pass document: it invokes an in-process preview behavior verifier for loading delay, timeout, metadata fallback, and stale selection before reporting verified evidence.
 
+## Review Resolution
+
+The first-pass review found two M11 contract gaps.
+
+Provider timeouts are now operation-specific. `PreviewTimeoutPolicy.Default` encodes the R67 budgets for image decode, text read/encoding detection, PDF first-page render, thumbnail generation, and thumbnail concurrency. Providers expose their `PreviewOperation`, and `PreviewController` passes a `PreviewProviderContext` with the selected operation budget into the provider and timeout race.
+
+Metadata fallback now represents size, created/modified/accessed timestamps, attributes, and type when available. The Windows listing source populates creation and access timestamps from `FileSystemInfo`, and the preview metadata fields expose them to the shell. Scratch-file tests prove the controller/provider path does not change file bytes, length, creation time, last-write time, or attributes.
+
 ## Tests
 
 Core preview tests cover fast success, delayed loading, timeout failure, unsupported/failure terminal states, stale selection cancellation/ignore behavior, metadata fallback, and redacted diagnostics.
@@ -27,4 +35,5 @@ Corpus tests cover the `preview contract` runner scope and assert the contract r
 - `dotnet test VeloFile.sln -c Debug --filter PreviewContract`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>`
 - `dotnet build VeloFile.sln -c Debug`
+- `dotnet test VeloFile.sln -c Debug --filter "Listing|Visibility"`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`

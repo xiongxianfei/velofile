@@ -32,7 +32,9 @@ public sealed class AppShellPreviewTests
 
         Assert.IsTrue(viewModel.IsPreviewPaneOpen);
         Assert.AreEqual("Preview unsupported: unsupported", viewModel.PreviewStatusText);
-        CollectionAssert.Contains(viewModel.PreviewMetadataFields.Select(field => field.Label).ToArray(), "Size");
+        CollectionAssert.IsSubsetOf(
+            new[] { "Size", "Created", "Modified", "Accessed", "Attributes", "Type" },
+            viewModel.PreviewMetadataFields.Select(field => field.Label).ToArray());
     }
 
     [TestMethod]
@@ -83,7 +85,7 @@ public sealed class AppShellPreviewTests
             new PreviewMetadataProvider(),
             new PreviewControllerOptions(
                 TimeSpan.FromMilliseconds(20),
-                TimeSpan.FromMilliseconds(500)));
+                PreviewTimeoutPolicy.ForTesting(TimeSpan.FromMilliseconds(500))));
     }
 
     private static AppShellViewModel CreateViewModel(PreviewController previewController)
@@ -117,7 +119,9 @@ public sealed class AppShellPreviewTests
             FileAttributes.Archive,
             IsHidden: false,
             IsProtectedOperatingSystemFile: false,
-            IsVisuallyDimmed: false);
+            IsVisuallyDimmed: false,
+            CreationTimeUtc: new DateTimeOffset(2025, 12, 31, 0, 0, 0, TimeSpan.Zero),
+            LastAccessTimeUtc: new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero));
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
@@ -135,6 +139,8 @@ public sealed class AppShellPreviewTests
         private readonly Dictionary<string, TaskCompletionSource<PreviewProviderResult>> _results = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _cancelled = new(StringComparer.OrdinalIgnoreCase);
+
+        public PreviewOperation Operation => PreviewOperation.MetadataFallback;
 
         public bool CanPreview(PreviewRequest request)
         {
@@ -163,7 +169,10 @@ public sealed class AppShellPreviewTests
             return _cancelled.Contains(path);
         }
 
-        public async ValueTask<PreviewProviderResult> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken)
+        public async ValueTask<PreviewProviderResult> PreviewAsync(
+            PreviewRequest request,
+            PreviewProviderContext context,
+            CancellationToken cancellationToken)
         {
             _started.Add(request.Item.FullPath);
             using var _ = cancellationToken.Register(() => _cancelled.Add(request.Item.FullPath));

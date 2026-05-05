@@ -743,7 +743,9 @@ internal static class CorpusCli
                     kind,
                     kind is FileSystemEntryKind.File && entry is FileInfo file ? file.Length : null,
                     entry.LastWriteTimeUtc,
-                    attributes);
+                    attributes,
+                    entry.CreationTimeUtc,
+                    entry.LastAccessTimeUtc);
             }
             catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
             {
@@ -862,6 +864,7 @@ internal static class PreviewContractCorpusVerifier
         return
         [
             await VerifyCaseAsync("loading-delay", VerifyLoadingDelayAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("timeout-policy", VerifyTimeoutPolicyAsync).ConfigureAwait(false),
             await VerifyCaseAsync("timeout", VerifyTimeoutAsync).ConfigureAwait(false),
             await VerifyCaseAsync("metadata-fallback", VerifyMetadataFallbackAsync).ConfigureAwait(false),
             await VerifyCaseAsync("stale-selection", VerifyStaleSelectionAsync).ConfigureAwait(false)
@@ -926,6 +929,17 @@ internal static class PreviewContractCorpusVerifier
             && controller.State.Content?.TextContent == "loaded";
     }
 
+    private static Task<bool> VerifyTimeoutPolicyAsync()
+    {
+        var policy = PreviewTimeoutPolicy.Default;
+        return Task.FromResult(
+            policy.GetBudget(PreviewOperation.ImageDecode) == TimeSpan.FromSeconds(2)
+            && policy.GetBudget(PreviewOperation.TextReadAndEncodingDetection) == TimeSpan.FromSeconds(1)
+            && policy.GetBudget(PreviewOperation.PdfFirstPageRender) == TimeSpan.FromSeconds(3)
+            && policy.GetBudget(PreviewOperation.ThumbnailGeneration) == TimeSpan.FromMilliseconds(500)
+            && policy.ThumbnailConcurrencyLimit == 4);
+    }
+
     private static async Task<bool> VerifyTimeoutAsync()
     {
         var provider = new ContractPreviewProvider();
@@ -984,7 +998,7 @@ internal static class PreviewContractCorpusVerifier
             new PreviewMetadataProvider(),
             new PreviewControllerOptions(
                 TimeSpan.FromMilliseconds(loadingDelayMs),
-                TimeSpan.FromMilliseconds(timeoutMs)));
+                PreviewTimeoutPolicy.ForTesting(TimeSpan.FromMilliseconds(timeoutMs))));
     }
 
     private static ListedFileItem Item(string name, long? length)
@@ -1019,12 +1033,17 @@ internal static class PreviewContractCorpusVerifier
         private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _cancelled = new(StringComparer.OrdinalIgnoreCase);
 
+        public PreviewOperation Operation => PreviewOperation.MetadataFallback;
+
         public bool CanPreview(PreviewRequest request)
         {
             return true;
         }
 
-        public ValueTask<PreviewProviderResult> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken)
+        public ValueTask<PreviewProviderResult> PreviewAsync(
+            PreviewRequest request,
+            PreviewProviderContext context,
+            CancellationToken cancellationToken)
         {
             _started.Add(request.Item.Name);
             cancellationToken.Register(() => _cancelled.Add(request.Item.Name));

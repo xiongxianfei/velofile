@@ -74,8 +74,11 @@ public sealed class PreviewController
             return;
         }
 
+        var providerContext = new PreviewProviderContext(
+            provider.Operation,
+            _options.TimeoutPolicy.GetBudget(provider.Operation));
         _ = ShowLoadingAfterDelayAsync(generation, metadata, cancellation);
-        _ = CompletePreviewAsync(generation, request, provider, cancellation);
+        _ = CompletePreviewAsync(generation, request, provider, providerContext, cancellation);
     }
 
     public void Clear()
@@ -99,12 +102,13 @@ public sealed class PreviewController
         int generation,
         PreviewRequest request,
         IPreviewProvider provider,
+        PreviewProviderContext providerContext,
         CancellationToken cancellationToken)
     {
         try
         {
-            var previewTask = provider.PreviewAsync(request, cancellationToken).AsTask();
-            var timeoutTask = Task.Delay(_options.TimeoutBudget, cancellationToken);
+            var previewTask = provider.PreviewAsync(request, providerContext, cancellationToken).AsTask();
+            var timeoutTask = Task.Delay(providerContext.TimeoutBudget, cancellationToken);
             var completed = await Task.WhenAny(previewTask, timeoutTask).ConfigureAwait(false);
             if (completed != previewTask)
             {

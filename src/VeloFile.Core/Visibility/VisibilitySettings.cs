@@ -64,7 +64,9 @@ public static class FileVisibilityProjector
             Attributes: entry.Attributes,
             IsHidden: entry.IsHidden,
             IsProtectedOperatingSystemFile: entry.IsProtectedOperatingSystemFile,
-            IsVisuallyDimmed: entry.IsHidden || entry.IsProtectedOperatingSystemFile);
+            IsVisuallyDimmed: entry.IsHidden || entry.IsProtectedOperatingSystemFile,
+            CreationTimeUtc: entry.CreationTimeUtc,
+            LastAccessTimeUtc: entry.LastAccessTimeUtc);
     }
 
     private static string DisplayName(FileSystemEntrySnapshot entry, VisibilitySettings settings)

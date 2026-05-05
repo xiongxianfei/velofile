@@ -30,10 +30,21 @@ public sealed record PreviewContent(
     }
 }
 
+public enum PreviewOperation
+{
+    ImageDecode,
+    TextReadAndEncodingDetection,
+    PdfFirstPageRender,
+    MetadataFallback,
+    ThumbnailGeneration
+}
+
 public sealed record PreviewMetadata(
     string Name,
     long? SizeBytes,
+    DateTimeOffset? CreationTimeUtc,
     DateTimeOffset? LastWriteTimeUtc,
+    DateTimeOffset? LastAccessTimeUtc,
     FileAttributes Attributes,
     string TypeDescription,
     string ExtensionClass)
@@ -44,7 +55,9 @@ public sealed record PreviewMetadata(
         [
             new PreviewMetadataField("Name", Name),
             new PreviewMetadataField("Size", SizeBytes is null ? "Unknown" : $"{SizeBytes} bytes"),
+            new PreviewMetadataField("Created", CreationTimeUtc?.ToString("u") ?? "Unknown"),
             new PreviewMetadataField("Modified", LastWriteTimeUtc?.ToString("u") ?? "Unknown"),
+            new PreviewMetadataField("Accessed", LastAccessTimeUtc?.ToString("u") ?? "Unknown"),
             new PreviewMetadataField("Attributes", Attributes.ToString()),
             new PreviewMetadataField("Type", TypeDescription)
         ];
@@ -84,6 +97,10 @@ public sealed record PreviewState(
 
 public sealed record PreviewRequest(ListedFileItem Item, PreviewMetadata Metadata);
 
+public sealed record PreviewProviderContext(
+    PreviewOperation Operation,
+    TimeSpan TimeoutBudget);
+
 public enum PreviewProviderResultStatus
 {
     Success,
@@ -114,16 +131,62 @@ public sealed record PreviewProviderResult(
 
 public interface IPreviewProvider
 {
+    PreviewOperation Operation { get; }
+
     bool CanPreview(PreviewRequest request);
 
-    ValueTask<PreviewProviderResult> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken);
+    ValueTask<PreviewProviderResult> PreviewAsync(
+        PreviewRequest request,
+        PreviewProviderContext context,
+        CancellationToken cancellationToken);
 }
 
 public sealed record PreviewControllerOptions(
     TimeSpan LoadingDelay,
-    TimeSpan TimeoutBudget)
+    PreviewTimeoutPolicy TimeoutPolicy)
 {
     public static PreviewControllerOptions Default { get; } = new(
         TimeSpan.FromMilliseconds(200),
-        TimeSpan.FromSeconds(3));
+        PreviewTimeoutPolicy.Default);
+}
+
+public sealed record PreviewTimeoutPolicy(
+    TimeSpan ImageDecodeBudget,
+    TimeSpan TextReadAndEncodingDetectionBudget,
+    TimeSpan PdfFirstPageRenderBudget,
+    TimeSpan MetadataFallbackBudget,
+    TimeSpan ThumbnailGenerationBudget,
+    int ThumbnailConcurrencyLimit)
+{
+    public static PreviewTimeoutPolicy Default { get; } = new(
+        ImageDecodeBudget: TimeSpan.FromSeconds(2),
+        TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+        PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+        MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+        ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(500),
+        ThumbnailConcurrencyLimit: 4);
+
+    public TimeSpan GetBudget(PreviewOperation operation)
+    {
+        return operation switch
+        {
+            PreviewOperation.ImageDecode => ImageDecodeBudget,
+            PreviewOperation.TextReadAndEncodingDetection => TextReadAndEncodingDetectionBudget,
+            PreviewOperation.PdfFirstPageRender => PdfFirstPageRenderBudget,
+            PreviewOperation.MetadataFallback => MetadataFallbackBudget,
+            PreviewOperation.ThumbnailGeneration => ThumbnailGenerationBudget,
+            _ => MetadataFallbackBudget
+        };
+    }
+
+    public static PreviewTimeoutPolicy ForTesting(TimeSpan budget)
+    {
+        return new PreviewTimeoutPolicy(
+            ImageDecodeBudget: budget,
+            TextReadAndEncodingDetectionBudget: budget,
+            PdfFirstPageRenderBudget: budget,
+            MetadataFallbackBudget: budget,
+            ThumbnailGenerationBudget: budget,
+            ThumbnailConcurrencyLimit: 4);
+    }
 }
