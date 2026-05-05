@@ -1,0 +1,57 @@
+id: 2026-05-05-m10-drag-drop-compatibility
+title: M10 drag/drop and compatibility corpus
+status: implemented
+milestone: M10
+requirements:
+  - R46
+  - R79
+  - R80
+  - EC24
+  - EC25
+  - AC9
+architecture:
+  - ADR 0002
+  - ADR 0007
+  - docs/architecture/system/architecture.md#building-block-view
+files:
+  - src/VeloFile.Core/DragDrop/
+  - src/VeloFile.Windows/DragDrop/
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tools/VeloFile.Corpus/Program.cs
+  - docs/qa/m10-dragdrop-compatibility-checklist.md
+  - tests/VeloFile.Core.Tests/DragDrop/
+  - tests/VeloFile.Windows.Tests/OleDragDrop/
+  - tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs
+  - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
+validation:
+  - command: dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter DragDrop
+    result: first failed for missing Core drag/drop namespace; final run passed 3 Core drag/drop tests
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop
+    result: first failed for missing AppShellViewModel drop indicator/commit API; final run passed 3 App drag/drop tests
+  - command: dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter DragDrop
+    result: first failed for missing Windows drag/drop namespace; final run passed 2 Windows OLE drag/drop tests
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope
+    result: first failed for unimplemented dragdrop scope; final run passed
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Generate_placeholder_profiles_are_deterministic
+    result: passed with dragdrop and pathological profiles included
+  - command: dotnet test VeloFile.sln -c Debug --filter DragDrop
+    result: passed 3 Core, 3 App, and 2 Windows drag/drop tests; Corpus tests had no matching DragDrop filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope dragdrop -ScratchRoot <scratch-root>
+    result: passed with a compliant scratch root
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope paths -ScratchRoot <scratch-root>
+    result: passed with a compliant scratch root
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+    result: passed 11 App shell contract tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: passed restore, build with 0 warnings and 0 errors, and 222 tests across Windows, App, Core, and Corpus test assemblies
+notes:
+  - Core resolves Windows drag/drop defaults: same-volume no-modifier move, cross-volume no-modifier copy, Ctrl copy, Shift move, and Ctrl+Shift/Alt shortcut intent.
+  - The app shell exposes a drop-action indicator before commit and routes copy/move drops through the existing file operation service and post-mutation listing refresh path.
+  - Windows drag/drop data projection is isolated in `VeloFile.Windows` and converts file-drop paths into Core `DropItem` values without exposing OLE details to Core.
+  - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles.
+  - Cross-app drag/drop with Explorer, browser, IDE, and Office remains a manual checklist because those sources are brittle to automate reliably.
+  - R81, R82, and I8 file-association Open/Open With behavior remains assigned to M14; M10 covers R79-R80 drag/drop behavior plus path compatibility corpus expansion.

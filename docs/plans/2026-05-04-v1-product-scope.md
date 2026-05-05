@@ -93,9 +93,9 @@ Architectural boundaries to preserve:
 | Filtering and recursive search | R28-R35, AC4-AC5 | M7 |
 | File operation contracts, safe delete, rename | R36-R40, R43, R45, I1-I2, S5, AC6 | M8 |
 | Copy/move, conflicts, progress, cancellation, undo eligibility | R36-R46, R41-R45, AC7 | M9 |
-| Drag/drop and Windows compatibility corpus | R46, R79-R82, AC9 | M10 |
+| Drag/drop and Windows compatibility corpus | R46, R79-R80, AC9 | M10 |
 | Context menu, commands, shortcuts, clipboard | R47-R53, AC8 | M6 |
-| Terminal integration | R54-R59, S2, AC12 | M14 |
+| Terminal and file association integration | R54-R59, R81-R82, I8, S2, AC12 | M14 |
 | Preview contract, metadata fallback, provider implementations, thumbnails/details | R60-R72, I3, S7, AC10-AC11 | M11, M12, M13 |
 | Visibility and Explorer parity | R73-R83, I5, I7-I8, S6, S8, AC9, AC14 | M5, M6, M10, M16 |
 | Diagnostics and preview readiness | R84-R89, O1-O7, S3, AC17 | M3, M15 |
@@ -381,8 +381,8 @@ Architectural boundaries to preserve:
 
 ### M10. Drag/Drop and Compatibility Corpus Expansion
 
-- Goal: Implement Windows-correct drag/drop modifiers, resolved drop-action indicators, cross-app drag/drop boundaries, and expand the compatibility corpus for long paths, junctions, symlinks, reparse points, file associations, and drag/drop.
-- Requirements: R46, R79-R82, I8, EC24-EC25, AC9, ADR 0002, ADR 0007.
+- Goal: Implement Windows-correct drag/drop modifiers, resolved drop-action indicators, cross-app drag/drop boundaries, and expand the compatibility corpus for long paths, junctions, symlinks, reparse points, and drag/drop. File-association Open/Open With implementation remains in M14.
+- Requirements: R46, R79-R80, EC24-EC25, AC9, ADR 0002, ADR 0007.
 - Files/components likely touched: `src/VeloFile.Core/DragDrop/`, `src/VeloFile.Windows/DragDrop/`, `src/VeloFile.Windows/Shell/`, `tests/VeloFile.Compatibility.Tests/`, `tools/VeloFile.Corpus/`, `scripts/run-compat-corpus.ps1`.
 - Dependencies: M2 validation tooling, M6 command layer, M8-M9 operation services.
 - Tests to add/update: same-volume/cross-volume default action resolution, Ctrl/Shift/Ctrl+Shift modifiers, right-drag or menu path if supported, drop-action indicator, Explorer/browser/IDE/Office data-object boundaries where automatable, long path/junction/symlink/reparse behavior corpus.
@@ -661,7 +661,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M7 complete.
 - [x] M8 complete.
 - [x] M9 complete.
-- [ ] M10 complete.
+- [x] M10 complete.
 - [ ] M11 complete.
 - [ ] M12 complete.
 - [ ] M13 complete.
@@ -684,6 +684,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Keep the checked-in solution as `VeloFile.sln`. | The .NET 10 SDK created `.slnx` by default, but the approved plan and validation commands name `VeloFile.sln`. |
 | 2026-05-04 | Use PowerShell 7 (`pwsh`) as the default CI script host, with Windows PowerShell as a local fallback. | `pwsh` matches GitHub Actions and current PowerShell best practice; the fallback keeps M1 runnable on contributors' Windows machines before PowerShell 7 is installed. |
 | 2026-05-04 | Put corpus generation and runner dispatch in `tools/VeloFile.Corpus`. | Keeping scratch-root validation and deterministic corpus writes in one testable console tool prevents script-only logic from diverging across runners. |
+| 2026-05-05 | Keep file-association Open/Open With implementation in M14 while M10 covers drag/drop and path compatibility. | The plan text previously mentioned R81-R82/I8 near M10, but the test spec maps those requirements to T026 and M14 explicitly owns ShellExecute/file-association adapters; merging them into M10 would collapse two planned review slices. |
 | 2026-05-04 | Make M2 benchmark output non-gating with null timing values. | ADR 0003 and P16 prohibit public performance claims before the benchmark harness and reference corpus exist; M2 only establishes report shape. |
 | 2026-05-04 | Split M3 persistence decisions between Core schema/recovery and Windows file replacement. | Core owns durable document contracts and recovery policy; Windows owns same-directory temp, flush, and atomic replacement behavior. |
 | 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
@@ -941,11 +942,32 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter Operations` passed: 13 Windows shell-operation tests.
   - `dotnet test VeloFile.sln -c Debug --filter Operations` passed: 15 Core operation tests, 26 App operation shell/route tests, and 13 Windows shell-operation tests; Corpus tests had no matching `Operations` category.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 214 tests across 4 test assemblies.
+- M10 test-first implementation evidence:
+  - Added Core drag/drop resolver tests before the `VeloFile.Core.DragDrop` namespace existed; the first targeted run failed for the missing namespace and models.
+  - Added App shell drop-indicator/drop-commit tests before `AppShellViewModel` exposed drag/drop APIs; the first targeted run failed for missing `UpdateDropAction`, `CommitDropAsync`, and indicator properties.
+  - Added Windows OLE file-drop adapter tests before the `VeloFile.Windows.DragDrop` namespace existed; the first targeted run failed for the missing namespace.
+  - Added corpus tests for `dragdrop` and `paths` compatibility scopes before the corpus tool supported them; the first runner test failed for unimplemented `dragdrop`.
+  - Added Core drop action resolution for same-volume move, cross-volume copy, Ctrl copy, Shift move, and Ctrl+Shift/Alt shortcut intent.
+  - Added App drop-action indicator state and copy/move drop commit through `FileOperationService` with post-mutation listing refresh.
+  - Added Windows file-drop path projection to Core `DropItem` values behind the Windows boundary.
+  - Added deterministic `dragdrop` and `pathological` corpus profiles, `dragdrop` and `paths` compatibility runner scopes, and a manual cross-app checklist.
+- M10 validation:
+  - `dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter DragDrop` passed: 3 Core drag/drop tests.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop` passed: 3 App drag/drop tests.
+  - `dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter DragDrop` passed: 2 Windows OLE drag/drop tests.
+  - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope` passed.
+  - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Generate_placeholder_profiles_are_deterministic` passed.
+  - `dotnet test VeloFile.sln -c Debug --filter DragDrop` passed: 3 Core, 3 App, and 2 Windows drag/drop tests; Corpus tests had no matching `DragDrop` filter.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope dragdrop -ScratchRoot <scratch-root>` passed with a compliant scratch root.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope paths -ScratchRoot <scratch-root>` passed with a compliant scratch root.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed: 11 App shell contract tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 222 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, M8, and M9 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, and copy/move/conflict behavior with operations corpus validation. Later V1 drag/drop, preview, benchmark, and packaging behavior remains assigned to M10-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, M9, and M10 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, App drop-action indicators, Windows file-drop projection, and drag/drop/path compatibility corpus scopes. Later V1 preview, terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M11-M16.
 
 ## Readiness
 
-M9 copy/move, conflicts, progress, cancellation, and undo eligibility is implemented with code-review resolution fixes and ready for `code-review`.
+M10 drag/drop and compatibility corpus is implemented and ready for `code-review`.

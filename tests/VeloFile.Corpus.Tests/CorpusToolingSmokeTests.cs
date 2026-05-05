@@ -21,7 +21,7 @@ public sealed class CorpusToolingSmokeTests
     [TestMethod]
     public void Generate_placeholder_profiles_are_deterministic()
     {
-        var profiles = new[] { "smoke", "operations", "preview", "search", "large-folder" };
+        var profiles = new[] { "smoke", "operations", "preview", "search", "large-folder", "dragdrop", "pathological" };
 
         foreach (var profile in profiles)
         {
@@ -57,6 +57,8 @@ public sealed class CorpusToolingSmokeTests
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "smoke", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "safe-delete", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "dragdrop", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "paths", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
 
         var operationsResultPath = Path.Combine(scratch.Root, "corpora", "operations", "compat", "operations-result.json");
@@ -78,6 +80,22 @@ public sealed class CorpusToolingSmokeTests
                 "operations/batch/partial-0002.txt"
             },
             operationsResult["checkedFixtures"]!.AsArray().Select(value => (string)value!).ToArray());
+
+        var dragDropResultPath = Path.Combine(scratch.Root, "corpora", "dragdrop", "compat", "dragdrop-result.json");
+        Assert.IsTrue(File.Exists(dragDropResultPath), "Drag/drop compatibility runner must write a result document.");
+        var dragDropResult = JsonNode.Parse(File.ReadAllText(dragDropResultPath))!.AsObject();
+        Assert.AreEqual("dragdrop", (string?)dragDropResult["scope"]);
+        CollectionAssert.AreEquivalent(
+            new[] { "none:same-volume:move", "none:cross-volume:copy", "ctrl:any:copy", "shift:any:move", "ctrl-shift:any:shortcut" },
+            dragDropResult["resolvedActions"]!.AsArray().Select(value => (string)value!).ToArray());
+
+        var pathsResultPath = Path.Combine(scratch.Root, "corpora", "pathological", "compat", "paths-result.json");
+        Assert.IsTrue(File.Exists(pathsResultPath), "Path compatibility runner must write a result document.");
+        var pathsResult = JsonNode.Parse(File.ReadAllText(pathsResultPath))!.AsObject();
+        Assert.AreEqual("paths", (string?)pathsResult["scope"]);
+        CollectionAssert.AreEquivalent(
+            new[] { "long-path", "junction-placeholder", "symlink-placeholder", "reparse-loop-placeholder", "access-denied-placeholder" },
+            pathsResult["compatibilityCases"]!.AsArray().Select(value => (string)value!).ToArray());
 
         var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "future-scope", "-ScratchRoot", scratch.Root);
 

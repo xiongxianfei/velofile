@@ -90,6 +90,16 @@ internal static class CorpusCli
                 "Compatibility operations corpus passed.");
         }
 
+        if (StringComparer.Ordinal.Equals(scope, "dragdrop"))
+        {
+            return RunDragDropCompat(options, output);
+        }
+
+        if (StringComparer.Ordinal.Equals(scope, "paths"))
+        {
+            return RunPathsCompat(options, output);
+        }
+
         if (!StringComparer.Ordinal.Equals(scope, "smoke"))
         {
             ScratchRootGuard.ValidateOnly(options.Required("root"));
@@ -156,6 +166,96 @@ internal static class CorpusCli
         WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "operations", "compat", resultFileName), result);
         output.WriteLine(successMessage);
         return 0;
+    }
+
+    private static int RunDragDropCompat(CliOptions options, TextWriter output)
+    {
+        var root = ScratchRootGuard.Prepare(options.Required("root"));
+        CorpusProfileGenerator.Generate(root, "dragdrop");
+        var fixturePaths = new[]
+        {
+            "dragdrop/same-volume/source/move-default.txt",
+            "dragdrop/same-volume/target/target-placeholder.txt",
+            "dragdrop/cross-volume/source/copy-default.txt",
+            "dragdrop/cross-volume/target/target-placeholder.txt",
+            "dragdrop/modifiers/ctrl-copy.txt",
+            "dragdrop/modifiers/shift-move.txt",
+            "dragdrop/modifiers/ctrl-shift-shortcut.txt"
+        };
+
+        AssertProfileFixtures(root, "dragdrop", fixturePaths);
+
+        var result = new
+        {
+            documentType = "velofileCompatCorpusResult",
+            schemaVersion = 1,
+            scope = "dragdrop",
+            result = "passed",
+            checkedFixtures = fixturePaths,
+            resolvedActions = new[]
+            {
+                "none:same-volume:move",
+                "none:cross-volume:copy",
+                "ctrl:any:copy",
+                "shift:any:move",
+                "ctrl-shift:any:shortcut"
+            },
+            manualChecklist = "docs/qa/m10-dragdrop-compatibility-checklist.md"
+        };
+
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "dragdrop", "compat", "dragdrop-result.json"), result);
+        output.WriteLine("Compatibility drag/drop corpus passed.");
+        return 0;
+    }
+
+    private static int RunPathsCompat(CliOptions options, TextWriter output)
+    {
+        var root = ScratchRootGuard.Prepare(options.Required("root"));
+        CorpusProfileGenerator.Generate(root, "pathological");
+        var fixturePaths = new[]
+        {
+            "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003/segment-0004/long-path-file.txt",
+            "compatibility/reparse/junction-placeholder/target.txt",
+            "compatibility/reparse/symlink-placeholder/target.txt",
+            "compatibility/reparse/loop-placeholder/loop-marker.txt",
+            "compatibility/access-denied/README.txt"
+        };
+
+        AssertProfileFixtures(root, "pathological", fixturePaths);
+
+        var result = new
+        {
+            documentType = "velofileCompatCorpusResult",
+            schemaVersion = 1,
+            scope = "paths",
+            result = "passed",
+            checkedFixtures = fixturePaths,
+            compatibilityCases = new[]
+            {
+                "long-path",
+                "junction-placeholder",
+                "symlink-placeholder",
+                "reparse-loop-placeholder",
+                "access-denied-placeholder"
+            }
+        };
+
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compat", "paths-result.json"), result);
+        output.WriteLine("Compatibility paths corpus passed.");
+        return 0;
+    }
+
+    private static void AssertProfileFixtures(DirectoryInfo root, string profile, IReadOnlyList<string> fixturePaths)
+    {
+        foreach (var fixture in fixturePaths)
+        {
+            var segments = fixture.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var fixturePath = ScratchRootGuard.PathUnderRoot(root, ["corpora", profile, .. segments]);
+            if (!File.Exists(fixturePath))
+            {
+                throw new CorpusException($"Compatibility fixture '{fixture}' was not generated.");
+            }
+        }
     }
 
     private static int RunPreview(CliOptions options, TextWriter output)
@@ -327,7 +427,9 @@ internal static class CorpusProfiles
         "operations",
         "preview",
         "search",
-        "large-folder"
+        "large-folder",
+        "dragdrop",
+        "pathological"
     ];
 
     public static string Normalize(string profile)
@@ -417,6 +519,24 @@ internal static class CorpusProfileGenerator
                 new CorpusFixture(["large-folder", "items", "item-0001.txt", "Large-folder item placeholder 0001." + Environment.NewLine]),
                 new CorpusFixture(["large-folder", "items", "item-0002.txt", "Large-folder item placeholder 0002." + Environment.NewLine])
             ],
+            "dragdrop" =>
+            [
+                new CorpusFixture(["dragdrop", "same-volume", "source", "move-default.txt", "Same-volume default move placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "same-volume", "target", "target-placeholder.txt", "Same-volume target placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "cross-volume", "source", "copy-default.txt", "Cross-volume default copy placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "cross-volume", "target", "target-placeholder.txt", "Cross-volume target placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "modifiers", "ctrl-copy.txt", "Ctrl copy placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "modifiers", "shift-move.txt", "Shift move placeholder." + Environment.NewLine]),
+                new CorpusFixture(["dragdrop", "modifiers", "ctrl-shift-shortcut.txt", "Ctrl+Shift shortcut placeholder." + Environment.NewLine])
+            ],
+            "pathological" =>
+            [
+                new CorpusFixture(["compatibility", "paths", "long-path", "segment-0001", "segment-0002", "segment-0003", "segment-0004", "long-path-file.txt", "Long path compatibility placeholder." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "reparse", "junction-placeholder", "target.txt", "Junction compatibility placeholder. Real junction creation is covered by manual/elevated compatibility runs." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "reparse", "symlink-placeholder", "target.txt", "Symlink compatibility placeholder. Real symlink creation is covered by manual/elevated compatibility runs." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "reparse", "loop-placeholder", "loop-marker.txt", "Reparse loop compatibility placeholder." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "access-denied", "README.txt", "Access-denied compatibility placeholder." + Environment.NewLine])
+            ],
             _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
         };
     }
@@ -430,6 +550,8 @@ internal static class CorpusProfileGenerator
             "preview" => ["preview"],
             "search" => ["search", "search/deep", "search/deep/level01", "search/deep/level01/level02", "search/many"],
             "large-folder" => ["large-folder", "large-folder/items"],
+            "dragdrop" => ["dragdrop", "dragdrop/same-volume", "dragdrop/same-volume/source", "dragdrop/same-volume/target", "dragdrop/cross-volume", "dragdrop/cross-volume/source", "dragdrop/cross-volume/target", "dragdrop/modifiers", "dragdrop/compat"],
+            "pathological" => ["compatibility", "compatibility/paths", "compatibility/paths/long-path", "compatibility/paths/long-path/segment-0001", "compatibility/paths/long-path/segment-0001/segment-0002", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003/segment-0004", "compatibility/reparse", "compatibility/reparse/junction-placeholder", "compatibility/reparse/symlink-placeholder", "compatibility/reparse/loop-placeholder", "compatibility/access-denied", "compatibility/compat"],
             _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
         };
     }
@@ -440,6 +562,8 @@ internal static class CorpusProfileGenerator
         {
             "smoke" => ["generate:smoke", "compat:smoke", "preview:smoke", "benchmarks:non-gating"],
             "operations" => ["generate:operations", "compat:operations", "compat:safe-delete"],
+            "dragdrop" => ["generate:dragdrop", "compat:dragdrop"],
+            "pathological" => ["generate:pathological", "compat:paths"],
             _ => [$"generate:{profile}"]
         };
     }

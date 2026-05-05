@@ -1,5 +1,6 @@
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Commands;
+using VeloFile.Core.DragDrop;
 using VeloFile.Core.Filtering;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
@@ -18,6 +19,7 @@ public sealed class AppShellViewModel
     private readonly BuiltInCommandRegistry _commandRegistry;
     private readonly KeyboardCommandRouter _keyboardCommandRouter;
     private readonly ClipboardCommandService _clipboardCommands;
+    private readonly DragDropActionResolver _dragDropActionResolver = new();
     private readonly CurrentFolderFilterService _filterService = new();
     private readonly FolderListingCoordinator? _listingCoordinator;
     private readonly IRecursiveSearchService? _recursiveSearchService;
@@ -138,6 +140,12 @@ public sealed class AppShellViewModel
     public bool CanCancelFileOperation => _fileOperationService?.CanCancelCurrentOperation ?? false;
 
     public string FileOperationStatusText => FormatFileOperationStatus();
+
+    public DropActionResolution CurrentDropAction { get; private set; } = DropActionResolution.None("drop-not-started");
+
+    public bool DropActionIndicatorVisible => CurrentDropAction.CanDrop;
+
+    public string DropActionIndicatorText => CurrentDropAction.IndicatorText;
 
     public PathSubmissionResult SubmitPath(string path)
     {
@@ -473,6 +481,57 @@ public sealed class AppShellViewModel
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void UpdateDropAction(
+        IReadOnlyList<DropItem> items,
+        DragDropKeyModifiers modifiers,
+        DropVolumeRelationship volumeRelationship)
+    {
+        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ClearDropAction()
+    {
+        CurrentDropAction = DropActionResolution.None("drop-cleared");
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task CommitDropAsync(
+        IReadOnlyList<DropItem> items,
+        DragDropKeyModifiers modifiers,
+        DropVolumeRelationship volumeRelationship)
+    {
+        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship);
+        if (!CurrentDropAction.CanDrop || _fileOperationService is null)
+        {
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var mutationTarget = CaptureMutationListingTarget();
+        var operationItems = items.Select(ToListedFileItem).ToArray();
+        _fileOperationRefreshWarning = null;
+
+        if (CurrentDropAction.Action is DropAction.Move)
+        {
+            await _fileOperationService.MoveAsync(operationItems, ActivePath).ConfigureAwait(false);
+        }
+        else if (CurrentDropAction.Action is DropAction.Copy)
+        {
+            await _fileOperationService.CopyAsync(operationItems, ActivePath).ConfigureAwait(false);
+        }
+        else
+        {
+            CurrentDropAction = DropActionResolution.None("drop-shortcut-not-supported");
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        CurrentDropAction = DropActionResolution.None("drop-completed");
+        await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void StageFileTransfer(FileOperationKind kind)
     {
         if (SelectedFileItems.Count == 0)
@@ -483,6 +542,29 @@ public sealed class AppShellViewModel
         _pendingFileTransfer = new PendingFileTransfer(kind, SelectedFileItems.ToArray());
         _pendingFileTransferMutationTarget = null;
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private DropActionResolution ResolveDropAction(
+        IReadOnlyList<DropItem> items,
+        DragDropKeyModifiers modifiers,
+        DropVolumeRelationship volumeRelationship)
+    {
+        return _dragDropActionResolver.Resolve(new DragDropRequest(items, ActivePath, volumeRelationship, modifiers));
+    }
+
+    private static ListedFileItem ToListedFileItem(DropItem item)
+    {
+        return new ListedFileItem(
+            item.FullPath,
+            item.Name,
+            item.Name,
+            item.Kind,
+            Length: null,
+            LastWriteTimeUtc: null,
+            FileAttributes.Normal,
+            IsHidden: false,
+            IsProtectedOperatingSystemFile: false,
+            IsVisuallyDimmed: false);
     }
 
     private async Task PasteStagedFileTransferAsync()

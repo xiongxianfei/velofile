@@ -552,6 +552,11 @@
                         x:Name="FileOperationStatusText"
                         VerticalAlignment="Center"
                         Opacity="0.75" />
+                    <TextBlock
+                        x:Name="DropActionIndicatorText"
+                        VerticalAlignment="Center"
+                        Opacity="0.75"
+                        Visibility="Collapsed" />
                     <Button
                         x:Name="CancelFileOperationButton"
                         Content="Cancel operation"

@@ -577,6 +577,8 @@ public sealed partial class MainWindow : Window
             SkippedLocationsList.ItemsSource = ViewModel.SearchSkippedLocations;
             SkippedLocationsList.Visibility = ViewModel.SearchSkippedLocationsVisible ? Visibility.Visible : Visibility.Collapsed;
             FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
+            DropActionIndicatorText.Text = ViewModel.DropActionIndicatorText;
+            DropActionIndicatorText.Visibility = ViewModel.DropActionIndicatorVisible ? Visibility.Visible : Visibility.Collapsed;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
             CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;
             RenamePanel.Visibility = ViewModel.IsRenameActive ? Visibility.Visible : Visibility.Collapsed;

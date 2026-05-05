@@ -1,6 +1,7 @@
 using VeloFile.App.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.Core.Commands;
+using VeloFile.Core.DragDrop;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Operations;
@@ -489,6 +490,87 @@ public sealed class AppShellCommandRouteTests
             new[] { "report.txt", "report (2).txt" },
             viewModel.FileItems.Select(item => item.Name).ToArray());
         Assert.AreNotEqual(existingTarget.FullPath, keptTarget.FullPath);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public void DragDrop_indicator_reflects_resolved_modifier_action_before_drop()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var viewModel = CreateViewModel(clipboard);
+        var item = new DropItem(@"D:\source\report.txt", "report.txt", FileSystemEntryKind.File);
+
+        viewModel.UpdateDropAction(
+            [item],
+            DragDropKeyModifiers.Control,
+            DropVolumeRelationship.SameVolume);
+
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual(DropAction.Copy, viewModel.CurrentDropAction.Action);
+        Assert.AreEqual("Copy to D:\\projects", viewModel.DropActionIndicatorText);
+
+        viewModel.UpdateDropAction(
+            [item],
+            DragDropKeyModifiers.Shift,
+            DropVolumeRelationship.SameVolume);
+
+        Assert.AreEqual(DropAction.Move, viewModel.CurrentDropAction.Action);
+        Assert.AreEqual("Move to D:\\projects", viewModel.DropActionIndicatorText);
+
+        viewModel.UpdateDropAction(
+            [item],
+            DragDropKeyModifiers.Control | DragDropKeyModifiers.Shift,
+            DropVolumeRelationship.SameVolume);
+
+        Assert.AreEqual(DropAction.Shortcut, viewModel.CurrentDropAction.Action);
+        Assert.AreEqual("Create shortcut in D:\\projects", viewModel.DropActionIndicatorText);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_copy_routes_to_file_operation_and_refreshes_visible_target()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var dropped = Item(@"D:\projects\dropped.txt", "dropped.txt");
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        source.SetEntries(@"D:\projects", dropped);
+        await viewModel.CommitDropAsync(
+            [new DropItem(@"E:\external\dropped.txt", "dropped.txt", FileSystemEntryKind.File)],
+            DragDropKeyModifiers.Control,
+            DropVolumeRelationship.CrossVolume);
+
+        Assert.AreEqual(FileOperationKind.Copy, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\projects", operationAdapter.LastRequest?.TargetDirectory);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        CollectionAssert.AreEqual(new[] { "dropped.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.IsFalse(viewModel.DropActionIndicatorVisible);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_same_volume_default_move_routes_to_file_operation()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        await viewModel.CommitDropAsync(
+            [new DropItem(@"D:\external\moved.txt", "moved.txt", FileSystemEntryKind.File)],
+            DragDropKeyModifiers.None,
+            DropVolumeRelationship.SameVolume);
+
+        Assert.AreEqual(FileOperationKind.Move, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\projects", operationAdapter.LastRequest?.TargetDirectory);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        Assert.IsTrue(viewModel.FileOperation.UndoEligibility.CanUndo);
     }
 
     [TestMethod]

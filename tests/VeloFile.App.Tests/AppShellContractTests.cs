@@ -140,6 +140,7 @@ public sealed class AppShellContractTests
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileOperationStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"DropActionIndicatorText\"");
         StringAssert.Contains(xaml, "x:Name=\"CancelFileOperationButton\"");
         StringAssert.Contains(xaml, "Click=\"CancelFileOperationButton_Click\"");
         StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
@@ -150,6 +151,8 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"ReplaceConflictButton\"");
         StringAssert.Contains(xaml, "x:Name=\"KeepBothConflictButton\"");
         StringAssert.Contains(codeBehind, "ViewModel.FileOperationStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.DropActionIndicatorText");
+        StringAssert.Contains(codeBehind, "ViewModel.DropActionIndicatorVisible");
         StringAssert.Contains(codeBehind, "ViewModel.CanCancelFileOperation");
         StringAssert.Contains(codeBehind, "ViewModel.CancelFileOperation()");
         StringAssert.Contains(codeBehind, "ViewModel.PendingPermanentDeleteConfirmation");
