@@ -1,5 +1,6 @@
 using VeloFile.Core.DragDrop;
 using VeloFile.Core.Listing;
+using System.Security;
 
 namespace VeloFile.Windows.DragDrop;
 
@@ -23,31 +24,71 @@ public sealed class WindowsOleDragDropDataAdapter
             return WindowsOleDragDropData.Rejected("ole-drop-no-files");
         }
 
-        var items = fileDropPaths
-            .Select(TryCreateDropItem)
-            .OfType<DropItem>()
-            .ToArray();
+        var items = new List<DropItem>(fileDropPaths.Count);
+        foreach (var path in fileDropPaths)
+        {
+            var projection = TryCreateDropItem(path);
+            if (projection.ReasonCode is not null)
+            {
+                return WindowsOleDragDropData.Rejected(projection.ReasonCode);
+            }
 
-        return items.Length == 0
+            items.Add(projection.Item!);
+        }
+
+        return items.Count == 0
             ? WindowsOleDragDropData.Rejected("ole-drop-no-supported-files")
             : new WindowsOleDragDropData(CanDrop: true, items, ReasonCode: null);
     }
 
-    private static DropItem? TryCreateDropItem(string path)
+    private static DropItemProjection TryCreateDropItem(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            return null;
+            return DropItemProjection.Rejected("drop-path-invalid");
         }
 
-        var fullPath = Path.GetFullPath(path);
-        if (Directory.Exists(fullPath))
+        try
         {
-            return new DropItem(fullPath, Path.GetFileName(fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), FileSystemEntryKind.Directory);
+            var fullPath = Path.GetFullPath(path);
+            if (Directory.Exists(fullPath))
+            {
+                return DropItemProjection.Accepted(new DropItem(
+                    fullPath,
+                    Path.GetFileName(fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)),
+                    FileSystemEntryKind.Directory));
+            }
+
+            return File.Exists(fullPath)
+                ? DropItemProjection.Accepted(new DropItem(fullPath, Path.GetFileName(fullPath), FileSystemEntryKind.File))
+                : DropItemProjection.Rejected("drop-path-unsupported");
+        }
+        catch (Exception ex) when (IsPathProjectionException(ex))
+        {
+            return DropItemProjection.Rejected("drop-path-invalid");
+        }
+    }
+
+    private static bool IsPathProjectionException(Exception ex)
+    {
+        return ex is ArgumentException
+            or NotSupportedException
+            or PathTooLongException
+            or IOException
+            or UnauthorizedAccessException
+            or SecurityException;
+    }
+
+    private sealed record DropItemProjection(DropItem? Item, string? ReasonCode)
+    {
+        public static DropItemProjection Accepted(DropItem item)
+        {
+            return new DropItemProjection(item, ReasonCode: null);
         }
 
-        return File.Exists(fullPath)
-            ? new DropItem(fullPath, Path.GetFileName(fullPath), FileSystemEntryKind.File)
-            : null;
+        public static DropItemProjection Rejected(string reasonCode)
+        {
+            return new DropItemProjection(Item: null, reasonCode);
+        }
     }
 }

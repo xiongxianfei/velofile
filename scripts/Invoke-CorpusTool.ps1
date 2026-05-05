@@ -98,6 +98,8 @@ function Invoke-VeloFileCorpusTool {
     $toolsRoot = Join-Path $safeRoot ".velofile-tools"
     $repoToolSource = Join-Path $script:VeloFileCorpusRepoRoot "tools\VeloFile.Corpus"
     $scratchToolSource = Join-Path $toolsRoot "source\VeloFile.Corpus"
+    $repoCoreSource = Join-Path $script:VeloFileCorpusRepoRoot "src\VeloFile.Core"
+    $scratchCoreSource = Join-Path $toolsRoot "src\VeloFile.Core"
     $project = Join-Path $scratchToolSource "VeloFile.Corpus.csproj"
     $publishDir = Join-Path $toolsRoot "publish\VeloFile.Corpus"
     $binBase = (Join-Path $toolsRoot "bin") + [System.IO.Path]::DirectorySeparatorChar
@@ -120,7 +122,8 @@ function Invoke-VeloFileCorpusTool {
         $nugetPluginsCache,
         $dotnetCliHome,
         $tempRoot,
-        (Split-Path -Parent $scratchToolSource)
+        (Split-Path -Parent $scratchToolSource),
+        (Split-Path -Parent $scratchCoreSource)
     ) | ForEach-Object {
         New-Item -ItemType Directory -Path $_ -Force | Out-Null
     }
@@ -129,10 +132,19 @@ function Invoke-VeloFileCorpusTool {
         Remove-Item -LiteralPath $scratchToolSource -Recurse -Force
     }
 
+    if (Test-Path -LiteralPath $scratchCoreSource) {
+        Remove-Item -LiteralPath $scratchCoreSource -Recurse -Force
+    }
+
     New-Item -ItemType Directory -Path $scratchToolSource -Force | Out-Null
     Get-ChildItem -LiteralPath $repoToolSource -Force |
         Where-Object { $_.Name -notin @("bin", "obj") } |
         Copy-Item -Destination $scratchToolSource -Recurse -Force
+
+    New-Item -ItemType Directory -Path $scratchCoreSource -Force | Out-Null
+    Get-ChildItem -LiteralPath $repoCoreSource -Force |
+        Where-Object { $_.Name -notin @("bin", "obj") } |
+        Copy-Item -Destination $scratchCoreSource -Recurse -Force
 
     $environmentNames = @(
         "NUGET_PACKAGES",

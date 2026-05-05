@@ -665,7 +665,56 @@ public sealed class AppShellCommandRouteTests
         Assert.AreEqual(AppDropAcceptedOperation.None, dragOver.AcceptedOperation);
         Assert.AreEqual("unsupported-payload", dragOver.ReasonCode);
         Assert.AreEqual(AppDropAcceptedOperation.None, drop.AcceptedOperation);
-        Assert.IsFalse(viewModel.DropActionIndicatorVisible);
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual("Drop unavailable", viewModel.DropActionIndicatorText);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_throwing_extractor_during_drag_over_becomes_no_drop()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var route = new AppDragDropRoute(
+            viewModel,
+            new ThrowingDragDropPayloadExtractor("drop-ole-extraction-failed"));
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var result = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.AreEqual(AppDropAcceptedOperation.None, result.AcceptedOperation);
+        Assert.IsFalse(result.CanDrop);
+        Assert.AreEqual("drop-ole-extraction-failed", result.ReasonCode);
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual("Drop unavailable", viewModel.DropActionIndicatorText);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_throwing_extractor_during_drop_reports_recoverable_failure()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var route = new AppDragDropRoute(
+            viewModel,
+            new ThrowingDragDropPayloadExtractor("drop-storageitem-unavailable"));
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var result = await route.DropAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.AreEqual(AppDropAcceptedOperation.None, result.AcceptedOperation);
+        Assert.IsFalse(result.CanDrop);
+        Assert.AreEqual("drop-storageitem-unavailable", result.ReasonCode);
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual("Drop unavailable", viewModel.DropActionIndicatorText);
         Assert.AreEqual(0, operationAdapter.Requests.Count);
     }
 
@@ -1591,6 +1640,21 @@ public sealed class AppShellCommandRouteTests
         {
             ExtractCount++;
             return ValueTask.FromResult(_payload);
+        }
+    }
+
+    private sealed class ThrowingDragDropPayloadExtractor : IAppDragDropPayloadExtractor
+    {
+        private readonly string _reasonCode;
+
+        public ThrowingDragDropPayloadExtractor(string reasonCode)
+        {
+            _reasonCode = reasonCode;
+        }
+
+        public ValueTask<AppDragDropPayload> ExtractAsync(object? data, CancellationToken cancellationToken = default)
+        {
+            throw new AppDragDropPayloadExtractionException(_reasonCode);
         }
     }
 

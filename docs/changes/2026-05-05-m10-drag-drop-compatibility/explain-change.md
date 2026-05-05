@@ -14,7 +14,9 @@ Copy, move, and shortcut drops commit through `FileOperationService` against the
 
 `src/VeloFile.Windows/DragDrop/WindowsOleDragDropDataAdapter.cs` is the Windows boundary for file-drop payloads. It projects file and directory paths into Core `DropItem` values and rejects empty or unsupported payloads without leaking OLE details into Core.
 
-`tools/VeloFile.Corpus/` now supports deterministic `dragdrop` and `pathological` profiles. `run-compat-corpus.ps1 -Scope dragdrop` writes a drag/drop result document with the expected modifier actions. `run-compat-corpus.ps1 -Scope paths` now writes per-case path compatibility results with `verified`, `skipped`, `unavailable`, or `failed` status instead of treating placeholder labels as passed evidence.
+Drag/drop now treats external payload extraction as an input boundary. Extractor exceptions, inaccessible storage items, malformed paths, and mixed valid/invalid payloads resolve to controlled no-drop or recoverable drop-failure state instead of escaping the WinUI event route.
+
+`tools/VeloFile.Corpus/` now supports deterministic `dragdrop` and `pathological` profiles. `run-compat-corpus.ps1 -Scope dragdrop` writes a drag/drop result document with the expected modifier actions. `run-compat-corpus.ps1 -Scope paths` now writes per-case path compatibility results with `verified`, `skipped`, `unavailable`, `not-implemented`, or `failed` status. Verified path cases include separate fixture and behavior evidence fields, and fixture-only cases cannot count as verified behavior.
 
 `docs/qa/m10-dragdrop-compatibility-checklist.md` records the manual cross-app checks for Explorer, browser, IDE, and Office payloads that are too brittle for stable CI automation.
 
@@ -24,10 +26,11 @@ New tests cover:
 
 - Core drag/drop action resolution for same-volume, cross-volume, Ctrl, Shift, Ctrl+Shift, empty items, missing targets, unsupported shortcut payloads, and root-based volume classification;
 - App shell drop-action indicator state and production-shaped drag/drop route handling for copy, move, shortcut, modifier changes, unsupported payloads, and destination refresh;
+- App shell and Windows adapter input-boundary tests for throwing extractors, malformed paths, and conservative rejection of mixed valid/invalid payloads;
 - Windows file-drop projection from paths into Core drop items and rejection of empty/unknown payloads;
 - Windows shortcut operation mapping, `.lnk` creation, target verification, and non-colliding shortcut names;
 - Corpus generation for `dragdrop` and `pathological` profiles;
-- Compatibility runner support for `dragdrop` and `paths` result documents, including a guard against placeholder path cases being counted as passed evidence.
+- Compatibility runner support for `dragdrop` and `paths` result documents, including a guard against placeholder or fixture-only path cases being counted as verified behavior.
 
 ## Validation
 

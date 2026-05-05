@@ -107,17 +107,22 @@ public sealed class CorpusToolingSmokeTests
         {
             var status = (string?)pathCase["status"];
             Assert.IsTrue(
-                status is "verified" or "skipped" or "unavailable" or "not-applicable" or "failed",
+                status is "verified" or "skipped" or "unavailable" or "not-applicable" or "not-implemented" or "failed",
                 $"Unexpected path compatibility status '{status}'.");
 
             if (status is "verified")
             {
-                Assert.IsTrue((bool?)pathCase["createdFixture"], "Verified cases must create a fixture.");
+                Assert.IsTrue((bool?)pathCase["fixtureCreated"], "Verified cases must create a fixture.");
+                Assert.IsTrue((bool?)pathCase["fixtureVerified"], "Verified cases must verify the OS fixture.");
+                Assert.IsTrue((bool?)pathCase["behaviorVerifierInvoked"], "Verified cases must invoke a behavior verifier.");
                 Assert.IsTrue((bool?)pathCase["verifiedBehavior"], "Verified cases must check behavior.");
+                Assert.AreNotEqual("fixture-only", (string?)pathCase["evidenceKind"], "Fixture creation alone is not compatibility behavior.");
+                Assert.IsFalse((bool?)pathCase["blocksReleaseEvidence"] == true, "Verified cases must count as release evidence.");
             }
             else
             {
                 Assert.IsFalse(string.IsNullOrWhiteSpace((string?)pathCase["reasonCode"]), "Non-verified cases must include a reason code.");
+                Assert.IsFalse((bool?)pathCase["verifiedBehavior"], "Non-verified cases must not claim behavior verification.");
             }
 
             StringAssert.Contains((string?)pathCase["fixturePathKind"] ?? "", "scratch-relative");

@@ -39,6 +39,17 @@ public interface IAppDragDropPayloadExtractor
     ValueTask<AppDragDropPayload> ExtractAsync(object? data, CancellationToken cancellationToken = default);
 }
 
+public sealed class AppDragDropPayloadExtractionException : Exception
+{
+    public AppDragDropPayloadExtractionException(string reasonCode)
+        : base(reasonCode)
+    {
+        ReasonCode = reasonCode;
+    }
+
+    public string ReasonCode { get; }
+}
+
 public sealed class AppDragDropRoute
 {
     private readonly AppShellViewModel _viewModel;
@@ -55,7 +66,7 @@ public sealed class AppDragDropRoute
         DragDropKeyModifiers modifiers,
         CancellationToken cancellationToken = default)
     {
-        var payload = await _payloadExtractor.ExtractAsync(data, cancellationToken).ConfigureAwait(false);
+        var payload = await ExtractPayloadAsync(data, cancellationToken).ConfigureAwait(false);
         return PreviewPayload(payload, modifiers);
     }
 
@@ -64,7 +75,7 @@ public sealed class AppDragDropRoute
         DragDropKeyModifiers modifiers,
         CancellationToken cancellationToken = default)
     {
-        var payload = await _payloadExtractor.ExtractAsync(data, cancellationToken).ConfigureAwait(false);
+        var payload = await ExtractPayloadAsync(data, cancellationToken).ConfigureAwait(false);
         var preview = PreviewPayload(payload, modifiers);
         if (!preview.CanDrop)
         {
@@ -85,11 +96,37 @@ public sealed class AppDragDropRoute
         _viewModel.ClearDropAction();
     }
 
+    public AppDragDropRouteResult ReportFailure(string reasonCode)
+    {
+        _viewModel.ReportDropFailure(reasonCode);
+        return Map(_viewModel.CurrentDropAction);
+    }
+
+    private async ValueTask<AppDragDropPayload> ExtractPayloadAsync(object? data, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _payloadExtractor.ExtractAsync(data, cancellationToken).ConfigureAwait(false);
+        }
+        catch (AppDragDropPayloadExtractionException ex)
+        {
+            return AppDragDropPayload.Unsupported(ex.ReasonCode);
+        }
+        catch (OperationCanceledException)
+        {
+            return AppDragDropPayload.Unsupported("drop-payload-extraction-cancelled");
+        }
+        catch
+        {
+            return AppDragDropPayload.Unsupported("drop-payload-extraction-failed");
+        }
+    }
+
     private AppDragDropRouteResult PreviewPayload(AppDragDropPayload payload, DragDropKeyModifiers modifiers)
     {
         if (!payload.CanDrop)
         {
-            _viewModel.ClearDropAction();
+            _viewModel.ReportDropFailure(payload.ReasonCode ?? "drop-unsupported-payload");
             return new AppDragDropRouteResult(
                 AppDropAcceptedOperation.None,
                 "Drop unavailable",

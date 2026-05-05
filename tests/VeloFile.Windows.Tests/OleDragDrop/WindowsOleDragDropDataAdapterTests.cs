@@ -40,7 +40,23 @@ public sealed class WindowsOleDragDropDataAdapterTests
         Assert.IsFalse(empty.CanDrop);
         Assert.AreEqual("ole-drop-no-files", empty.ReasonCode);
         Assert.IsFalse(missing.CanDrop);
-        Assert.AreEqual("ole-drop-no-supported-files", missing.ReasonCode);
+        Assert.AreEqual("drop-path-unsupported", missing.ReasonCode);
+    }
+
+    [TestMethod]
+    public void Malformed_or_mixed_file_drop_paths_are_rejected_without_throwing()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var file = scratch.WriteFile("report.txt", "report");
+        var adapter = new WindowsOleDragDropDataAdapter();
+
+        var malformed = adapter.ExtractFileDrop(["C:\\invalid\0path.txt"]);
+        var mixed = adapter.ExtractFileDrop([file, "C:\\invalid\0path.txt"]);
+
+        Assert.IsFalse(malformed.CanDrop);
+        Assert.AreEqual("drop-path-invalid", malformed.ReasonCode);
+        Assert.IsFalse(mixed.CanDrop);
+        Assert.AreEqual("drop-path-invalid", mixed.ReasonCode);
     }
 
     private sealed class ScratchWorkspace : IDisposable

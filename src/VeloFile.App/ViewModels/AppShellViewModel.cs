@@ -143,7 +143,7 @@ public sealed class AppShellViewModel
 
     public DropActionResolution CurrentDropAction { get; private set; } = DropActionResolution.None("drop-not-started");
 
-    public bool DropActionIndicatorVisible => CurrentDropAction.CanDrop;
+    public bool DropActionIndicatorVisible => CurrentDropAction.CanDrop || DropFailureVisible(CurrentDropAction.ReasonCode);
 
     public string DropActionIndicatorText => CurrentDropAction.IndicatorText;
 
@@ -497,6 +497,12 @@ public sealed class AppShellViewModel
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void ReportDropFailure(string reasonCode)
+    {
+        CurrentDropAction = DropActionResolution.None(reasonCode);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public async Task CommitDropAsync(
         IReadOnlyList<DropItem> items,
         DragDropKeyModifiers modifiers,
@@ -551,6 +557,12 @@ public sealed class AppShellViewModel
         bool supportsShortcut = true)
     {
         return _dragDropActionResolver.Resolve(new DragDropRequest(items, ActivePath, volumeRelationship, modifiers, supportsShortcut));
+    }
+
+    private static bool DropFailureVisible(string? reasonCode)
+    {
+        return !string.IsNullOrWhiteSpace(reasonCode)
+            && reasonCode is not "drop-cleared" and not "drop-not-started" and not "drop-completed";
     }
 
     private static ListedFileItem ToListedFileItem(DropItem item)

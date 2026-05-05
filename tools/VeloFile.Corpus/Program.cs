@@ -3,6 +3,11 @@ using System.Diagnostics;
 using System.Security;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
+using VeloFile.Core;
+using VeloFile.Core.Listing;
+using VeloFile.Core.Search;
+using VeloFile.Core.Visibility;
 
 return CorpusCli.Run(args, Console.Out, Console.Error);
 
@@ -214,14 +219,15 @@ internal static class CorpusCli
     {
         var root = ScratchRootGuard.Prepare(options.Required("root"));
         CorpusProfileGenerator.Generate(root, "pathological");
+        var behaviorVerifier = new PathCompatibilityBehaviorVerifier();
         var caseResults = new[]
         {
-            VerifyLongPath(root),
-            VerifySimplePathFixture(root, "unicode-path", "unicode", "compatibility/paths/unicode/文件-δοκιμή.txt"),
-            VerifySimplePathFixture(root, "unusual-filename", "filename", "compatibility/paths/unusual/name with spaces [1].txt"),
-            VerifyJunction(root),
-            VerifySymlink(root),
-            VerifyReparseLoop(root),
+            VerifyLongPath(root, behaviorVerifier),
+            VerifySimplePathFixture(root, behaviorVerifier, "unicode-path", "unicode", "compatibility/paths/unicode/文件-δοκιμή.txt"),
+            VerifySimplePathFixture(root, behaviorVerifier, "unusual-filename", "filename", "compatibility/paths/unusual/name with spaces [1].txt"),
+            VerifyJunction(root, behaviorVerifier),
+            VerifySymlink(root, behaviorVerifier),
+            VerifyReparseLoop(root, behaviorVerifier),
             SkippedCase(
                 "access-denied",
                 "permissions",
@@ -242,6 +248,7 @@ internal static class CorpusCli
                 verified = caseResults.Count(result => result.Status is "verified"),
                 skipped = caseResults.Count(result => result.Status is "skipped"),
                 unavailable = caseResults.Count(result => result.Status is "unavailable"),
+                notImplemented = caseResults.Count(result => result.Status is "not-implemented"),
                 failed = failedCount
             },
             caseResults
@@ -254,7 +261,9 @@ internal static class CorpusCli
         return failedCount == 0 ? 0 : 1;
     }
 
-    private static PathCompatibilityCaseResult VerifyLongPath(DirectoryInfo root)
+    private static PathCompatibilityCaseResult VerifyLongPath(
+        DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier)
     {
         var segments = new List<string>
         {
@@ -273,24 +282,28 @@ internal static class CorpusCli
         }
 
         segments.Add("long-path-file.txt");
-        return TryWriteAndVerifyCase(root, "long-path", "long-path", segments, "long path fixture");
+        return TryWriteAndVerifyCase(root, behaviorVerifier, "long-path", "long-path", segments, "long path fixture");
     }
 
     private static PathCompatibilityCaseResult VerifySimplePathFixture(
         DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier,
         string caseId,
         string category,
         string relativePath)
     {
         return TryWriteAndVerifyCase(
             root,
+            behaviorVerifier,
             caseId,
             category,
             ["corpora", "pathological", .. relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries)],
             category + " fixture");
     }
 
-    private static PathCompatibilityCaseResult VerifyJunction(DirectoryInfo root)
+    private static PathCompatibilityCaseResult VerifyJunction(
+        DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier)
     {
         const string relativePath = "compatibility/reparse/junction";
         if (!OperatingSystem.IsWindows())
@@ -322,9 +335,15 @@ internal static class CorpusCli
                 return SkippedCase("junction", "junction", "junction-creation-unavailable", relativePath, "junction handling");
             }
 
-            return Directory.Exists(junction) && HasReparsePoint(junction)
-                ? VerifiedCase("junction", "junction", relativePath, "junction handling")
-                : FailedCase("junction", "junction", "junction-verification-failed", relativePath, "junction handling");
+            if (!Directory.Exists(junction) || !HasReparsePoint(junction))
+            {
+                return FailedCase("junction", "junction", "junction-verification-failed", relativePath, "junction handling");
+            }
+
+            var behavior = behaviorVerifier.VerifyReparseDirectorySkipped(
+                Path.GetDirectoryName(junction)!,
+                junction);
+            return CaseFromBehavior("junction", "junction", relativePath, "junction handling", behavior);
         }
         catch (Exception ex) when (IsFixtureUnavailable(ex))
         {
@@ -332,7 +351,9 @@ internal static class CorpusCli
         }
     }
 
-    private static PathCompatibilityCaseResult VerifySymlink(DirectoryInfo root)
+    private static PathCompatibilityCaseResult VerifySymlink(
+        DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier)
     {
         const string relativePath = "compatibility/reparse/symlink";
         if (!OperatingSystem.IsWindows())
@@ -348,9 +369,17 @@ internal static class CorpusCli
         try
         {
             File.CreateSymbolicLink(link, target);
-            return File.Exists(link) && HasReparsePoint(link)
-                ? VerifiedCase("symlink", "symlink", relativePath, "symlink handling")
-                : FailedCase("symlink", "symlink", "symlink-verification-failed", relativePath, "symlink handling");
+            if (!File.Exists(link) || !HasReparsePoint(link))
+            {
+                return FailedCase("symlink", "symlink", "symlink-verification-failed", relativePath, "symlink handling");
+            }
+
+            var behavior = behaviorVerifier.VerifyListedEntry(
+                Path.GetDirectoryName(link)!,
+                link,
+                requireReparsePoint: true,
+                evidenceKind: "listing");
+            return CaseFromBehavior("symlink", "symlink", relativePath, "symlink handling", behavior);
         }
         catch (Exception ex) when (IsFixtureUnavailable(ex))
         {
@@ -358,7 +387,9 @@ internal static class CorpusCli
         }
     }
 
-    private static PathCompatibilityCaseResult VerifyReparseLoop(DirectoryInfo root)
+    private static PathCompatibilityCaseResult VerifyReparseLoop(
+        DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier)
     {
         const string relativePath = "compatibility/reparse/loop";
         if (!OperatingSystem.IsWindows())
@@ -373,9 +404,13 @@ internal static class CorpusCli
         try
         {
             Directory.CreateSymbolicLink(backLink, loopRoot);
-            return Directory.Exists(backLink) && HasReparsePoint(backLink)
-                ? VerifiedCase("reparse-loop", "reparse-loop", relativePath, "reparse loop handling")
-                : FailedCase("reparse-loop", "reparse-loop", "reparse-loop-verification-failed", relativePath, "reparse loop handling");
+            if (!Directory.Exists(backLink) || !HasReparsePoint(backLink))
+            {
+                return FailedCase("reparse-loop", "reparse-loop", "reparse-loop-verification-failed", relativePath, "reparse loop handling");
+            }
+
+            var behavior = behaviorVerifier.VerifyReparseDirectorySkipped(loopRoot, backLink);
+            return CaseFromBehavior("reparse-loop", "reparse-loop", relativePath, "reparse loop handling", behavior);
         }
         catch (Exception ex) when (IsFixtureUnavailable(ex))
         {
@@ -385,6 +420,7 @@ internal static class CorpusCli
 
     private static PathCompatibilityCaseResult TryWriteAndVerifyCase(
         DirectoryInfo root,
+        PathCompatibilityBehaviorVerifier behaviorVerifier,
         string caseId,
         string category,
         IReadOnlyList<string> segments,
@@ -396,9 +432,17 @@ internal static class CorpusCli
             var path = ScratchRootGuard.PathUnderRoot(root, segments.ToArray());
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, caseId + Environment.NewLine, Encoding.UTF8);
-            return File.Exists(path)
-                ? VerifiedCase(caseId, category, relativePath, operationUnderTest)
-                : FailedCase(caseId, category, caseId + "-verification-failed", relativePath, operationUnderTest);
+            if (!File.Exists(path))
+            {
+                return FailedCase(caseId, category, caseId + "-verification-failed", relativePath, operationUnderTest);
+            }
+
+            var behavior = behaviorVerifier.VerifyListedEntry(
+                Path.GetDirectoryName(path)!,
+                path,
+                requireReparsePoint: false,
+                evidenceKind: "listing");
+            return CaseFromBehavior(caseId, category, relativePath, operationUnderTest, behavior);
         }
         catch (Exception ex) when (IsFixtureUnavailable(ex))
         {
@@ -428,18 +472,63 @@ internal static class CorpusCli
             : "symlink-creation-unavailable";
     }
 
-    private static PathCompatibilityCaseResult VerifiedCase(string caseId, string category, string relativePath, string operationUnderTest)
+    private static PathCompatibilityCaseResult CaseFromBehavior(
+        string caseId,
+        string category,
+        string relativePath,
+        string operationUnderTest,
+        PathBehaviorVerification behavior)
     {
+        if (!behavior.Invoked)
+        {
+            return new PathCompatibilityCaseResult(
+                caseId,
+                category,
+                "not-implemented",
+                "behavior-verifier-not-implemented",
+                "scratch-relative:" + relativePath,
+                FixtureCreated: true,
+                FixtureVerified: true,
+                BehaviorVerifierInvoked: false,
+                VerifiedBehavior: false,
+                "fixture-only",
+                BlocksReleaseEvidence: true,
+                operationUnderTest,
+                "fixture verified but behavior verifier was not invoked");
+        }
+
+        if (!behavior.Verified)
+        {
+            return new PathCompatibilityCaseResult(
+                caseId,
+                category,
+                "failed",
+                behavior.ReasonCode,
+                "scratch-relative:" + relativePath,
+                FixtureCreated: true,
+                FixtureVerified: true,
+                BehaviorVerifierInvoked: true,
+                VerifiedBehavior: false,
+                behavior.EvidenceKind,
+                BlocksReleaseEvidence: true,
+                operationUnderTest,
+                "behavior verification failed");
+        }
+
         return new PathCompatibilityCaseResult(
             caseId,
             category,
             "verified",
             "verified",
             "scratch-relative:" + relativePath,
-            CreatedFixture: true,
+            FixtureCreated: true,
+            FixtureVerified: true,
+            BehaviorVerifierInvoked: true,
             VerifiedBehavior: true,
+            behavior.EvidenceKind,
+            BlocksReleaseEvidence: false,
             operationUnderTest,
-            "fixture verified");
+            "fixture and behavior verified");
     }
 
     private static PathCompatibilityCaseResult SkippedCase(
@@ -455,8 +544,12 @@ internal static class CorpusCli
             "skipped",
             reasonCode,
             "scratch-relative:" + relativePath,
-            CreatedFixture: false,
+            FixtureCreated: false,
+            FixtureVerified: false,
+            BehaviorVerifierInvoked: false,
             VerifiedBehavior: false,
+            "not-run",
+            BlocksReleaseEvidence: false,
             operationUnderTest,
             "case skipped with controlled reason");
     }
@@ -474,8 +567,12 @@ internal static class CorpusCli
             "unavailable",
             reasonCode,
             "scratch-relative:" + relativePath,
-            CreatedFixture: false,
+            FixtureCreated: false,
+            FixtureVerified: false,
+            BehaviorVerifierInvoked: false,
             VerifiedBehavior: false,
+            "not-run",
+            BlocksReleaseEvidence: false,
             operationUnderTest,
             "capability unavailable");
     }
@@ -493,10 +590,165 @@ internal static class CorpusCli
             "failed",
             reasonCode,
             "scratch-relative:" + relativePath,
-            CreatedFixture: true,
+            FixtureCreated: true,
+            FixtureVerified: false,
+            BehaviorVerifierInvoked: false,
             VerifiedBehavior: false,
+            "fixture-verification",
+            BlocksReleaseEvidence: true,
             operationUnderTest,
             "fixture verification failed");
+    }
+
+    private sealed class PathCompatibilityBehaviorVerifier
+    {
+        private readonly FolderListingService _listingService;
+        private readonly RecursiveSearchService _searchService;
+
+        public PathCompatibilityBehaviorVerifier()
+        {
+            var entrySource = new CorpusFolderEntrySource();
+            _listingService = new FolderListingService(entrySource);
+            _searchService = new RecursiveSearchService(entrySource);
+        }
+
+        public PathBehaviorVerification VerifyListedEntry(
+            string parentDirectory,
+            string expectedPath,
+            bool requireReparsePoint,
+            string evidenceKind)
+        {
+            return RunBounded(evidenceKind, async cancellationToken =>
+            {
+                var listing = await _listingService.LoadFirstViewportAsync(
+                    parentDirectory,
+                    new FolderListingOptions(256, VisibilitySettings.Default),
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                if (listing.Status is not FolderListingStatus.Ready and not FolderListingStatus.Empty)
+                {
+                    return PathBehaviorVerification.Failed(evidenceKind, listing.ReasonCode ?? "listing-unavailable");
+                }
+
+                var item = listing.FirstViewport.FirstOrDefault(entry =>
+                    string.Equals(entry.FullPath, expectedPath, StringComparison.OrdinalIgnoreCase));
+                if (item is null)
+                {
+                    return PathBehaviorVerification.Failed(evidenceKind, "listing-missing-fixture");
+                }
+
+                if (requireReparsePoint && !item.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    return PathBehaviorVerification.Failed(evidenceKind, "listing-missing-reparse-attribute");
+                }
+
+                return PathBehaviorVerification.Passed(evidenceKind);
+            });
+        }
+
+        public PathBehaviorVerification VerifyReparseDirectorySkipped(string rootPath, string expectedSkippedPath)
+        {
+            const string evidenceKind = "recursive-search-loop-detection";
+            return RunBounded(evidenceKind, async cancellationToken =>
+            {
+                await foreach (var update in _searchService
+                    .SearchAsync(rootPath, "__velofile_no_matches__", new RecursiveSearchOptions(256), cancellationToken)
+                    .WithCancellation(cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    if (update.Kind is RecursiveSearchUpdateKind.SkippedLocation
+                        && update.SkippedLocation is not null
+                        && string.Equals(update.SkippedLocation.Path, expectedSkippedPath, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(update.SkippedLocation.ReasonCode, "reparse-point", StringComparison.Ordinal))
+                    {
+                        return PathBehaviorVerification.Passed(evidenceKind);
+                    }
+                }
+
+                return PathBehaviorVerification.Failed(evidenceKind, "reparse-skip-not-observed");
+            });
+        }
+
+        private static PathBehaviorVerification RunBounded(
+            string evidenceKind,
+            Func<CancellationToken, Task<PathBehaviorVerification>> verify)
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            try
+            {
+                return verify(timeout.Token).GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                return PathBehaviorVerification.Failed(evidenceKind, "behavior-verifier-timeout");
+            }
+            catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+            {
+                return PathBehaviorVerification.Failed(evidenceKind, ExpectedFileSystemExceptions.ReasonCode(ex));
+            }
+        }
+    }
+
+    private sealed record PathBehaviorVerification(
+        bool Invoked,
+        bool Verified,
+        string EvidenceKind,
+        string ReasonCode)
+    {
+        public static PathBehaviorVerification Passed(string evidenceKind)
+        {
+            return new PathBehaviorVerification(Invoked: true, Verified: true, evidenceKind, "verified");
+        }
+
+        public static PathBehaviorVerification Failed(string evidenceKind, string reasonCode)
+        {
+            return new PathBehaviorVerification(Invoked: true, Verified: false, evidenceKind, reasonCode);
+        }
+    }
+
+    private sealed class CorpusFolderEntrySource : IFolderEntrySource
+    {
+        public async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(
+            string path,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+
+            var directory = new DirectoryInfo(path);
+            foreach (var entry in directory.EnumerateFileSystemInfos())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var snapshot = TryCreateSnapshot(entry);
+                if (snapshot is not null)
+                {
+                    yield return snapshot;
+                }
+            }
+        }
+
+        private static FileSystemEntrySnapshot? TryCreateSnapshot(FileSystemInfo entry)
+        {
+            try
+            {
+                var attributes = entry.Attributes;
+                var kind = attributes.HasFlag(FileAttributes.Directory)
+                    ? FileSystemEntryKind.Directory
+                    : entry is FileInfo ? FileSystemEntryKind.File : FileSystemEntryKind.Other;
+
+                return new FileSystemEntrySnapshot(
+                    entry.FullName,
+                    entry.Name,
+                    kind,
+                    kind is FileSystemEntryKind.File && entry is FileInfo file ? file.Length : null,
+                    entry.LastWriteTimeUtc,
+                    attributes);
+            }
+            catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+            {
+                return null;
+            }
+        }
     }
 
     private static void AssertProfileFixtures(DirectoryInfo root, string profile, IReadOnlyList<string> fixturePaths)
@@ -869,8 +1121,12 @@ internal sealed record PathCompatibilityCaseResult(
     string Status,
     string ReasonCode,
     string FixturePathKind,
-    bool CreatedFixture,
+    bool FixtureCreated,
+    bool FixtureVerified,
+    bool BehaviorVerifierInvoked,
     bool VerifiedBehavior,
+    string EvidenceKind,
+    bool BlocksReleaseEvidence,
     string OperationUnderTest,
     string Notes);
 

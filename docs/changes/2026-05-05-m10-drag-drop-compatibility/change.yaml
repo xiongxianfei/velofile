@@ -21,7 +21,9 @@ files:
   - src/VeloFile.App/ViewModels/AppShellViewModel.cs
   - src/VeloFile.App/MainWindow.xaml
   - src/VeloFile.App/MainWindow.xaml.cs
+  - scripts/Invoke-CorpusTool.ps1
   - tools/VeloFile.Corpus/Program.cs
+  - tools/VeloFile.Corpus/VeloFile.Corpus.csproj
   - docs/qa/m10-dragdrop-compatibility-checklist.md
   - tests/VeloFile.Core.Tests/DragDrop/
   - tests/VeloFile.Core.Tests/Operations/FileOperationServiceTests.cs
@@ -72,12 +74,34 @@ validation:
     result: review-resolution run passed 11 App shell contract tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: review-resolution run passed restore, build with 0 warnings and 0 errors, and 232 tests across Windows, App, Core, and Corpus test assemblies
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop
+    result: second-pass review-resolution run passed 9 App drag/drop route tests, including throwing extractor boundaries
+  - command: dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter OleDragDrop
+    result: second-pass review-resolution first failed on malformed path projection; final run passed 3 OLE drag/drop tests
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope
+    result: second-pass review-resolution first failed because path cases lacked behavior-evidence fields; final run passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: second-pass review-resolution build passed with 0 warnings and 0 errors
+  - command: dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter "DragDrop|Create_shortcuts"
+    result: second-pass review-resolution run passed 6 Core drag/drop and shortcut tests
+  - command: dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter "Create_shortcut|DragDrop|OleDragDrop"
+    result: second-pass review-resolution run passed 6 Windows drag/drop and shortcut tests
+  - command: dotnet test VeloFile.sln -c Debug --filter DragDrop
+    result: second-pass review-resolution run passed 5 Core, 9 App, and 3 Windows drag/drop tests; Corpus tests had no matching DragDrop filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope dragdrop -ScratchRoot <scratch-root>
+    result: second-pass review-resolution run passed with a compliant scratch root
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope paths -ScratchRoot <scratch-root>
+    result: second-pass review-resolution run passed with behavior-verifier evidence in path case results
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: second-pass review-resolution run passed restore, build with 0 warnings and 0 errors, and 235 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Core resolves Windows drag/drop defaults: same-volume no-modifier move, cross-volume no-modifier copy, Ctrl copy, Shift move, and Ctrl+Shift/Alt shortcut intent.
   - The app shell exposes a drop-action indicator before commit and routes copy/move/shortcut drops through the existing file operation service and post-mutation listing refresh path.
   - The WinUI file list is wired as the production drop target through a thin event bridge into `AppDragDropRoute`.
   - Shortcut drops create `.lnk` files through the Windows Shell boundary with non-colliding destination names.
   - Windows drag/drop data projection is isolated in `VeloFile.Windows` and converts file-drop paths into Core `DropItem` values without exposing OLE details to Core.
-  - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles. Path results use per-case verified/skipped/unavailable/failed status instead of placeholder pass labels.
+  - Drag/drop extraction and path projection failures are controlled at the app route and Windows adapter boundaries, so malformed external payloads resolve to no-drop instead of escaping the WinUI route.
+  - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles. Path results use per-case verified/skipped/unavailable/failed/not-implemented status, and verified cases require explicit behavior-verifier evidence instead of fixture-only proof.
+  - The corpus script helper copies the Core project into the scratch-owned tool source so path behavior verification can use Core listing/search services without repo-side build output.
   - Cross-app drag/drop with Explorer, browser, IDE, and Office remains a manual checklist because those sources are brittle to automate reliably.
   - R81, R82, and I8 file-association Open/Open With behavior remains assigned to M14; M10 covers R79-R80 drag/drop behavior plus path compatibility corpus expansion.

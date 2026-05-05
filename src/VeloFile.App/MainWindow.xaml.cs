@@ -13,6 +13,7 @@ using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using VeloFile.Windows.DragDrop;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using Windows.System;
 using Windows.UI.Core;
 
@@ -547,6 +548,12 @@ public sealed partial class MainWindow : Window
             e.AcceptedOperation = ToDataPackageOperation(result.AcceptedOperation);
             RefreshShellBindings();
         }
+        catch
+        {
+            _dragDropRoute.ReportFailure("drop-route-failed");
+            e.AcceptedOperation = DataPackageOperation.None;
+            RefreshShellBindings();
+        }
         finally
         {
             deferral.Complete();
@@ -567,6 +574,12 @@ public sealed partial class MainWindow : Window
         {
             var result = await _dragDropRoute.DropAsync(e.DataView, CurrentDragDropModifiers());
             e.AcceptedOperation = ToDataPackageOperation(result.AcceptedOperation);
+            RefreshShellBindings();
+        }
+        catch
+        {
+            _dragDropRoute.ReportFailure("drop-route-failed");
+            e.AcceptedOperation = DataPackageOperation.None;
             RefreshShellBindings();
         }
         finally
@@ -723,7 +736,16 @@ public sealed partial class MainWindow : Window
                 return AppDragDropPayload.Unsupported("ole-drop-unsupported-payload");
             }
 
-            var storageItems = await dataView.GetStorageItemsAsync();
+            IReadOnlyList<IStorageItem> storageItems;
+            try
+            {
+                storageItems = await dataView.GetStorageItemsAsync();
+            }
+            catch
+            {
+                return AppDragDropPayload.Unsupported("drop-storageitem-unavailable");
+            }
+
             var fileDropPaths = storageItems
                 .Select(item => item.Path)
                 .Where(path => !string.IsNullOrWhiteSpace(path))
