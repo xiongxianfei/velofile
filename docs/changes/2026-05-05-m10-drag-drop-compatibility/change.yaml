@@ -94,6 +94,20 @@ validation:
     result: second-pass review-resolution run passed with behavior-verifier evidence in path case results
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: second-pass review-resolution run passed restore, build with 0 warnings and 0 errors, and 235 tests across Windows, App, Core, and Corpus test assemblies
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop_winui_extractor_uses_all_or_nothing_storage_item_projection
+    result: all-or-nothing follow-up first failed because MainWindow filtered blank StorageItem paths before adapter projection
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop
+    result: all-or-nothing follow-up run passed 13 App drag/drop tests, including mixed valid plus blank storage-item rejection
+  - command: dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter OleDragDrop
+    result: all-or-nothing follow-up run passed 4 OLE drag/drop tests, including blank and mixed blank path rejection
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope
+    result: all-or-nothing follow-up run passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: all-or-nothing follow-up build passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter DragDrop
+    result: all-or-nothing follow-up run passed 5 Core, 13 App, and 4 Windows drag/drop tests; Corpus tests had no matching DragDrop filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: all-or-nothing follow-up run passed restore, build with 0 warnings and 0 errors, and 240 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Core resolves Windows drag/drop defaults: same-volume no-modifier move, cross-volume no-modifier copy, Ctrl copy, Shift move, and Ctrl+Shift/Alt shortcut intent.
   - The app shell exposes a drop-action indicator before commit and routes copy/move/shortcut drops through the existing file operation service and post-mutation listing refresh path.
@@ -101,6 +115,7 @@ notes:
   - Shortcut drops create `.lnk` files through the Windows Shell boundary with non-colliding destination names.
   - Windows drag/drop data projection is isolated in `VeloFile.Windows` and converts file-drop paths into Core `DropItem` values without exposing OLE details to Core.
   - Drag/drop extraction and path projection failures are controlled at the app route and Windows adapter boundaries, so malformed external payloads resolve to no-drop instead of escaping the WinUI route.
+  - WinUI storage-item projection is all-or-nothing: blank or virtual payload items reject the entire drop instead of being filtered out before commit.
   - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles. Path results use per-case verified/skipped/unavailable/failed/not-implemented status, and verified cases require explicit behavior-verifier evidence instead of fixture-only proof.
   - The corpus script helper copies the Core project into the scratch-owned tool source so path behavior verification can use Core listing/search services without repo-side build output.
   - Cross-app drag/drop with Explorer, browser, IDE, and Office remains a manual checklist because those sources are brittle to automate reliably.

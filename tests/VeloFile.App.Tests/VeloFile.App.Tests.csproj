@@ -24,6 +24,7 @@
     <Compile Include="..\..\src\VeloFile.App\Input\AppDragDropRoute.cs" Link="Linked\AppDragDropRoute.cs" />
     <Compile Include="..\..\src\VeloFile.App\Input\FileListSelectionMapper.cs" Link="Linked\FileListSelectionMapper.cs" />
     <Compile Include="..\..\src\VeloFile.App\Input\KeyboardFocusContext.cs" Link="Linked\KeyboardFocusContext.cs" />
+    <Compile Include="..\..\src\VeloFile.App\Input\WinUiStorageItemDropPayloadProjection.cs" Link="Linked\WinUiStorageItemDropPayloadProjection.cs" />
     <Compile Include="..\..\src\VeloFile.App\ViewModels\AppShellViewModel.cs" Link="Linked\AppShellViewModel.cs" />
   </ItemGroup>
 

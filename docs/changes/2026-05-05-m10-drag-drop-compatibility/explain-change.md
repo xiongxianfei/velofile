@@ -16,6 +16,8 @@ Copy, move, and shortcut drops commit through `FileOperationService` against the
 
 Drag/drop now treats external payload extraction as an input boundary. Extractor exceptions, inaccessible storage items, malformed paths, and mixed valid/invalid payloads resolve to controlled no-drop or recoverable drop-failure state instead of escaping the WinUI event route.
 
+WinUI `StorageItem` projection is all-or-nothing. The extractor no longer filters out blank `StorageItem.Path` values; if any item lacks a filesystem path or fails adapter projection, the whole payload resolves to no-drop and no partial operation starts.
+
 `tools/VeloFile.Corpus/` now supports deterministic `dragdrop` and `pathological` profiles. `run-compat-corpus.ps1 -Scope dragdrop` writes a drag/drop result document with the expected modifier actions. `run-compat-corpus.ps1 -Scope paths` now writes per-case path compatibility results with `verified`, `skipped`, `unavailable`, `not-implemented`, or `failed` status. Verified path cases include separate fixture and behavior evidence fields, and fixture-only cases cannot count as verified behavior.
 
 `docs/qa/m10-dragdrop-compatibility-checklist.md` records the manual cross-app checks for Explorer, browser, IDE, and Office payloads that are too brittle for stable CI automation.
@@ -27,6 +29,7 @@ New tests cover:
 - Core drag/drop action resolution for same-volume, cross-volume, Ctrl, Shift, Ctrl+Shift, empty items, missing targets, unsupported shortcut payloads, and root-based volume classification;
 - App shell drop-action indicator state and production-shaped drag/drop route handling for copy, move, shortcut, modifier changes, unsupported payloads, and destination refresh;
 - App shell and Windows adapter input-boundary tests for throwing extractors, malformed paths, and conservative rejection of mixed valid/invalid payloads;
+- App shell storage-item projection tests for mixed valid plus blank paths, all blank/whitespace paths, and all-valid path commits;
 - Windows file-drop projection from paths into Core drop items and rejection of empty/unknown payloads;
 - Windows shortcut operation mapping, `.lnk` creation, target verification, and non-colliding shortcut names;
 - Corpus generation for `dragdrop` and `pathological` profiles;

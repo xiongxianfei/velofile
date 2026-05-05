@@ -59,6 +59,25 @@ public sealed class WindowsOleDragDropDataAdapterTests
         Assert.AreEqual("drop-path-invalid", mixed.ReasonCode);
     }
 
+    [TestMethod]
+    public void Blank_or_mixed_blank_file_drop_paths_are_rejected_without_throwing()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var file = scratch.WriteFile("report.txt", "report");
+        var adapter = new WindowsOleDragDropDataAdapter();
+
+        var blank = adapter.ExtractFileDrop([""]);
+        var whitespace = adapter.ExtractFileDrop(["   "]);
+        var mixed = adapter.ExtractFileDrop([file, "   "]);
+
+        Assert.IsFalse(blank.CanDrop);
+        Assert.AreEqual("drop-path-invalid", blank.ReasonCode);
+        Assert.IsFalse(whitespace.CanDrop);
+        Assert.AreEqual("drop-path-invalid", whitespace.ReasonCode);
+        Assert.IsFalse(mixed.CanDrop);
+        Assert.AreEqual("drop-path-invalid", mixed.ReasonCode);
+    }
+
     private sealed class ScratchWorkspace : IDisposable
     {
         private ScratchWorkspace(string root)

@@ -193,6 +193,19 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    [TestCategory("DragDrop")]
+    public void DragDrop_winui_extractor_uses_all_or_nothing_storage_item_projection()
+    {
+        var repoRoot = FindRepoRoot();
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(codeBehind, "WinUiStorageItemDropPayloadProjection.ProjectPaths");
+        Assert.IsFalse(
+            codeBehind.Contains(".Where(path => !string.IsNullOrWhiteSpace(path))", StringComparison.Ordinal),
+            "WinUI storage item drops must reject the whole payload when any item lacks a filesystem path.");
+    }
+
+    [TestMethod]
     public void Main_window_file_list_binds_real_items_and_maps_selection_to_listed_file_models()
     {
         var repoRoot = FindRepoRoot();

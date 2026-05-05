@@ -672,6 +672,73 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_mixed_storage_item_paths_rejects_whole_payload_without_commit()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var projectionInvoked = false;
+        var payload = WinUiStorageItemDropPayloadProjection.ProjectPaths(
+            [@"E:\external\valid.txt", ""],
+            paths =>
+            {
+                projectionInvoked = true;
+                return AppDragDropPayload.Supported(paths.Select(path => new DropItem(path, Path.GetFileName(path), FileSystemEntryKind.File)).ToArray());
+            });
+        var route = new AppDragDropRoute(viewModel, new StaticDragDropPayloadExtractor(payload));
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var dragOver = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control);
+        var drop = await route.DropAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.IsFalse(projectionInvoked);
+        Assert.AreEqual(AppDropAcceptedOperation.None, dragOver.AcceptedOperation);
+        Assert.AreEqual("drop-storageitem-path-unavailable", dragOver.ReasonCode);
+        Assert.AreEqual(AppDropAcceptedOperation.None, drop.AcceptedOperation);
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual("Drop unavailable", viewModel.DropActionIndicatorText);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_all_valid_storage_item_paths_can_commit()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var payload = WinUiStorageItemDropPayloadProjection.ProjectPaths(
+            [@"E:\external\a.txt", @"E:\external\b.txt"],
+            paths => AppDragDropPayload.Supported(paths.Select(path => new DropItem(path, Path.GetFileName(path), FileSystemEntryKind.File)).ToArray()));
+        var route = new AppDragDropRoute(viewModel, new StaticDragDropPayloadExtractor(payload));
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var result = await route.DropAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.AreEqual(AppDropAcceptedOperation.Copy, result.AcceptedOperation);
+        Assert.AreEqual(FileOperationKind.Copy, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual(2, operationAdapter.LastRequest?.Items.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public void DragDrop_storage_item_projection_rejects_blank_or_whitespace_paths()
+    {
+        var blank = WinUiStorageItemDropPayloadProjection.ProjectPaths([""], _ => AppDragDropPayload.Supported([]));
+        var whitespace = WinUiStorageItemDropPayloadProjection.ProjectPaths(["   "], _ => AppDragDropPayload.Supported([]));
+
+        Assert.IsFalse(blank.CanDrop);
+        Assert.AreEqual("drop-storageitem-path-unavailable", blank.ReasonCode);
+        Assert.IsFalse(whitespace.CanDrop);
+        Assert.AreEqual("drop-storageitem-path-unavailable", whitespace.ReasonCode);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
     public async Task DragDrop_shell_route_throwing_extractor_during_drag_over_becomes_no_drop()
     {
         var clipboard = new CollectingClipboardTextWriter();

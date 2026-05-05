@@ -746,15 +746,24 @@ public sealed partial class MainWindow : Window
                 return AppDragDropPayload.Unsupported("drop-storageitem-unavailable");
             }
 
-            var fileDropPaths = storageItems
-                .Select(item => item.Path)
-                .Where(path => !string.IsNullOrWhiteSpace(path))
-                .ToArray();
-            var result = _adapter.ExtractFileDrop(fileDropPaths);
+            IReadOnlyList<string?> fileDropPaths;
+            try
+            {
+                fileDropPaths = storageItems.Select(item => item.Path).ToArray();
+            }
+            catch
+            {
+                return AppDragDropPayload.Unsupported("drop-storageitem-path-unavailable");
+            }
 
-            return result.CanDrop
-                ? AppDragDropPayload.Supported(result.Items)
-                : AppDragDropPayload.Unsupported(result.ReasonCode ?? "ole-drop-no-supported-files");
+            return WinUiStorageItemDropPayloadProjection.ProjectPaths(fileDropPaths, paths =>
+            {
+                var result = _adapter.ExtractFileDrop(paths);
+
+                return result.CanDrop
+                    ? AppDragDropPayload.Supported(result.Items)
+                    : AppDragDropPayload.Unsupported(result.ReasonCode ?? "ole-drop-no-supported-files");
+            });
         }
     }
 
