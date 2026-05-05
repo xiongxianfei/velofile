@@ -384,6 +384,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
@@ -440,6 +441,27 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+                <StackPanel
+                    x:Name="PermanentDeleteConfirmationPanel"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="6"
+                    Margin="0,6,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="PermanentDeleteConfirmationText"
+                        VerticalAlignment="Center"
+                        Text="Permanently delete selected items?" />
+                    <Button
+                        x:Name="ConfirmPermanentDeleteButton"
+                        Content="Delete permanently"
+                        Click="ConfirmPermanentDeleteButton_Click" />
+                    <Button
+                        x:Name="CancelPermanentDeleteButton"
+                        Content="Cancel"
+                        Click="CancelPermanentDeleteButton_Click" />
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="5" Margin="0,8,0,0">
@@ -448,6 +470,10 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <TextBlock
                     x:Name="LoadingState"
                     Text="Loading"
@@ -461,6 +487,12 @@
                     x:Name="FailedState"
                     Grid.Column="2"
                     Text="Unable to open location"
+                    Opacity="0.75" />
+                <TextBlock
+                    x:Name="FileOperationStatusText"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="3"
+                    Margin="0,6,0,0"
                     Opacity="0.75" />
             </Grid>
         </Grid>

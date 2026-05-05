@@ -131,6 +131,27 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    [TestCategory("Operations")]
+    public void Operations_shell_exposes_operation_status_and_permanent_delete_confirmation_routes()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+        var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"FileOperationStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
+        StringAssert.Contains(xaml, "Click=\"ConfirmPermanentDeleteButton_Click\"");
+        StringAssert.Contains(xaml, "Click=\"CancelPermanentDeleteButton_Click\"");
+        StringAssert.Contains(codeBehind, "ViewModel.FileOperationStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.PendingPermanentDeleteConfirmation");
+        StringAssert.Contains(codeBehind, "ViewModel.ConfirmPermanentDeleteAsync(confirm: true)");
+        StringAssert.Contains(codeBehind, "Recycle Bin delete is unavailable.");
+        StringAssert.Contains(compositionCode, "new FileOperationService");
+        StringAssert.Contains(compositionCode, "new WindowsShellFileOperationAdapter()");
+    }
+
+    [TestMethod]
     public void Main_window_file_list_binds_real_items_and_maps_selection_to_listed_file_models()
     {
         var repoRoot = FindRepoRoot();

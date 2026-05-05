@@ -3,6 +3,7 @@ using VeloFile.App.ViewModels;
 using VeloFile.Core.Commands;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
+using VeloFile.Core.Operations;
 using VeloFile.Core.Persistence;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
@@ -258,6 +259,89 @@ public sealed class AppShellCommandRouteTests
     }
 
     [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_delete_command_routes_selected_items_to_recycle_bin_operation_and_visible_status()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.AreEqual(FileOperationKind.RecycleBinDelete, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        StringAssert.Contains(viewModel.FileOperationStatusText, "completed");
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_permanent_delete_command_requires_confirmation_before_adapter_call()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.PermanentDelete);
+
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+        Assert.IsNotNull(viewModel.PendingPermanentDeleteConfirmation);
+        Assert.AreEqual(FileOperationStatus.WaitingForConfirmation, viewModel.FileOperation.Status);
+
+        await viewModel.ConfirmPermanentDeleteAsync(confirm: true);
+
+        Assert.AreEqual(FileOperationKind.PermanentDelete, operationAdapter.LastRequest?.Kind);
+        Assert.IsTrue(operationAdapter.LastRequest!.ConfirmedPermanentDelete);
+        Assert.IsFalse(viewModel.FileOperation.UndoEligibility.CanUndo);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_recycle_bin_unavailable_delete_surfaces_confirmation_reason()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.RecycleBinUnavailable("recycle-bin-unavailable")
+        };
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"\\server\share\delete-me.txt", "delete-me.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.IsNotNull(viewModel.PendingPermanentDeleteConfirmation);
+        Assert.AreEqual(PermanentDeleteReason.RecycleBinUnavailable, viewModel.PendingPermanentDeleteConfirmation.Reason);
+        StringAssert.Contains(viewModel.FileOperationStatusText, "recycle-bin-unavailable");
+        Assert.AreEqual(1, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_rename_commit_routes_pending_rename_to_operation_adapter()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\old.txt", "old.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        await viewModel.CommitPendingRenameAsync("new.txt");
+
+        Assert.AreEqual(FileOperationKind.Rename, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual("new.txt", operationAdapter.LastRequest?.TargetName);
+        Assert.IsTrue(viewModel.FileOperation.UndoEligibility.CanUndo);
+    }
+
+    [TestMethod]
     [TestCategory("Filtering")]
     public async Task Filtering_current_folder_narrows_visible_file_items_and_clear_restores_listing()
     {
@@ -506,6 +590,7 @@ public sealed class AppShellCommandRouteTests
         FakeFolderEntrySource? listingSource = null,
         FakeFolderEntrySource? searchSource = null,
         IRecursiveSearchService? searchService = null,
+        IFileOperationAdapter? operationAdapter = null,
         IReadOnlyList<string>? existingPaths = null)
     {
         var workspace = NavigationWorkspace.Create(initialPath);
@@ -535,7 +620,8 @@ public sealed class AppShellCommandRouteTests
             ? null
             : new RecursiveSearchService(searchSource);
 
-        return new AppShellViewModel(startupState, clipboardWriter, coordinator, searchService, viewportItemCount: 100);
+        var operationService = operationAdapter is null ? null : new FileOperationService(operationAdapter);
+        return new AppShellViewModel(startupState, clipboardWriter, coordinator, searchService, operationService, viewportItemCount: 100);
     }
 
     private static ListedFileItem Item(
@@ -721,6 +807,27 @@ public sealed class AppShellCommandRouteTests
             }
 
             return channel;
+        }
+    }
+
+    private sealed class RecordingFileOperationAdapter : IFileOperationAdapter
+    {
+        public List<FileOperationRequest> Requests { get; } = [];
+
+        public FileOperationRequest? LastRequest => Requests.LastOrDefault();
+
+        public FileOperationAdapterResult NextResult { get; set; } = FileOperationAdapterResult.Completed(undoSupported: true);
+
+        public Task<FileOperationAdapterResult> ExecuteAsync(
+            FileOperationRequest request,
+            IProgress<FileOperationProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+            progress?.Report(new FileOperationProgress(request.Kind, request.Items.Count, request.Items.Count, "Completed"));
+            return Task.FromResult(NextResult.Status is FileOperationAdapterResultStatus.Completed
+                ? FileOperationAdapterResult.Completed(undoSupported: request.Kind is not FileOperationKind.PermanentDelete)
+                : NextResult);
         }
     }
 

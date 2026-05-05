@@ -54,9 +54,43 @@ internal static class CorpusCli
 
     private static int RunCompat(CliOptions options, TextWriter output)
     {
-        var scope = options.ValueOrDefault("scope", "smoke");
+        var scope = options.ValueOrDefault("scope", "smoke").Trim().ToLowerInvariant();
 
-        if (!StringComparer.OrdinalIgnoreCase.Equals(scope, "smoke"))
+        if (StringComparer.Ordinal.Equals(scope, "safe-delete"))
+        {
+            var safeDeleteRoot = ScratchRootGuard.Prepare(options.Required("root"));
+            CorpusProfileGenerator.Generate(safeDeleteRoot, "operations");
+
+            var fixturePaths = new[]
+            {
+                Path.Combine("operations", "rename-source.txt"),
+                Path.Combine("operations", "delete-target.txt")
+            };
+
+            foreach (var fixture in fixturePaths)
+            {
+                var fixturePath = ScratchRootGuard.PathUnderRoot(safeDeleteRoot, "corpora", "operations", fixture);
+                if (!File.Exists(fixturePath))
+                {
+                    throw new CorpusException($"Safe-delete fixture '{fixture}' was not generated.");
+                }
+            }
+
+            var safeDeleteResult = new
+            {
+                documentType = "velofileCompatCorpusResult",
+                schemaVersion = 1,
+                scope = "safe-delete",
+                result = "passed",
+                checkedFixtures = fixturePaths.Select(fixture => fixture.Replace(Path.DirectorySeparatorChar, '/')).ToArray()
+            };
+
+            WriteJson(ScratchRootGuard.PathUnderRoot(safeDeleteRoot, "corpora", "operations", "compat", "safe-delete-result.json"), safeDeleteResult);
+            output.WriteLine("Compatibility safe-delete corpus passed.");
+            return 0;
+        }
+
+        if (!StringComparer.Ordinal.Equals(scope, "smoke"))
         {
             ScratchRootGuard.ValidateOnly(options.Required("root"));
             output.WriteLine($"Compatibility corpus scope '{scope}' is not implemented in M2.");

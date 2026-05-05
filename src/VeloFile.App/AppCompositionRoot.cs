@@ -3,6 +3,7 @@ using VeloFile.App.Windowing;
 using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
+using VeloFile.Core.Operations;
 using VeloFile.Core.Persistence;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
@@ -10,6 +11,7 @@ using VeloFile.Core.Shell;
 using VeloFile.Core.Visibility;
 using VeloFile.Windows.Clipboard;
 using VeloFile.Windows.FileSystem;
+using VeloFile.Windows.Shell;
 using VeloFile.Windows.Storage;
 using VeloFile.Windows.Windowing;
 
@@ -84,7 +86,8 @@ public static class AppCompositionRoot
         var listingCoordinator = new FolderListingCoordinator(
             new FolderListingService(folderEntrySource));
         var searchService = new RecursiveSearchService(folderEntrySource);
-        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator, searchService);
+        var fileOperationService = new FileOperationService(new WindowsShellFileOperationAdapter());
+        return new AppShellViewModel(startupState, new WindowsClipboardTextWriter(), listingCoordinator, searchService, fileOperationService);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

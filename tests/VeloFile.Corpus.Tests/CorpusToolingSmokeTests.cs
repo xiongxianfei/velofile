@@ -55,6 +55,7 @@ public sealed class CorpusToolingSmokeTests
 
         AssertCommandSucceeded(RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "smoke", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "safe-delete", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
 
         var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "operations", "-ScratchRoot", scratch.Root);

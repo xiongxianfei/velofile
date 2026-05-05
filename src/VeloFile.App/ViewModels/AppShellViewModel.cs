@@ -3,6 +3,7 @@ using VeloFile.Core.Commands;
 using VeloFile.Core.Filtering;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
+using VeloFile.Core.Operations;
 using VeloFile.Core.Persistence;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
@@ -20,18 +21,21 @@ public sealed class AppShellViewModel
     private readonly CurrentFolderFilterService _filterService = new();
     private readonly FolderListingCoordinator? _listingCoordinator;
     private readonly IRecursiveSearchService? _recursiveSearchService;
+    private readonly FileOperationService? _fileOperationService;
     private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _activeListingItems = [];
     private IReadOnlyList<ListedFileItem> _fileItems = [];
     private FolderListingRequest? _activeListingRequest;
     private CancellationTokenSource? _recursiveSearchCancellation;
     private int _recursiveSearchGeneration;
+    private ListedFileItem? _pendingRenameItem;
 
     public AppShellViewModel(
         AppShellStartupState startupState,
         IClipboardTextWriter? clipboardWriter = null,
         FolderListingCoordinator? listingCoordinator = null,
         IRecursiveSearchService? recursiveSearchService = null,
+        FileOperationService? fileOperationService = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
@@ -41,7 +45,13 @@ public sealed class AppShellViewModel
         _clipboardCommands = new ClipboardCommandService(clipboardWriter ?? NoOpClipboardTextWriter.Instance);
         _listingCoordinator = listingCoordinator;
         _recursiveSearchService = recursiveSearchService;
+        _fileOperationService = fileOperationService;
         _viewportItemCount = viewportItemCount;
+        if (_fileOperationService is not null)
+        {
+            _fileOperationService.StateChanged += (_, _) => ShellStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         RefreshActiveListing();
     }
 
@@ -97,6 +107,15 @@ public sealed class AppShellViewModel
     public bool SearchSkippedLocationsVisible => SearchSkippedLocations.Count > 0;
 
     public string RecursiveSearchStatusText => FormatRecursiveSearchStatus();
+
+    public FileOperationState FileOperation => _fileOperationService?.State ?? FileOperationState.Idle;
+
+    public PermanentDeleteConfirmationRequest? PendingPermanentDeleteConfirmation =>
+        _fileOperationService?.PendingPermanentDeleteConfirmation;
+
+    public bool RenamePending => _pendingRenameItem is not null;
+
+    public string FileOperationStatusText => FormatFileOperationStatus();
 
     public PathSubmissionResult SubmitPath(string path)
     {
@@ -346,6 +365,11 @@ public sealed class AppShellViewModel
 
     public void ExecuteBuiltInCommand(VeloFileCommandId commandId)
     {
+        _ = ExecuteBuiltInCommandAsync(commandId);
+    }
+
+    public async Task ExecuteBuiltInCommandAsync(VeloFileCommandId commandId)
+    {
         switch (commandId)
         {
             case VeloFileCommandId.CopyPath:
@@ -360,9 +384,51 @@ public sealed class AppShellViewModel
             case VeloFileCommandId.ParentFolder:
                 NavigateToParent();
                 break;
+            case VeloFileCommandId.Delete:
+                if (_fileOperationService is not null && SelectedFileItems.Count > 0)
+                {
+                    await _fileOperationService.DeleteToRecycleBinAsync(SelectedFileItems).ConfigureAwait(false);
+                }
+
+                break;
+            case VeloFileCommandId.PermanentDelete:
+                if (_fileOperationService is not null && SelectedFileItems.Count > 0)
+                {
+                    _fileOperationService.RequestPermanentDelete(SelectedFileItems, PermanentDeleteReason.UserGesture);
+                }
+
+                break;
+            case VeloFileCommandId.Rename:
+                _pendingRenameItem = SelectedFileItems.Count == 1 ? SelectedFileItems[0] : null;
+                ShellStateChanged?.Invoke(this, EventArgs.Empty);
+                break;
             default:
                 break;
         }
+    }
+
+    public async Task CommitPendingRenameAsync(string targetName)
+    {
+        if (_fileOperationService is null || _pendingRenameItem is null)
+        {
+            return;
+        }
+
+        var item = _pendingRenameItem;
+        _pendingRenameItem = null;
+        await _fileOperationService.RenameAsync(item, targetName).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task ConfirmPermanentDeleteAsync(bool confirm)
+    {
+        if (_fileOperationService is null)
+        {
+            return;
+        }
+
+        await _fileOperationService.ConfirmPermanentDeleteAsync(confirm).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetFileItems(IReadOnlyList<ListedFileItem> items)
@@ -520,6 +586,35 @@ public sealed class AppShellViewModel
         return RecursiveSearch.SkippedLocations.Count > 0
             ? $"{resultText} - {RecursiveSearch.SkippedLocations.Count} skipped locations"
             : resultText;
+    }
+
+    private string FormatFileOperationStatus()
+    {
+        var state = FileOperation;
+        if (state.Status is FileOperationStatus.Idle)
+        {
+            return "";
+        }
+
+        var operation = state.Kind switch
+        {
+            FileOperationKind.Rename => "Rename",
+            FileOperationKind.RecycleBinDelete => "Recycle Bin delete",
+            FileOperationKind.PermanentDelete => "Permanent delete",
+            _ => "File operation"
+        };
+
+        return state.Status switch
+        {
+            FileOperationStatus.Running => $"{operation} running",
+            FileOperationStatus.WaitingForConfirmation when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} waiting for confirmation: {state.ReasonCode}",
+            FileOperationStatus.WaitingForConfirmation => $"{operation} waiting for confirmation",
+            FileOperationStatus.Completed => $"{operation} completed",
+            FileOperationStatus.Cancelled => $"{operation} cancelled",
+            FileOperationStatus.Failed when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} failed: {state.ReasonCode}",
+            FileOperationStatus.Failed => $"{operation} failed",
+            _ => ""
+        };
     }
 
     private sealed class NoOpClipboardTextWriter : IClipboardTextWriter

@@ -6,6 +6,7 @@ using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Commands;
 using VeloFile.Core.Navigation;
+using VeloFile.Core.Operations;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using Windows.System;
@@ -186,6 +187,18 @@ public sealed partial class MainWindow : Window
     private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.ClearRecursiveSearch();
+        RefreshShellBindings();
+    }
+
+    private async void ConfirmPermanentDeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.ConfirmPermanentDeleteAsync(confirm: true);
+        RefreshShellBindings();
+    }
+
+    private async void CancelPermanentDeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.ConfirmPermanentDeleteAsync(confirm: false);
         RefreshShellBindings();
     }
 
@@ -457,6 +470,7 @@ public sealed partial class MainWindow : Window
         if (ViewModel.IsBuiltInCommandAvailable(commandId, CanPasteFromClipboard()))
         {
             ViewModel.ExecuteBuiltInCommand(commandId);
+            RefreshShellBindings();
         }
     }
 
@@ -496,6 +510,11 @@ public sealed partial class MainWindow : Window
             RecursiveSearchStatusText.Text = ViewModel.RecursiveSearchStatusText;
             SkippedLocationsList.ItemsSource = ViewModel.SearchSkippedLocations;
             SkippedLocationsList.Visibility = ViewModel.SearchSkippedLocationsVisible ? Visibility.Visible : Visibility.Collapsed;
+            FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
+            PermanentDeleteConfirmationPanel.Visibility = ViewModel.PendingPermanentDeleteConfirmation is null ? Visibility.Collapsed : Visibility.Visible;
+            PermanentDeleteConfirmationText.Text = ViewModel.PendingPermanentDeleteConfirmation is null
+                ? ""
+                : PermanentDeleteConfirmationMessage(ViewModel.PendingPermanentDeleteConfirmation);
             RawPathBox.Text = ViewModel.PathEntryError?.SubmittedPath ?? ViewModel.ActivePath;
             MissingLocationState.IsOpen = ViewModel.MissingLocationVisible;
             MissingLocationState.Message = ViewModel.MissingLocationPath is null
@@ -514,6 +533,14 @@ public sealed partial class MainWindow : Window
         {
             _isRefreshingShellBindings = false;
         }
+    }
+
+    private static string PermanentDeleteConfirmationMessage(PermanentDeleteConfirmationRequest confirmation)
+    {
+        var prefix = confirmation.Reason is PermanentDeleteReason.RecycleBinUnavailable
+            ? "Recycle Bin delete is unavailable. "
+            : "";
+        return $"{prefix}Permanently delete {confirmation.Items.Count} selected item(s)?";
     }
 
 }
