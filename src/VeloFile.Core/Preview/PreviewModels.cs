@@ -19,36 +19,58 @@ public enum PreviewContentKind
     Pdf
 }
 
+public sealed record ImagePreviewArtifact(
+    int PixelWidth,
+    int PixelHeight,
+    string EncodedFormat,
+    byte[] EncodedBytes,
+    bool SourceWasDownsampled);
+
+public sealed record PdfPagePreviewArtifact(
+    int PageNumber,
+    int? PageCount,
+    int PixelWidth,
+    int PixelHeight,
+    string EncodedFormat,
+    byte[] EncodedBytes,
+    bool SourceWasDownsampled);
+
 public sealed record PreviewContent(
     PreviewContentKind Kind,
     string? TextContent,
     bool IsTruncated,
     int? WidthPixels = null,
     int? HeightPixels = null,
-    int? PageNumber = null)
+    int? PageNumber = null,
+    ImagePreviewArtifact? ImageArtifact = null,
+    PdfPagePreviewArtifact? PdfPageArtifact = null)
 {
     public static PreviewContent Text(string text, bool truncated)
     {
         return new PreviewContent(PreviewContentKind.Text, text, truncated);
     }
 
-    public static PreviewContent Image(int widthPixels, int heightPixels)
+    public static PreviewContent Image(ImagePreviewArtifact artifact)
     {
         return new PreviewContent(
             PreviewContentKind.Image,
-            $"Image {widthPixels} x {heightPixels}",
+            $"Image {artifact.PixelWidth} x {artifact.PixelHeight}",
             IsTruncated: false,
-            WidthPixels: widthPixels,
-            HeightPixels: heightPixels);
+            WidthPixels: artifact.PixelWidth,
+            HeightPixels: artifact.PixelHeight,
+            ImageArtifact: artifact);
     }
 
-    public static PreviewContent PdfFirstPage(string text)
+    public static PreviewContent PdfPage(PdfPagePreviewArtifact artifact)
     {
         return new PreviewContent(
             PreviewContentKind.Pdf,
-            text,
+            $"PDF page {artifact.PageNumber}",
             IsTruncated: false,
-            PageNumber: 1);
+            PageNumber: artifact.PageNumber,
+            WidthPixels: artifact.PixelWidth,
+            HeightPixels: artifact.PixelHeight,
+            PdfPageArtifact: artifact);
     }
 }
 
@@ -159,6 +181,15 @@ public interface IPreviewProvider
 
     ValueTask<PreviewProviderResult> PreviewAsync(
         PreviewRequest request,
+        PreviewProviderContext context,
+        CancellationToken cancellationToken);
+}
+
+public interface IPagedPreviewProvider : IPreviewProvider
+{
+    ValueTask<PreviewProviderResult> PreviewPageAsync(
+        PreviewRequest request,
+        int pageNumber,
         PreviewProviderContext context,
         CancellationToken cancellationToken);
 }

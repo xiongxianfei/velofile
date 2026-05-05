@@ -65,6 +65,30 @@ public sealed class PreviewContractTests
     }
 
     [TestMethod]
+    public async Task PreviewContract_paged_pdf_preview_renders_later_pages_only_after_request()
+    {
+        var provider = new ScriptedPagedPreviewProvider();
+        var controller = CreateController(
+            provider,
+            loadingDelayMs: 200,
+            timeoutPolicy: DistinctTimeoutPolicy());
+
+        controller.StartPreview(Item(@"D:\docs\paper.pdf", "paper.pdf", length: 2048));
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Success);
+
+        CollectionAssert.AreEqual(new[] { 1 }, provider.RequestedPages.ToArray());
+        Assert.AreEqual(1, controller.State.Content?.PdfPageArtifact?.PageNumber);
+        Assert.AreEqual(3, controller.State.Content?.PdfPageArtifact?.PageCount);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(23), provider.Contexts.Single().TimeoutBudget);
+
+        Assert.IsTrue(controller.RequestPreviewPage(2));
+        await WaitUntilAsync(() => controller.State.Content?.PdfPageArtifact?.PageNumber == 2);
+
+        CollectionAssert.AreEqual(new[] { 1, 2 }, provider.RequestedPages.ToArray());
+        Assert.AreEqual(TimeSpan.FromMilliseconds(23), provider.Contexts.Last().TimeoutBudget);
+    }
+
+    [TestMethod]
     public async Task PreviewContract_fast_success_skips_loading_and_keeps_metadata()
     {
         var provider = new ScriptedPreviewProvider();
@@ -399,6 +423,46 @@ public sealed class PreviewContractTests
         {
             var bytes = await File.ReadAllBytesAsync(request.Item.FullPath, cancellationToken).ConfigureAwait(false);
             return PreviewProviderResult.Success(PreviewContent.Text("Preview read " + bytes.Length + " bytes.", truncated: false));
+        }
+    }
+
+    private sealed class ScriptedPagedPreviewProvider : IPagedPreviewProvider
+    {
+        public PreviewOperation Operation => PreviewOperation.PdfFirstPageRender;
+
+        public List<int> RequestedPages { get; } = [];
+
+        public List<PreviewProviderContext> Contexts { get; } = [];
+
+        public bool CanPreview(PreviewRequest request)
+        {
+            return string.Equals(request.Item.Name, "paper.pdf", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public ValueTask<PreviewProviderResult> PreviewAsync(
+            PreviewRequest request,
+            PreviewProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            return PreviewPageAsync(request, pageNumber: 1, context, cancellationToken);
+        }
+
+        public ValueTask<PreviewProviderResult> PreviewPageAsync(
+            PreviewRequest request,
+            int pageNumber,
+            PreviewProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            RequestedPages.Add(pageNumber);
+            Contexts.Add(context);
+            return ValueTask.FromResult(PreviewProviderResult.Success(PreviewContent.PdfPage(new PdfPagePreviewArtifact(
+                PageNumber: pageNumber,
+                PageCount: 3,
+                PixelWidth: 100,
+                PixelHeight: 80,
+                EncodedFormat: "png",
+                EncodedBytes: [1, 2, 3],
+                SourceWasDownsampled: false))));
         }
     }
 

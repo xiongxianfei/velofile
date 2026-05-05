@@ -215,10 +215,14 @@ public sealed class AppShellContractTests
 
         StringAssert.Contains(xaml, "x:Name=\"PreviewPane\"");
         StringAssert.Contains(xaml, "x:Name=\"PreviewStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"PreviewContentText\"");
+        StringAssert.Contains(xaml, "x:Name=\"PreviewImageSurface\"");
         StringAssert.Contains(xaml, "x:Name=\"PreviewMetadataList\"");
         StringAssert.Contains(xaml, "Key=\"P\" Modifiers=\"Control\" Invoked=\"TogglePreviewAccelerator_Invoked\"");
         StringAssert.Contains(codeBehind, "ViewModel.TogglePreviewPane()");
         StringAssert.Contains(codeBehind, "ViewModel.PreviewStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.PreviewContentText");
+        StringAssert.Contains(codeBehind, "SetPreviewArtifactAsync");
         StringAssert.Contains(codeBehind, "ViewModel.PreviewMetadataFields");
     }
 

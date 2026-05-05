@@ -593,6 +593,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock
@@ -603,9 +604,24 @@
                     Grid.Row="1"
                     Text="Preview unavailable"
                     Opacity="0.75" />
+                <StackPanel
+                    Grid.Row="2"
+                    Spacing="6">
+                    <TextBlock
+                        x:Name="PreviewContentText"
+                        TextWrapping="WrapWholeWords"
+                        TextTrimming="CharacterEllipsis"
+                        AutomationProperties.Name="Preview content" />
+                    <Image
+                        x:Name="PreviewImageSurface"
+                        MaxHeight="240"
+                        Stretch="Uniform"
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Rendered preview" />
+                </StackPanel>
                 <ListView
                     x:Name="PreviewMetadataList"
-                    Grid.Row="2"
+                    Grid.Row="3"
                     AutomationProperties.Name="Preview metadata">
                     <ListView.ItemTemplate>
                         <DataTemplate>

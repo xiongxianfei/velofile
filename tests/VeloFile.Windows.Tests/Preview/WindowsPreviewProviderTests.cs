@@ -3,6 +3,8 @@ using System.Text;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Preview;
 using VeloFile.Windows.Preview;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 
 namespace VeloFile.Windows.Tests.Preview;
 
@@ -11,9 +13,11 @@ namespace VeloFile.Windows.Tests.Preview;
 public sealed class WindowsPreviewProviderTests
 {
     [TestMethod]
-    public async Task PreviewProviders_image_provider_accepts_png_and_rejects_oversize_or_huge_dimensions()
+    public async Task PreviewProviders_image_provider_decodes_png_and_jpeg_to_render_artifacts()
     {
-        using var normal = ScratchFile.CreateBytes("normal.png", PngBytes(width: 32, height: 24));
+        using var normal = ScratchFile.CreateBytes(
+            "normal.png",
+            await CreateBitmapBytesAsync(BitmapEncoder.PngEncoderId, width: 32, height: 24));
         var provider = new WindowsImagePreviewProvider();
 
         var success = await provider.PreviewAsync(
@@ -23,18 +27,28 @@ public sealed class WindowsPreviewProviderTests
 
         Assert.AreEqual(PreviewProviderResultStatus.Success, success.Status);
         Assert.AreEqual(PreviewContentKind.Image, success.Content?.Kind);
-        Assert.AreEqual(32, success.Content?.WidthPixels);
-        Assert.AreEqual(24, success.Content?.HeightPixels);
+        AssertImageArtifact(success.Content, expectedWidth: 32, expectedHeight: 24);
 
-        using var jpeg = ScratchFile.CreateBytes("photo.jpg", JpegBytes(width: 40, height: 30));
+        using var jpeg = ScratchFile.CreateBytes(
+            "photo.jpg",
+            await CreateBitmapBytesAsync(BitmapEncoder.JpegEncoderId, width: 40, height: 30));
         var jpegSuccess = await provider.PreviewAsync(
             Request(jpeg.ToListedFileItem()),
             Context(PreviewOperation.ImageDecode),
             CancellationToken.None);
+
         Assert.AreEqual(PreviewProviderResultStatus.Success, jpegSuccess.Status);
         Assert.AreEqual(PreviewContentKind.Image, jpegSuccess.Content?.Kind);
-        Assert.AreEqual(40, jpegSuccess.Content?.WidthPixels);
-        Assert.AreEqual(30, jpegSuccess.Content?.HeightPixels);
+        AssertImageArtifact(jpegSuccess.Content, expectedWidth: 40, expectedHeight: 30);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_image_provider_rejects_limits_and_corrupt_bodies()
+    {
+        using var normal = ScratchFile.CreateBytes(
+            "normal.png",
+            await CreateBitmapBytesAsync(BitmapEncoder.PngEncoderId, width: 32, height: 24));
+        var provider = new WindowsImagePreviewProvider();
 
         var tooLarge = await provider.PreviewAsync(
             Request(normal.ToListedFileItem(length: 100 * 1024 * 1024L + 1)),
@@ -43,13 +57,38 @@ public sealed class WindowsPreviewProviderTests
         Assert.AreEqual(PreviewProviderResultStatus.Unsupported, tooLarge.Status);
         Assert.AreEqual("image-too-large", tooLarge.ReasonCode);
 
-        using var hugeDimensions = ScratchFile.CreateBytes("huge.png", PngBytes(width: 8193, height: 1));
-        var huge = await provider.PreviewAsync(
-            Request(hugeDimensions.ToListedFileItem()),
+        var hugeProvider = new WindowsImagePreviewProvider(
+            new ScriptedImagePreviewDecoder(new ImagePreviewArtifact(
+                PixelWidth: 8193,
+                PixelHeight: 1,
+                EncodedFormat: "png",
+                EncodedBytes: [1, 2, 3],
+                SourceWasDownsampled: false)));
+        var huge = await hugeProvider.PreviewAsync(
+            Request(normal.ToListedFileItem()),
             Context(PreviewOperation.ImageDecode),
             CancellationToken.None);
         Assert.AreEqual(PreviewProviderResultStatus.Unsupported, huge.Status);
         Assert.AreEqual("image-dimensions-too-large", huge.ReasonCode);
+
+        var corruptBytes = await CreateBitmapBytesAsync(BitmapEncoder.PngEncoderId, width: 8, height: 8);
+        Array.Resize(ref corruptBytes, corruptBytes.Length / 2);
+        using var corrupt = ScratchFile.CreateBytes("corrupt.png", corruptBytes);
+        var corruptResult = await provider.PreviewAsync(
+            Request(corrupt.ToListedFileItem()),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+        Assert.AreNotEqual(PreviewProviderResultStatus.Success, corruptResult.Status);
+        Assert.AreEqual("decode-error", corruptResult.ReasonCode);
+
+        var accessDeniedProvider = new WindowsImagePreviewProvider(
+            new ThrowingImagePreviewDecoder(new UnauthorizedAccessException()));
+        var accessDenied = await accessDeniedProvider.PreviewAsync(
+            Request(normal.ToListedFileItem()),
+            Context(PreviewOperation.ImageDecode),
+            CancellationToken.None);
+        Assert.AreEqual(PreviewProviderResultStatus.Failed, accessDenied.Status);
+        Assert.AreEqual("access-denied", accessDenied.ReasonCode);
     }
 
     [TestMethod]
@@ -87,7 +126,7 @@ public sealed class WindowsPreviewProviderTests
     }
 
     [TestMethod]
-    public async Task PreviewProviders_pdf_provider_returns_first_page_and_rejects_oversize_or_corrupt_files()
+    public async Task PreviewProviders_pdf_provider_renders_first_page_artifact_with_real_renderer()
     {
         var provider = new WindowsPdfPreviewProvider();
         using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes());
@@ -99,7 +138,41 @@ public sealed class WindowsPreviewProviderTests
 
         Assert.AreEqual(PreviewProviderResultStatus.Success, success.Status);
         Assert.AreEqual(PreviewContentKind.Pdf, success.Content?.Kind);
-        StringAssert.Contains(success.Content?.TextContent ?? "", "Page 1");
+        AssertPdfArtifact(success.Content, expectedPageNumber: 1);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_pdf_provider_renders_later_pages_only_after_navigation()
+    {
+        using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes(pageCount: 2));
+        var renderer = new RecordingPdfPageRenderer(pageCount: 2);
+        var provider = new WindowsPdfPreviewProvider(renderer);
+
+        var firstPage = await provider.PreviewAsync(
+            Request(pdf.ToListedFileItem()),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Success, firstPage.Status);
+        CollectionAssert.AreEqual(new[] { 1 }, renderer.RequestedPages.ToArray());
+        AssertPdfArtifact(firstPage.Content, expectedPageNumber: 1);
+
+        var secondPage = await provider.PreviewPageAsync(
+            Request(pdf.ToListedFileItem()),
+            pageNumber: 2,
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Success, secondPage.Status);
+        CollectionAssert.AreEqual(new[] { 1, 2 }, renderer.RequestedPages.ToArray());
+        AssertPdfArtifact(secondPage.Content, expectedPageNumber: 2);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_pdf_provider_rejects_oversize_or_corrupt_files()
+    {
+        var provider = new WindowsPdfPreviewProvider();
+        using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes());
 
         var tooLarge = await provider.PreviewAsync(
             Request(pdf.ToListedFileItem(length: 500 * 1024 * 1024L + 1)),
@@ -115,6 +188,15 @@ public sealed class WindowsPreviewProviderTests
             CancellationToken.None);
         Assert.AreEqual(PreviewProviderResultStatus.Failed, failed.Status);
         Assert.AreEqual("pdf-corrupt", failed.ReasonCode);
+
+        var accessDeniedProvider = new WindowsPdfPreviewProvider(
+            new ThrowingPdfPageRenderer(new UnauthorizedAccessException()));
+        var accessDenied = await accessDeniedProvider.PreviewAsync(
+            Request(pdf.ToListedFileItem()),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+        Assert.AreEqual(PreviewProviderResultStatus.Failed, accessDenied.Status);
+        Assert.AreEqual("access-denied", accessDenied.ReasonCode);
     }
 
     [TestMethod]
@@ -122,7 +204,7 @@ public sealed class WindowsPreviewProviderTests
     {
         var cases = new (IPreviewProvider Provider, PreviewOperation Operation, ScratchFile File)[]
         {
-            (new WindowsImagePreviewProvider(), PreviewOperation.ImageDecode, ScratchFile.CreateBytes("image.png", PngBytes(width: 16, height: 16))),
+            (new WindowsImagePreviewProvider(), PreviewOperation.ImageDecode, ScratchFile.CreateBytes("image.png", await CreateBitmapBytesAsync(BitmapEncoder.PngEncoderId, width: 16, height: 16))),
             (new WindowsTextPreviewProvider(), PreviewOperation.TextReadAndEncodingDetection, ScratchFile.CreateText("notes.txt", "preview text marker")),
             (new WindowsPdfPreviewProvider(), PreviewOperation.PdfFirstPageRender, ScratchFile.CreateBytes("paper.pdf", MinimalPdfBytes()))
         };
@@ -170,61 +252,167 @@ public sealed class WindowsPreviewProviderTests
         return new PreviewProviderContext(operation, TimeSpan.FromSeconds(5));
     }
 
-    private static byte[] PngBytes(int width, int height)
+    private static void AssertImageArtifact(PreviewContent? content, int expectedWidth, int expectedHeight)
     {
-        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l3EX7wAAAABJRU5ErkJggg==");
-        WriteBigEndian(bytes, 16, width);
-        WriteBigEndian(bytes, 20, height);
+        Assert.IsNotNull(content?.ImageArtifact);
+        Assert.AreEqual(expectedWidth, content.ImageArtifact.PixelWidth);
+        Assert.AreEqual(expectedHeight, content.ImageArtifact.PixelHeight);
+        Assert.AreEqual(expectedWidth, content.WidthPixels);
+        Assert.AreEqual(expectedHeight, content.HeightPixels);
+        Assert.AreEqual("png", content.ImageArtifact.EncodedFormat);
+        Assert.IsNotEmpty(content.ImageArtifact.EncodedBytes);
+    }
+
+    private static void AssertPdfArtifact(PreviewContent? content, int expectedPageNumber)
+    {
+        Assert.IsNotNull(content?.PdfPageArtifact);
+        Assert.AreEqual(expectedPageNumber, content.PdfPageArtifact.PageNumber);
+        Assert.AreEqual(expectedPageNumber, content.PageNumber);
+        Assert.AreEqual("png", content.PdfPageArtifact.EncodedFormat);
+        Assert.IsNotEmpty(content.PdfPageArtifact.EncodedBytes);
+    }
+
+    private static async Task<byte[]> CreateBitmapBytesAsync(Guid encoderId, int width, int height)
+    {
+        using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, width, height, BitmapAlphaMode.Premultiplied);
+        using var stream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(encoderId, stream);
+        encoder.SetSoftwareBitmap(bitmap);
+        await encoder.FlushAsync();
+        return await ReadAllBytesAsync(stream);
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(IRandomAccessStream stream)
+    {
+        stream.Seek(0);
+        using var reader = new DataReader(stream.GetInputStreamAt(0));
+        await reader.LoadAsync((uint)stream.Size);
+        var bytes = new byte[stream.Size];
+        reader.ReadBytes(bytes);
         return bytes;
     }
 
-    private static byte[] JpegBytes(int width, int height)
+    private static byte[] MinimalPdfBytes(int pageCount = 1)
     {
-        return
-        [
-            0xff, 0xd8,
-            0xff, 0xe0, 0x00, 0x10,
-            0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00,
-            0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
-            0xff, 0xc0, 0x00, 0x11,
-            0x08,
-            (byte)((height >> 8) & 0xff),
-            (byte)(height & 0xff),
-            (byte)((width >> 8) & 0xff),
-            (byte)(width & 0xff),
-            0x03,
-            0x01, 0x11, 0x00,
-            0x02, 0x11, 0x00,
-            0x03, 0x11, 0x00,
-            0xff, 0xd9
-        ];
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            $"<< /Type /Pages /Kids [{string.Join(" ", Enumerable.Range(0, pageCount).Select(index => $"{3 + index * 2} 0 R"))}] /Count {pageCount} >>"
+        };
+
+        for (var index = 0; index < pageCount; index++)
+        {
+            var pageObjectNumber = 3 + index * 2;
+            var contentObjectNumber = pageObjectNumber + 1;
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents {contentObjectNumber} 0 R /Resources << /Font << /F1 {3 + pageCount * 2} 0 R >> >> >>");
+            var content = $"BT /F1 18 Tf 20 60 Td (Page {index + 1}) Tj ET";
+            objects.Add($"<< /Length {content.Length} >>\nstream\n{content}\nendstream");
+        }
+
+        objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        var builder = new StringBuilder();
+        builder.Append("%PDF-1.4\n");
+        var offsets = new List<int> { 0 };
+        for (var index = 0; index < objects.Count; index++)
+        {
+            offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
+            builder.Append(index + 1).Append(" 0 obj\n");
+            builder.Append(objects[index]).Append('\n');
+            builder.Append("endobj\n");
+        }
+
+        var xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append("xref\n");
+        builder.Append("0 ").Append(objects.Count + 1).Append('\n');
+        builder.Append("0000000000 65535 f \n");
+        foreach (var offset in offsets.Skip(1))
+        {
+            builder.Append(offset.ToString("0000000000")).Append(" 00000 n \n");
+        }
+
+        builder.Append("trailer\n");
+        builder.Append("<< /Size ").Append(objects.Count + 1).Append(" /Root 1 0 R >>\n");
+        builder.Append("startxref\n");
+        builder.Append(xrefOffset).Append('\n');
+        builder.Append("%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
     }
 
-    private static void WriteBigEndian(byte[] bytes, int offset, int value)
+    private sealed class ScriptedImagePreviewDecoder : IImagePreviewDecoder
     {
-        bytes[offset] = (byte)((value >> 24) & 0xff);
-        bytes[offset + 1] = (byte)((value >> 16) & 0xff);
-        bytes[offset + 2] = (byte)((value >> 8) & 0xff);
-        bytes[offset + 3] = (byte)(value & 0xff);
+        private readonly ImagePreviewArtifact _artifact;
+
+        public ScriptedImagePreviewDecoder(ImagePreviewArtifact artifact)
+        {
+            _artifact = artifact;
+        }
+
+        public ValueTask<ImagePreviewArtifact> DecodeAsync(string path, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(_artifact);
+        }
     }
 
-    private static byte[] MinimalPdfBytes()
+    private sealed class RecordingPdfPageRenderer : IPdfPageRenderer
     {
-        return Encoding.ASCII.GetBytes("""
-            %PDF-1.4
-            1 0 obj
-            << /Type /Catalog /Pages 2 0 R >>
-            endobj
-            2 0 obj
-            << /Type /Pages /Kids [3 0 R] /Count 1 >>
-            endobj
-            3 0 obj
-            << /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
-            endobj
-            trailer
-            << /Root 1 0 R >>
-            %%EOF
-            """);
+        private readonly int _pageCount;
+
+        public RecordingPdfPageRenderer(int pageCount)
+        {
+            _pageCount = pageCount;
+        }
+
+        public List<int> RequestedPages { get; } = [];
+
+        public ValueTask<PdfPagePreviewArtifact> RenderPageAsync(
+            string path,
+            int pageNumber,
+            CancellationToken cancellationToken)
+        {
+            RequestedPages.Add(pageNumber);
+            return ValueTask.FromResult(new PdfPagePreviewArtifact(
+                PageNumber: pageNumber,
+                PageCount: _pageCount,
+                PixelWidth: 200,
+                PixelHeight: 120,
+                EncodedFormat: "png",
+                EncodedBytes: [137, 80, 78, 71],
+                SourceWasDownsampled: false));
+        }
+    }
+
+    private sealed class ThrowingImagePreviewDecoder : IImagePreviewDecoder
+    {
+        private readonly Exception _exception;
+
+        public ThrowingImagePreviewDecoder(Exception exception)
+        {
+            _exception = exception;
+        }
+
+        public ValueTask<ImagePreviewArtifact> DecodeAsync(string path, CancellationToken cancellationToken)
+        {
+            throw _exception;
+        }
+    }
+
+    private sealed class ThrowingPdfPageRenderer : IPdfPageRenderer
+    {
+        private readonly Exception _exception;
+
+        public ThrowingPdfPageRenderer(Exception exception)
+        {
+            _exception = exception;
+        }
+
+        public ValueTask<PdfPagePreviewArtifact> RenderPageAsync(
+            string path,
+            int pageNumber,
+            CancellationToken cancellationToken)
+        {
+            throw _exception;
+        }
     }
 
     private sealed class ScratchFile : IDisposable

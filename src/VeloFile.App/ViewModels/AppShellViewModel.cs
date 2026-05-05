@@ -163,6 +163,14 @@ public sealed class AppShellViewModel
 
     public string PreviewStatusText => FormatPreviewStatus();
 
+    public string PreviewContentText => FormatPreviewContentText();
+
+    public int? CurrentPdfPageNumber => Preview.Content?.PdfPageArtifact?.PageNumber;
+
+    public int? PdfPageCount => Preview.Content?.PdfPageArtifact?.PageCount;
+
+    public bool CanNavigatePdfPages => (PdfPageCount ?? 0) > 1;
+
     public IReadOnlyList<PreviewMetadataField> PreviewMetadataFields => Preview.Metadata?.Fields() ?? [];
 
     public PathSubmissionResult SubmitPath(string path)
@@ -399,6 +407,17 @@ public sealed class AppShellViewModel
         }
 
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool RequestPdfPage(int pageNumber)
+    {
+        if (_previewController?.RequestPreviewPage(pageNumber) is true)
+        {
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+
+        return false;
     }
 
     public IReadOnlyList<BuiltInContextMenuItem> BuildFileContextMenu(bool canPaste)
@@ -1002,6 +1021,18 @@ public sealed class AppShellViewModel
             PreviewStatus.Unsupported => "Preview unsupported",
             PreviewStatus.Failed when !string.IsNullOrWhiteSpace(Preview.ReasonCode) => $"Preview failed: {Preview.ReasonCode}",
             PreviewStatus.Failed => "Preview failed",
+            _ => ""
+        };
+    }
+
+    private string FormatPreviewContentText()
+    {
+        return Preview.Content switch
+        {
+            { Kind: PreviewContentKind.Text } content => content.TextContent ?? "",
+            { ImageArtifact: { } image } => $"Image {image.PixelWidth} x {image.PixelHeight}",
+            { PdfPageArtifact: { PageCount: > 0 } pdf } => $"PDF page {pdf.PageNumber} of {pdf.PageCount}",
+            { PdfPageArtifact: { } pdf } => $"PDF page {pdf.PageNumber}",
             _ => ""
         };
     }

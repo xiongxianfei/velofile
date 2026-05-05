@@ -6,12 +6,13 @@ M12 adds bounded Windows preview providers on top of the M11 preview contract. T
 
 `src/VeloFile.Windows/Preview/` now contains the Windows provider set:
 
-- `WindowsImagePreviewProvider` supports common image extensions, reads only enough header data to identify dimensions, rejects files over 100 MB, and rejects decoded dimensions over 8192 by 8192.
+- `WindowsImagePreviewProvider` supports common image extensions, decodes image bodies through Windows imaging, returns PNG render artifacts, rejects files over 100 MB, and rejects decoded dimensions over 8192 by 8192.
+- Review resolution replaced the header-only image path with `IImagePreviewDecoder` and `WindowsImagePreviewDecoder`, which use Windows imaging decode APIs to produce PNG render artifact bytes before image preview success.
 - `WindowsTextPreviewProvider` supports common text/code extensions, reads at most the first 1 MB, marks truncation when content continues, rejects binary-looking inputs, and refuses files over 100 MB.
-- `WindowsPdfPreviewProvider` validates a bounded first-page-capable PDF sample, returns first-page preview content, and refuses PDFs over 500 MB.
+- `WindowsPdfPreviewProvider` renders pages through `IPdfPageRenderer` and `WindowsPdfPageRenderer`, returns encoded page artifact bytes, renders page 1 initially, and exposes a paged preview hook so later pages render only after user navigation.
 - `WindowsPreviewProviderFactory` returns image, text, PDF, then metadata fallback in production order.
 
-`PreviewContent` now carries optional image dimensions and PDF page number so provider success can be asserted without adding M13 UI rendering work.
+`PreviewContent` now carries image and PDF page render artifacts with encoded bytes, dimensions, format, and PDF page metadata. The app preview pane exposes content text and an image surface that loads those artifact bytes for image/PDF previews.
 
 `AppCompositionRoot` now uses the Windows provider factory instead of the metadata-only provider list. Metadata fallback remains last in the provider chain.
 
@@ -31,25 +32,27 @@ The Corpus provider test was added before the provider scope existed. It first f
 
 Windows provider tests cover:
 
-- PNG success with decoded dimensions;
+- PNG and JPEG decode success with non-empty render artifacts;
 - image over-size fallback;
 - image decoded-dimension fallback;
+- corrupt image body failure so header-only fixtures cannot pass;
 - text 1 MB prefix limit and truncation;
 - binary text refusal;
 - text over-size fallback;
-- PDF first-page success;
+- PDF first-page render artifact success;
+- PDF later-page rendering only after explicit navigation;
 - PDF over-size fallback;
 - corrupt PDF failure;
 - source non-mutation for image, text, and PDF provider paths;
 - production provider factory order.
 
-App tests prove production composition uses the Windows provider factory and no longer stops at metadata-only preview.
+Core and App tests prove the PDF page navigation hook: initial preview requests page 1 only, and a later page is rendered only after the shell/view model requests it. App tests also prove production composition uses the Windows provider factory and no longer stops at metadata-only preview.
 
-Corpus tests prove `preview --scope providers` writes provider behavior-verifier evidence for image success, text truncation, PDF first-page, over-size fallback, and source non-mutation.
+Corpus tests prove `preview --scope providers` writes provider behavior-verifier evidence for image artifact success, text truncation, PDF page artifact success, over-size fallback, and source non-mutation. The provider corpus fixtures now use decodable image/PDF files and verify non-empty artifact bytes.
 
 ## Scope Notes
 
-This slice does not implement thumbnail/icon execution or preview UI rendering polish. Those remain M13 work. It also avoids third-party preview engines and Shell preview handler hosting per ADR 0004.
+This slice does not implement thumbnail/icon execution or advanced preview UI polish. Those remain M13 work. It also avoids third-party preview engines and Shell preview handler hosting per ADR 0004.
 
 ## Validation
 

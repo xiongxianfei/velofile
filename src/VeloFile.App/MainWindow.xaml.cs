@@ -2,6 +2,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
 using VeloFile.App.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
@@ -9,11 +10,13 @@ using VeloFile.Core.Commands;
 using VeloFile.Core.DragDrop;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Operations;
+using VeloFile.Core.Preview;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
 using VeloFile.Windows.DragDrop;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.System;
 using Windows.UI.Core;
 
@@ -25,6 +28,7 @@ public sealed partial class MainWindow : Window
     private readonly AppFileCommandAcceleratorRouter _fileCommandAcceleratorRouter;
     private readonly AppDragDropRoute _dragDropRoute;
     private bool _isRefreshingShellBindings;
+    private int _previewArtifactVersion;
 
     public MainWindow(AppShellViewModel viewModel)
         : this(viewModel, new WinUiWindowPlacementApplier())
@@ -679,6 +683,8 @@ public sealed partial class MainWindow : Window
             PreviewColumn.Width = ViewModel.IsPreviewPaneOpen ? new GridLength(320) : new GridLength(0);
             PreviewPane.Visibility = ViewModel.IsPreviewPaneOpen ? Visibility.Visible : Visibility.Collapsed;
             PreviewStatusText.Text = ViewModel.PreviewStatusText;
+            PreviewContentText.Text = ViewModel.PreviewContentText;
+            _ = SetPreviewArtifactAsync(ViewModel.Preview.Content, ++_previewArtifactVersion);
             PreviewMetadataList.ItemsSource = ViewModel.PreviewMetadataFields;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
             CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;
@@ -711,6 +717,52 @@ public sealed partial class MainWindow : Window
         finally
         {
             _isRefreshingShellBindings = false;
+        }
+    }
+
+    private async Task SetPreviewArtifactAsync(PreviewContent? content, int version)
+    {
+        var bytes = content?.ImageArtifact?.EncodedBytes
+            ?? content?.PdfPageArtifact?.EncodedBytes;
+        if (bytes is null || bytes.Length == 0)
+        {
+            if (version == _previewArtifactVersion)
+            {
+                PreviewImageSurface.Source = null;
+                PreviewImageSurface.Visibility = Visibility.Collapsed;
+            }
+
+            return;
+        }
+
+        try
+        {
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream))
+            {
+                writer.WriteBytes(bytes);
+                await writer.StoreAsync();
+                writer.DetachStream();
+            }
+
+            stream.Seek(0);
+            var image = new BitmapImage();
+            await image.SetSourceAsync(stream);
+            if (version != _previewArtifactVersion)
+            {
+                return;
+            }
+
+            PreviewImageSurface.Source = image;
+            PreviewImageSurface.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            if (version == _previewArtifactVersion)
+            {
+                PreviewImageSurface.Source = null;
+                PreviewImageSurface.Visibility = Visibility.Collapsed;
+            }
         }
     }
 

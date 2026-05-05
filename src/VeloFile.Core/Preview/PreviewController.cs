@@ -12,6 +12,8 @@ public sealed class PreviewController
     private readonly PathRedactor? _pathRedactor;
     private readonly object _gate = new();
     private CancellationTokenSource? _activeCancellation;
+    private PreviewRequest? _activeRequest;
+    private IPreviewProvider? _activeProvider;
     private int _generation;
     private PreviewState _state = PreviewState.Empty;
 
@@ -52,6 +54,8 @@ public sealed class PreviewController
             previous = _activeCancellation;
             current = item is null ? null : new CancellationTokenSource();
             _activeCancellation = current;
+            _activeRequest = null;
+            _activeProvider = null;
             generation = ++_generation;
             _state = PreviewState.Empty;
         }
@@ -74,11 +78,61 @@ public sealed class PreviewController
             return;
         }
 
+        lock (_gate)
+        {
+            if (generation != _generation)
+            {
+                return;
+            }
+
+            _activeRequest = request;
+            _activeProvider = provider;
+        }
+
         var providerContext = new PreviewProviderContext(
             provider.Operation,
             _options.TimeoutPolicy.GetBudget(provider.Operation));
         _ = ShowLoadingAfterDelayAsync(generation, metadata, cancellation);
         _ = CompletePreviewAsync(generation, request, provider, providerContext, cancellation);
+    }
+
+    public bool RequestPreviewPage(int pageNumber)
+    {
+        if (pageNumber < 1)
+        {
+            return false;
+        }
+
+        CancellationTokenSource? previous;
+        CancellationTokenSource current;
+        PreviewRequest request;
+        IPagedPreviewProvider provider;
+        int generation;
+        lock (_gate)
+        {
+            if (_activeRequest is null || _activeProvider is not IPagedPreviewProvider pagedProvider)
+            {
+                return false;
+            }
+
+            previous = _activeCancellation;
+            current = new CancellationTokenSource();
+            _activeCancellation = current;
+            request = _activeRequest;
+            provider = pagedProvider;
+            generation = ++_generation;
+            _state = PreviewState.Empty;
+        }
+
+        previous?.Cancel();
+        RaiseStateChanged();
+
+        var providerContext = new PreviewProviderContext(
+            provider.Operation,
+            _options.TimeoutPolicy.GetBudget(provider.Operation));
+        _ = ShowLoadingAfterDelayAsync(generation, request.Metadata, current.Token);
+        _ = CompletePagedPreviewAsync(generation, request, provider, pageNumber, providerContext, current.Token);
+        return true;
     }
 
     public void Clear()
@@ -108,6 +162,53 @@ public sealed class PreviewController
         try
         {
             var previewTask = provider.PreviewAsync(request, providerContext, cancellationToken).AsTask();
+            var timeoutTask = Task.Delay(providerContext.TimeoutBudget, cancellationToken);
+            var completed = await Task.WhenAny(previewTask, timeoutTask).ConfigureAwait(false);
+            if (completed != previewTask)
+            {
+                TryCancelActive(generation);
+                var timeoutState = PreviewState.Failed(request.Metadata, "timeout");
+                TryApply(generation, timeoutState);
+                WritePreviewFailure(request, timeoutState.ReasonCode!);
+                return;
+            }
+
+            var result = await previewTask.ConfigureAwait(false);
+            var state = ToState(request.Metadata, result);
+            TryApply(generation, state);
+            if (state.Status is PreviewStatus.Failed)
+            {
+                WritePreviewFailure(request, state.ReasonCode ?? "unknown");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var state = PreviewState.Failed(request.Metadata, "access-denied");
+            TryApply(generation, state);
+            WritePreviewFailure(request, state.ReasonCode!);
+        }
+        catch (Exception)
+        {
+            var state = PreviewState.Failed(request.Metadata, "decode-error");
+            TryApply(generation, state);
+            WritePreviewFailure(request, state.ReasonCode!);
+        }
+    }
+
+    private async Task CompletePagedPreviewAsync(
+        int generation,
+        PreviewRequest request,
+        IPagedPreviewProvider provider,
+        int pageNumber,
+        PreviewProviderContext providerContext,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var previewTask = provider.PreviewPageAsync(request, pageNumber, providerContext, cancellationToken).AsTask();
             var timeoutTask = Task.Delay(providerContext.TimeoutBudget, cancellationToken);
             var completed = await Task.WhenAny(previewTask, timeoutTask).ConfigureAwait(false);
             if (completed != previewTask)

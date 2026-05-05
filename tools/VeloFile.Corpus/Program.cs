@@ -1134,7 +1134,7 @@ internal static class PreviewProviderCorpusVerifier
     {
         var fixtureRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", "preview", "preview");
         Directory.CreateDirectory(fixtureRoot);
-        WriteBytes(Path.Combine(fixtureRoot, "image-success.png"), PngBytes(width: 24, height: 18));
+        WriteBytes(Path.Combine(fixtureRoot, "image-success.bmp"), BmpBytes(width: 24, height: 18));
         WriteBytes(Path.Combine(fixtureRoot, "text-truncation.txt"), Encoding.UTF8.GetBytes(new string('t', 1024 * 1024) + "TAIL"));
         WriteBytes(Path.Combine(fixtureRoot, "document.pdf"), MinimalPdfBytes());
 
@@ -1187,9 +1187,10 @@ internal static class PreviewProviderCorpusVerifier
 
     private static async Task<bool> VerifyImageAsync(string fixtureRoot)
     {
-        var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "image-success.png"))).ConfigureAwait(false);
+        var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "image-success.bmp"))).ConfigureAwait(false);
         return state.Status is PreviewStatus.Success
             && state.Content?.Kind is PreviewContentKind.Image
+            && state.Content.ImageArtifact?.EncodedBytes.Length > 0
             && state.Content.WidthPixels == 24
             && state.Content.HeightPixels == 18;
     }
@@ -1209,13 +1210,14 @@ internal static class PreviewProviderCorpusVerifier
         var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "document.pdf"))).ConfigureAwait(false);
         return state.Status is PreviewStatus.Success
             && state.Content?.Kind is PreviewContentKind.Pdf
+            && state.Content.PdfPageArtifact?.EncodedBytes.Length > 0
             && state.Content.PageNumber == 1;
     }
 
     private static async Task<bool> VerifyOversizeFallbackAsync(string fixtureRoot)
     {
         var imageState = await PreviewAsync(Item(
-            Path.Combine(fixtureRoot, "image-success.png"),
+            Path.Combine(fixtureRoot, "image-success.bmp"),
             lengthOverride: 100L * 1024 * 1024 + 1)).ConfigureAwait(false);
         var pdfState = await PreviewAsync(Item(
             Path.Combine(fixtureRoot, "document.pdf"),
@@ -1231,7 +1233,7 @@ internal static class PreviewProviderCorpusVerifier
     {
         var paths = new[]
         {
-            Path.Combine(fixtureRoot, "image-success.png"),
+            Path.Combine(fixtureRoot, "image-success.bmp"),
             Path.Combine(fixtureRoot, "text-truncation.txt"),
             Path.Combine(fixtureRoot, "document.pdf")
         };
@@ -1309,39 +1311,84 @@ internal static class PreviewProviderCorpusVerifier
         File.SetAttributes(path, FileAttributes.Archive);
     }
 
-    private static byte[] PngBytes(int width, int height)
+    private static byte[] BmpBytes(int width, int height)
     {
-        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l3EX7wAAAABJRU5ErkJggg==");
-        WriteBigEndian(bytes, 16, width);
-        WriteBigEndian(bytes, 20, height);
+        var stride = width * 4;
+        var pixelBytes = stride * height;
+        var bytes = new byte[54 + pixelBytes];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        WriteLittleEndianInt32(bytes, 2, bytes.Length);
+        WriteLittleEndianInt32(bytes, 10, 54);
+        WriteLittleEndianInt32(bytes, 14, 40);
+        WriteLittleEndianInt32(bytes, 18, width);
+        WriteLittleEndianInt32(bytes, 22, height);
+        WriteLittleEndianUInt16(bytes, 26, 1);
+        WriteLittleEndianUInt16(bytes, 28, 32);
+        WriteLittleEndianInt32(bytes, 34, pixelBytes);
+        for (var index = 54; index < bytes.Length; index += 4)
+        {
+            bytes[index] = 0x40;
+            bytes[index + 1] = 0x80;
+            bytes[index + 2] = 0xc0;
+            bytes[index + 3] = 0xff;
+        }
+
         return bytes;
     }
 
-    private static void WriteBigEndian(byte[] bytes, int offset, int value)
+    private static void WriteLittleEndianInt32(byte[] bytes, int offset, int value)
     {
-        bytes[offset] = (byte)((value >> 24) & 0xff);
-        bytes[offset + 1] = (byte)((value >> 16) & 0xff);
-        bytes[offset + 2] = (byte)((value >> 8) & 0xff);
-        bytes[offset + 3] = (byte)(value & 0xff);
+        bytes[offset] = (byte)(value & 0xff);
+        bytes[offset + 1] = (byte)((value >> 8) & 0xff);
+        bytes[offset + 2] = (byte)((value >> 16) & 0xff);
+        bytes[offset + 3] = (byte)((value >> 24) & 0xff);
+    }
+
+    private static void WriteLittleEndianUInt16(byte[] bytes, int offset, ushort value)
+    {
+        bytes[offset] = (byte)(value & 0xff);
+        bytes[offset + 1] = (byte)((value >> 8) & 0xff);
     }
 
     private static byte[] MinimalPdfBytes()
     {
-        return Encoding.ASCII.GetBytes("""
-            %PDF-1.4
-            1 0 obj
-            << /Type /Catalog /Pages 2 0 R >>
-            endobj
-            2 0 obj
-            << /Type /Pages /Kids [3 0 R] /Count 1 >>
-            endobj
-            3 0 obj
-            << /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
-            endobj
-            trailer
-            << /Root 1 0 R >>
-            %%EOF
-            """);
+        var content = "BT /F1 18 Tf 20 60 Td (Page 1) Tj ET";
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+        };
+
+        var builder = new StringBuilder();
+        builder.Append("%PDF-1.4\n");
+        var offsets = new List<int> { 0 };
+        for (var index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
+            builder.Append(index + 1).Append(" 0 obj\n");
+            builder.Append(objects[index]).Append('\n');
+            builder.Append("endobj\n");
+        }
+
+        var xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append("xref\n");
+        builder.Append("0 ").Append(objects.Length + 1).Append('\n');
+        builder.Append("0000000000 65535 f \n");
+        foreach (var offset in offsets.Skip(1))
+        {
+            builder.Append(offset.ToString("0000000000")).Append(" 00000 n \n");
+        }
+
+        builder.Append("trailer\n");
+        builder.Append("<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\n");
+        builder.Append("startxref\n");
+        builder.Append(xrefOffset).Append('\n');
+        builder.Append("%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
     }
 
     private static string Sha256(string path)

@@ -1,11 +1,22 @@
-using System.Text;
 using VeloFile.Core;
 using VeloFile.Core.Preview;
 
 namespace VeloFile.Windows.Preview;
 
-public sealed class WindowsPdfPreviewProvider : IPreviewProvider
+public sealed class WindowsPdfPreviewProvider : IPagedPreviewProvider
 {
+    private readonly IPdfPageRenderer _renderer;
+
+    public WindowsPdfPreviewProvider()
+        : this(new WindowsPdfPageRenderer())
+    {
+    }
+
+    public WindowsPdfPreviewProvider(IPdfPageRenderer renderer)
+    {
+        _renderer = renderer;
+    }
+
     public PreviewOperation Operation => PreviewOperation.PdfFirstPageRender;
 
     public bool CanPreview(PreviewRequest request)
@@ -13,8 +24,17 @@ public sealed class WindowsPdfPreviewProvider : IPreviewProvider
         return string.Equals(Path.GetExtension(request.Item.Name), ".pdf", StringComparison.OrdinalIgnoreCase);
     }
 
-    public async ValueTask<PreviewProviderResult> PreviewAsync(
+    public ValueTask<PreviewProviderResult> PreviewAsync(
         PreviewRequest request,
+        PreviewProviderContext context,
+        CancellationToken cancellationToken)
+    {
+        return PreviewPageAsync(request, pageNumber: 1, context, cancellationToken);
+    }
+
+    public async ValueTask<PreviewProviderResult> PreviewPageAsync(
+        PreviewRequest request,
+        int pageNumber,
         PreviewProviderContext context,
         CancellationToken cancellationToken)
     {
@@ -25,22 +45,13 @@ public sealed class WindowsPdfPreviewProvider : IPreviewProvider
 
         try
         {
-            await using var stream = new FileStream(
-                request.Item.FullPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete,
-                bufferSize: 81920,
-                useAsync: true);
-
-            if (stream.Length > WindowsPreviewLimits.MaxPdfBytes)
+            var artifact = await _renderer.RenderPageAsync(request.Item.FullPath, pageNumber, cancellationToken).ConfigureAwait(false);
+            if (artifact.EncodedBytes.Length == 0)
             {
-                return PreviewProviderResult.Unsupported("pdf-too-large");
+                return PreviewProviderResult.Failed("pdf-corrupt");
             }
 
-            var bytes = new byte[Math.Min(64 * 1024, (int)Math.Min(stream.Length, 64 * 1024))];
-            var read = await stream.ReadAsync(bytes, cancellationToken).ConfigureAwait(false);
-            return ProcessBytes(bytes, read);
+            return PreviewProviderResult.Success(PreviewContent.PdfPage(artifact));
         }
         catch (OperationCanceledException)
         {
@@ -49,6 +60,14 @@ public sealed class WindowsPdfPreviewProvider : IPreviewProvider
         catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
         {
             return PreviewProviderResult.Failed(ExpectedFileSystemExceptions.ReasonCode(ex));
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return PreviewProviderResult.Failed("pdf-page-unavailable");
+        }
+        catch (InvalidDataException)
+        {
+            return PreviewProviderResult.Failed("pdf-corrupt");
         }
         catch
         {
@@ -59,27 +78,5 @@ public sealed class WindowsPdfPreviewProvider : IPreviewProvider
     private static long? KnownLength(PreviewRequest request)
     {
         return request.Metadata.SizeBytes ?? request.Item.Length;
-    }
-
-    private static PreviewProviderResult ProcessBytes(byte[] bytes, int read)
-    {
-        if (read < 5
-            || bytes[0] != (byte)'%'
-            || bytes[1] != (byte)'P'
-            || bytes[2] != (byte)'D'
-            || bytes[3] != (byte)'F'
-            || bytes[4] != (byte)'-')
-        {
-            return PreviewProviderResult.Failed("pdf-corrupt");
-        }
-
-        var sample = Encoding.ASCII.GetString(bytes, 0, read);
-        if (!sample.Contains("/Type /Page", StringComparison.Ordinal))
-        {
-            return PreviewProviderResult.Failed("pdf-corrupt");
-        }
-
-        return PreviewProviderResult.Success(
-            PreviewContent.PdfFirstPage("PDF Page 1 preview ready"));
     }
 }
