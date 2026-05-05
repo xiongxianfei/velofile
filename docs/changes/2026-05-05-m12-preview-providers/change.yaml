@@ -26,6 +26,7 @@ architecture:
   - docs/architecture/system/architecture.md#preview
 files:
   - src/VeloFile.Windows/Preview/
+  - src/VeloFile.Windows/Properties/AssemblyInfo.cs
   - src/VeloFile.Windows/VeloFile.Windows.csproj
   - src/VeloFile.Core/Preview/PreviewModels.cs
   - src/VeloFile.Core/Preview/PreviewController.cs
@@ -44,32 +45,42 @@ files:
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
   - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders
-    result: first failed for missing render-artifact/decoder/renderer contracts; later review-resolution first failed because null/stale listing length allowed oversized sparse image/PDF files to reach corrupt/decode failure; final run passed 12 Windows provider tests
+    result: first failed for missing render-artifact/decoder/renderer contracts; later review-resolution first failed because null/stale listing length allowed oversized sparse image/PDF files to reach corrupt/decode failure; final follow-up run passed 14 Windows provider tests, including exact PDF cap and cap-plus-one before-render proof
   - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewProviders
     result: first failed because production composition still used metadata-only provider; final run passed 1 App composition test
   - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "PreviewContract_pdf_page_navigation|PreviewContract_main_window_preview_pane"
-    result: review-resolution run passed 2 App shell/view-model tests for PDF previous/next navigation through shell route evidence
+    result: follow-up review-resolution first failed for missing durable PDF navigation context state; final run passed 5 App shell/view-model/main-window tests for bounds, loading, failure, and previous/next shell route evidence
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewContract
+    result: passed 8 App preview-contract tests
+  - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter PreviewContract
+    result: passed 18 Core preview-contract tests
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter PreviewProviders
     result: first failed because provider scope was unimplemented; after adding Windows project copying to the corpus wrapper, final run passed 1 Corpus provider evidence test
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>
     result: passed with a compliant scratch root and provider behavior-verifier evidence
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>
+    result: follow-up direct script run passed with a compliant scratch root and preview contract corpus evidence
   - command: dotnet test VeloFile.sln -c Debug --filter PreviewProviders
-    result: first timed out because CorpusToolingSmokeTests read redirected stdout/stderr sequentially; after concurrent stream-draining fix, passed 1 App, 12 Windows, and 1 Corpus provider tests; Core tests had no matching filter
+    result: first timed out because CorpusToolingSmokeTests read redirected stdout/stderr sequentially; after concurrent stream-draining fix and final PDF cap proof, passed 1 App, 14 Windows, and 1 Corpus provider tests; Core tests had no matching filter
   - command: dotnet test VeloFile.sln -c Debug --filter PreviewContract
-    result: passed 18 Core, 5 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter
+    result: passed 18 Core, 8 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --no-build
+    result: passed 283 tests across App, Core, Windows, and Corpus assemblies
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug
     result: first failed because shared corpus wrapper intermediate-output overrides corrupted project-reference deps after adding Windows; final run passed 8 Corpus tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-    result: review-resolution run passed dotnet info, restore, build with 0 warnings and 0 errors, and 278 tests across Windows, App, Core, and Corpus test assemblies
+    result: follow-up review-resolution run passed dotnet info, restore, build with 0 warnings and 0 errors, and 283 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Image preview supports common image extensions through a Windows BitmapDecoder/SoftwareBitmap decode path, returns PNG render artifacts, enforces the 100 MB input cap at metadata precheck and opened-stream decoder boundaries, and rejects decoded dimensions above 8192 by 8192 before content success.
   - Text/code preview reads at most the first 1 MB, reports truncation, rejects binary-looking inputs, and uses the 100 MB metadata-only cap.
-  - PDF preview renders PDF pages through a Windows.Data.Pdf renderer, returns encoded page artifacts, initially renders page 1, exposes a paged preview hook and production shell Previous/Next controls for later-page navigation, and enforces the 500 MB cap at metadata precheck and opened-stream renderer boundaries.
+  - PDF preview renders PDF pages through a Windows.Data.Pdf renderer, returns encoded page artifacts, initially renders page 1, exposes a paged preview hook and production shell Previous/Next controls for later-page navigation, preserves navigation context through page loading/failure states, and enforces the 500 MB cap at metadata precheck and opened-stream renderer boundaries.
   - Production app composition now uses Windows image, text, and PDF providers before metadata fallback.
   - The preview pane now exposes content text and an image surface that loads image/PDF render artifact bytes.
   - Provider corpus scope now invokes provider behavior checks and writes provider evidence under the preview corpus result path.
   - The corpus wrapper now lets each copied project use scratch-local default bin/obj folders instead of sharing one intermediate-output directory across project references.
   - Corpus tests now drain script stdout and stderr concurrently so solution-level filtered validation cannot hang while corpus subprocesses are still writing redirected output.
+  - Follow-up PDF page navigation tests prove previous/next no-op safely at bounds, controls remain visible but disabled while a later page is rendering, duplicate page requests are rejected while loading, and later-page failures preserve the last rendered page with a recoverable page error.
+  - Follow-up PDF byte-cap tests use an internal-visible guard seam to prove exactly 500 MB is allowed past the cap check and 500 MB plus one byte is rejected before render invocation.
   - Thumbnail execution remains assigned to M13; M12 only preserves the R67 thumbnail budget in policy from M11.

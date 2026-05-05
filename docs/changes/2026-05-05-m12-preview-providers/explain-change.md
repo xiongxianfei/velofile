@@ -16,6 +16,10 @@ M12 adds bounded Windows preview providers on top of the M11 preview contract. T
 
 The final M12 review-resolution tightened two production boundaries. `WindowsImagePreviewDecoder` and `WindowsPdfPageRenderer` now enforce the actual opened stream length before BitmapDecoder or PdfDocument work begins, so null or stale listing metadata cannot bypass the 100 MB image cap or 500 MB PDF cap. The preview pane also exposes visible PDF Previous/Next controls that call view-model page commands, making later-page rendering reachable from the production shell route rather than only from direct tests.
 
+The follow-up PDF navigation resolution keeps a separate PDF navigation context in `AppShellViewModel`. The current page number, page count, loading flag, recoverable page error, and last successful PDF artifact survive transient `Empty`, `Loading`, and failed page-render states. That lets the shell keep the PDF controls and last rendered page visible while disabling Previous/Next during in-flight rendering.
+
+The follow-up PDF cap resolution adds direct exact-boundary proof at the renderer guard seam: an actual stream length of exactly 500 MB is allowed past the guard, while 500 MB plus one byte returns `pdf-too-large` before any render invocation is recorded.
+
 `AppCompositionRoot` now uses the Windows provider factory instead of the metadata-only provider list. Metadata fallback remains last in the provider chain.
 
 `tools/VeloFile.Corpus` now supports `preview --scope providers`. The corpus wrapper copies `src/VeloFile.Windows` into its scratch build so provider evidence runs in the same isolated tool environment as other corpus scopes.
@@ -49,11 +53,12 @@ Windows provider tests cover:
 - PDF later-page rendering only after explicit navigation;
 - PDF over-size fallback;
 - PDF over-size fallback when listing length is null or stale and actual opened stream length is over the cap;
+- PDF exact input cap and cap-plus-one behavior at the renderer boundary;
 - corrupt PDF failure;
 - source non-mutation for image, text, and PDF provider paths;
 - production provider factory order.
 
-Core and App tests prove the PDF page navigation hook: initial preview requests page 1 only, and a later page is rendered only after the shell/view model requests it. App tests also prove the preview pane declares Previous/Next controls and code-behind handlers that call `RequestPreviousPdfPage()` and `RequestNextPdfPage()`, and that production composition uses the Windows provider factory instead of stopping at metadata-only preview.
+Core and App tests prove the PDF page navigation hook: initial preview requests page 1 only, and a later page is rendered only after the shell/view model requests it. App tests also prove Previous no-ops on page 1, Next no-ops on the final page, disabled routes do not call the renderer, controls remain visible but disabled while a page render is pending, duplicate page requests are rejected during loading, and a page-render failure preserves the last successful page with a recoverable page error. App contract tests prove the preview pane declares Previous/Next controls, code-behind handlers call `RequestPreviousPdfPage()` and `RequestNextPdfPage()`, the shell image surface binds to `PreviewDisplayContent`, and production composition uses the Windows provider factory instead of stopping at metadata-only preview.
 
 Corpus tests prove `preview --scope providers` writes provider behavior-verifier evidence for image artifact success, text truncation, PDF page artifact success, over-size fallback, and source non-mutation. The provider corpus fixtures now use decodable image/PDF files and verify non-empty artifact bytes.
 
@@ -65,10 +70,15 @@ This slice does not implement thumbnail/icon execution or advanced preview UI po
 
 - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders`
 - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewProviders`
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewContract`
+- `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter PreviewContract`
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter PreviewProviders`
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewContract_scope_records_contract_behavior_evidence"`
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>`
 - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders`
 - `dotnet test VeloFile.sln -c Debug --filter PreviewContract`
 - `dotnet build VeloFile.sln -c Debug`
+- `dotnet test VeloFile.sln -c Debug --no-build`
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`

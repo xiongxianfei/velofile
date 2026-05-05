@@ -1041,19 +1041,26 @@ Each milestone must update validation notes with the commands actually run and a
   - The preview corpus `providers` scope now writes behavior-verifier evidence for image artifact success, text truncation, PDF page artifact success, over-size fallback, and source non-mutation using decodable fixtures.
   - Validation exposed that the corpus wrapper's shared intermediate-output overrides corrupt project-reference `.deps.json` generation once the corpus tool references both Core and Windows projects. The wrapper now lets each copied scratch project use its own default scratch-local `bin/obj` folders and still publishes to the existing scratch-local publish path.
   - Review-resolution for the real-boundary byte-cap blocker added sparse-file tests where listing metadata is null or stale. `WindowsImagePreviewDecoder` and `WindowsPdfPageRenderer` now check the opened stream length before BitmapDecoder/PdfDocument work; over-limit inputs return metadata-only unsupported reasons and unavailable stream length fails closed.
+  - Follow-up byte-cap review resolution added direct PDF exact-boundary proof: exactly 500 MB is allowed past the renderer boundary guard, while 500 MB plus one byte is rejected before render invocation.
   - Review-resolution for the shell PDF navigation blocker added Previous/Next preview-pane controls and view-model command properties so later-page rendering is reachable through the production shell route.
+  - Follow-up PDF shell navigation review resolution added durable PDF navigation context that remains visible while a later page is loading or fails, disables previous/next during in-flight rendering, no-ops at page bounds without calling the renderer, and preserves the last successfully rendered page on recoverable page-render failure.
   - Validation exposed that `CorpusToolingSmokeTests.RunScript` could deadlock while reading redirected stdout/stderr sequentially from corpus subprocesses. The harness now drains both streams concurrently before collecting the result, which unblocks solution-level filtered validation.
 - M12 validation:
-  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders` first failed for the real-boundary byte-cap regression: oversized sparse image/PDF files with null listing length returned failed/corrupt states instead of size-limit unsupported states. Final run passed 12 Windows provider tests.
+  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders` first failed for the real-boundary byte-cap regression: oversized sparse image/PDF files with null listing length returned failed/corrupt states instead of size-limit unsupported states. The final follow-up run passed 14 Windows provider tests, including exact-PDF-cap and cap-plus-one boundary proof.
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewProviders` passed: 1 App composition test.
-  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "PreviewContract_pdf_page_navigation|PreviewContract_main_window_preview_pane"` passed: 2 App shell/view-model PDF navigation tests.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "PreviewContract_pdf_page_navigation|PreviewContract_main_window_preview_pane"` first failed for missing durable PDF navigation context properties; the final follow-up run passed 5 App shell/view-model/main-window PDF navigation tests.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewContract` passed: 8 App preview-contract tests.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter PreviewContract` passed: 18 Core preview-contract tests.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter PreviewProviders` passed: 1 Corpus provider evidence test.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewContract_scope_records_contract_behavior_evidence"` passed: 1 Corpus preview-contract evidence test.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>` passed with a compliant scratch root.
-  - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders` first timed out because the Corpus test harness deadlocked on redirected output; after fixing the harness, it passed 1 App, 12 Windows, and 1 Corpus provider tests; Core tests had no matching filter.
-  - `dotnet test VeloFile.sln -c Debug --filter PreviewContract` passed: 18 Core, 5 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope contract -ScratchRoot <scratch-root>` passed with a compliant scratch root.
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewProviders` first timed out because the Corpus test harness deadlocked on redirected output; after fixing the harness and adding the final PDF cap proof, it passed 1 App, 14 Windows, and 1 Corpus provider tests; Core tests had no matching filter.
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewContract` passed: 18 Core, 8 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --no-build` passed 283 tests across App, Core, Windows, and Corpus assemblies.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` first failed because the corpus wrapper used one shared intermediate-output directory for multiple copied project references; final run passed 8 Corpus tests.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` review-resolution run passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 278 tests across 4 test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` review-resolution run passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 283 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

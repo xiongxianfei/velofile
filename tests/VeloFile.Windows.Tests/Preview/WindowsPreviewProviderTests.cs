@@ -275,6 +275,42 @@ public sealed class WindowsPreviewProviderTests
     }
 
     [TestMethod]
+    public async Task PreviewProviders_pdf_provider_allows_exact_actual_stream_byte_cap_before_render()
+    {
+        using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes());
+        var renderer = new GuardedRecordingPdfPageRenderer(actualStreamLength: MaxPdfBytes, pageCount: 1);
+        var provider = new WindowsPdfPreviewProvider(renderer);
+
+        var result = await provider.PreviewAsync(
+            Request(pdf.ToListedFileItem(useActualLengthWhenNull: false)),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Success, result.Status);
+        Assert.AreEqual(1, renderer.RenderInvocationCount);
+        CollectionAssert.AreEqual(new[] { 1 }, renderer.RequestedPages.ToArray());
+        AssertPdfArtifact(result.Content, expectedPageNumber: 1);
+    }
+
+    [TestMethod]
+    public async Task PreviewProviders_pdf_provider_rejects_actual_stream_byte_cap_plus_one_before_render()
+    {
+        using var pdf = ScratchFile.CreateBytes("document.pdf", MinimalPdfBytes());
+        var renderer = new GuardedRecordingPdfPageRenderer(actualStreamLength: MaxPdfBytes + 1, pageCount: 1);
+        var provider = new WindowsPdfPreviewProvider(renderer);
+
+        var result = await provider.PreviewAsync(
+            Request(pdf.ToListedFileItem(length: 1024)),
+            Context(PreviewOperation.PdfFirstPageRender),
+            CancellationToken.None);
+
+        Assert.AreEqual(PreviewProviderResultStatus.Unsupported, result.Status);
+        Assert.AreEqual("pdf-too-large", result.ReasonCode);
+        Assert.AreEqual(0, renderer.RenderInvocationCount);
+        CollectionAssert.AreEqual(Array.Empty<int>(), renderer.RequestedPages.ToArray());
+    }
+
+    [TestMethod]
     public async Task PreviewProviders_provider_boundaries_fail_closed_when_actual_stream_length_is_unavailable()
     {
         using var image = ScratchFile.CreateBytes(
@@ -484,6 +520,96 @@ public sealed class WindowsPreviewProviderTests
                 EncodedFormat: "png",
                 EncodedBytes: [137, 80, 78, 71],
                 SourceWasDownsampled: false));
+        }
+    }
+
+    private sealed class GuardedRecordingPdfPageRenderer : IPdfPageRenderer
+    {
+        private readonly long _actualStreamLength;
+        private readonly int _pageCount;
+
+        public GuardedRecordingPdfPageRenderer(long actualStreamLength, int pageCount)
+        {
+            _actualStreamLength = actualStreamLength;
+            _pageCount = pageCount;
+        }
+
+        public int RenderInvocationCount { get; private set; }
+
+        public List<int> RequestedPages { get; } = [];
+
+        public ValueTask<PdfPagePreviewArtifact> RenderPageAsync(
+            string path,
+            int pageNumber,
+            CancellationToken cancellationToken)
+        {
+            using var stream = new LengthOnlyStream(_actualStreamLength);
+            PreviewInputLengthGuard.EnsureWithinLimit(
+                stream,
+                WindowsPreviewLimits.MaxPdfBytes,
+                static () => new PdfPreviewInputTooLargeException());
+
+            RenderInvocationCount++;
+            RequestedPages.Add(pageNumber);
+            return ValueTask.FromResult(new PdfPagePreviewArtifact(
+                PageNumber: pageNumber,
+                PageCount: _pageCount,
+                PixelWidth: 200,
+                PixelHeight: 120,
+                EncodedFormat: "png",
+                EncodedBytes: [137, 80, 78, 71],
+                SourceWasDownsampled: false));
+        }
+    }
+
+    private sealed class LengthOnlyStream : Stream
+    {
+        private readonly long _length;
+
+        public LengthOnlyStream(long length)
+        {
+            _length = length;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => false;
+
+        public override long Length => _length;
+
+        public override long Position { get; set; }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return 0;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            Position = origin switch
+            {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => Position + offset,
+                SeekOrigin.End => Length + offset,
+                _ => Position
+            };
+            return Position;
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
         }
     }
 

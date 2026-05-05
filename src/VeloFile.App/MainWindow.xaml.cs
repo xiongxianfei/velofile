@@ -704,7 +704,7 @@ public sealed partial class MainWindow : Window
             PdfPageIndicatorText.Text = ViewModel.PreviewContentText;
             PdfPreviousPageButton.IsEnabled = ViewModel.CanRequestPreviousPdfPage;
             PdfNextPageButton.IsEnabled = ViewModel.CanRequestNextPdfPage;
-            _ = SetPreviewArtifactAsync(ViewModel.Preview.Content, ++_previewArtifactVersion);
+            _ = SetPreviewArtifactAsync(ViewModel.PreviewDisplayContent, ++_previewArtifactVersion);
             PreviewMetadataList.ItemsSource = ViewModel.PreviewMetadataFields;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
             CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;

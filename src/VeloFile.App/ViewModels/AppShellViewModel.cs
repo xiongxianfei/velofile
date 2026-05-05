@@ -38,6 +38,13 @@ public sealed class AppShellViewModel
     private PendingFileTransfer? _pendingFileTransfer;
     private MutationListingTarget? _pendingFileTransferMutationTarget;
     private string? _fileOperationRefreshWarning;
+    private bool _isPdfPreviewActive;
+    private int? _currentPdfPageNumber;
+    private int? _pdfPageCount;
+    private bool _isPdfPageLoading;
+    private string? _pdfPageError;
+    private PreviewContent? _lastSuccessfulPdfPageContent;
+    private bool _preservePdfContextOnNextEmpty;
 
     public AppShellViewModel(
         AppShellStartupState startupState,
@@ -64,7 +71,11 @@ public sealed class AppShellViewModel
         }
         if (_previewController is not null)
         {
-            _previewController.StateChanged += (_, _) => ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            _previewController.StateChanged += (_, _) =>
+            {
+                SynchronizePdfPreviewContext();
+                ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            };
         }
 
         RefreshActiveListing();
@@ -165,20 +176,31 @@ public sealed class AppShellViewModel
 
     public string PreviewContentText => FormatPreviewContentText();
 
-    public int? CurrentPdfPageNumber => Preview.Content?.PdfPageArtifact?.PageNumber;
+    public PreviewContent? PreviewDisplayContent =>
+        Preview.Content ?? (_isPdfPreviewActive ? _lastSuccessfulPdfPageContent : null);
 
-    public int? PdfPageCount => Preview.Content?.PdfPageArtifact?.PageCount;
+    public int? CurrentPdfPageNumber => _currentPdfPageNumber;
 
-    public bool CanNavigatePdfPages => (PdfPageCount ?? 0) > 1;
+    public int? PdfPageCount => _pdfPageCount;
 
-    public bool IsPdfPreview => Preview.Content?.Kind is PreviewContentKind.Pdf;
+    public bool IsPdfPreviewActive => _isPdfPreviewActive;
+
+    public bool CanNavigatePdfPages => _isPdfPreviewActive && (PdfPageCount ?? 0) > 1;
+
+    public bool IsPdfPreview => IsPdfPreviewActive;
+
+    public bool IsPdfPageLoading => _isPdfPageLoading;
+
+    public string? PdfPageError => _pdfPageError;
 
     public bool CanRequestPreviousPdfPage =>
-        PreviewStatus is PreviewStatus.Success
+        CanNavigatePdfPages
+        && !_isPdfPageLoading
         && CurrentPdfPageNumber is > 1;
 
     public bool CanRequestNextPdfPage =>
-        PreviewStatus is PreviewStatus.Success
+        CanNavigatePdfPages
+        && !_isPdfPageLoading
         && CurrentPdfPageNumber is int currentPage
         && PdfPageCount is int pageCount
         && currentPage < pageCount;
@@ -421,14 +443,101 @@ public sealed class AppShellViewModel
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    private void SynchronizePdfPreviewContext()
+    {
+        var preview = Preview;
+        switch (preview.Status)
+        {
+            case PreviewStatus.Success when preview.Content?.PdfPageArtifact is { } pdf:
+                _preservePdfContextOnNextEmpty = false;
+                _isPdfPreviewActive = true;
+                _isPdfPageLoading = false;
+                _pdfPageError = null;
+                _currentPdfPageNumber = pdf.PageNumber;
+                _pdfPageCount = pdf.PageCount;
+                _lastSuccessfulPdfPageContent = preview.Content;
+                break;
+
+            case PreviewStatus.Success:
+                ResetPdfPreviewContext();
+                break;
+
+            case PreviewStatus.Loading:
+                _preservePdfContextOnNextEmpty = false;
+                if (!_isPdfPreviewActive)
+                {
+                    ResetPdfPreviewContext();
+                }
+
+                break;
+
+            case PreviewStatus.Empty:
+                if (_preservePdfContextOnNextEmpty && _isPdfPreviewActive)
+                {
+                    _preservePdfContextOnNextEmpty = false;
+                    break;
+                }
+
+                ResetPdfPreviewContext();
+                break;
+
+            case PreviewStatus.Failed:
+            case PreviewStatus.Unsupported:
+                _preservePdfContextOnNextEmpty = false;
+                if (_isPdfPageLoading && _isPdfPreviewActive)
+                {
+                    _isPdfPageLoading = false;
+                    _pdfPageError = string.IsNullOrWhiteSpace(preview.ReasonCode)
+                        ? "preview-page-failed"
+                        : preview.ReasonCode;
+                    break;
+                }
+
+                ResetPdfPreviewContext();
+                break;
+        }
+    }
+
+    private void ResetPdfPreviewContext()
+    {
+        _preservePdfContextOnNextEmpty = false;
+        _isPdfPreviewActive = false;
+        _isPdfPageLoading = false;
+        _pdfPageError = null;
+        _currentPdfPageNumber = null;
+        _pdfPageCount = null;
+        _lastSuccessfulPdfPageContent = null;
+    }
+
+    private bool CanRequestPdfPageNumber(int pageNumber)
+    {
+        return CanNavigatePdfPages
+            && !_isPdfPageLoading
+            && pageNumber >= 1
+            && PdfPageCount is int pageCount
+            && pageNumber <= pageCount
+            && pageNumber != CurrentPdfPageNumber;
+    }
+
     public bool RequestPdfPage(int pageNumber)
     {
-        if (_previewController?.RequestPreviewPage(pageNumber) is true)
+        if (!CanRequestPdfPageNumber(pageNumber) || _previewController is null)
+        {
+            return false;
+        }
+
+        _isPdfPageLoading = true;
+        _pdfPageError = null;
+        _preservePdfContextOnNextEmpty = true;
+
+        if (_previewController.RequestPreviewPage(pageNumber))
         {
             ShellStateChanged?.Invoke(this, EventArgs.Empty);
             return true;
         }
 
+        _isPdfPageLoading = false;
+        _preservePdfContextOnNextEmpty = false;
         return false;
     }
 
@@ -1039,6 +1148,16 @@ public sealed class AppShellViewModel
 
     private string FormatPreviewStatus()
     {
+        if (_isPdfPageLoading)
+        {
+            return "PDF page loading";
+        }
+
+        if (!string.IsNullOrWhiteSpace(_pdfPageError))
+        {
+            return $"PDF page failed: {_pdfPageError}";
+        }
+
         return Preview.Status switch
         {
             PreviewStatus.Loading => "Preview loading",
@@ -1053,7 +1172,7 @@ public sealed class AppShellViewModel
 
     private string FormatPreviewContentText()
     {
-        return Preview.Content switch
+        return PreviewDisplayContent switch
         {
             { Kind: PreviewContentKind.Text } content => content.TextContent ?? "",
             { ImageArtifact: { } image } => $"Image {image.PixelWidth} x {image.PixelHeight}",

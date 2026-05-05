@@ -232,6 +232,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "ViewModel.RequestPreviousPdfPage()");
         StringAssert.Contains(codeBehind, "ViewModel.RequestNextPdfPage()");
         StringAssert.Contains(codeBehind, "SetPreviewArtifactAsync");
+        StringAssert.Contains(codeBehind, "ViewModel.PreviewDisplayContent");
         StringAssert.Contains(codeBehind, "ViewModel.PreviewMetadataFields");
     }
 
