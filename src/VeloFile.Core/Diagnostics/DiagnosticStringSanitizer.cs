@@ -16,7 +16,8 @@ public static class DiagnosticStringSanitizer
         "persistence.fallback",
         "persistence.field-fallback",
         "crash.marker",
-        "last-action.marker"
+        "last-action.marker",
+        "terminal.launch"
     };
 
     private static readonly HashSet<string> Severities = new(StringComparer.Ordinal)
@@ -187,6 +188,16 @@ public static class DiagnosticStringSanitizer
         ".zip"
     };
 
+    private static readonly HashSet<string> TerminalTargetKinds = new(StringComparer.Ordinal)
+    {
+        "command-prompt",
+        "git-bash",
+        "powershell-7",
+        "windows-powershell",
+        "windows-terminal",
+        "wsl"
+    };
+
     private static readonly IReadOnlyDictionary<string, DiagnosticFieldPolicy> FieldPolicies =
         new ReadOnlyDictionary<string, DiagnosticFieldPolicy>(new Dictionary<string, DiagnosticFieldPolicy>(StringComparer.Ordinal)
         {
@@ -206,7 +217,8 @@ public static class DiagnosticStringSanitizer
             ["lastActionMarkerCategory"] = DiagnosticFieldPolicy.Known(LastActionCategories),
             ["pathClassification"] = DiagnosticFieldPolicy.Known(PathClassifications),
             ["pathFingerprint"] = DiagnosticFieldPolicy.PathFingerprint,
-            ["extensionClass"] = DiagnosticFieldPolicy.Known(ExtensionClasses)
+            ["extensionClass"] = DiagnosticFieldPolicy.Known(ExtensionClasses),
+            ["terminalTargetKind"] = DiagnosticFieldPolicy.Known(TerminalTargetKinds)
         });
 
     public static string Sanitize(string fieldName, string value)

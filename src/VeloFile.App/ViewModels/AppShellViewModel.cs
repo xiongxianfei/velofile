@@ -1,6 +1,7 @@
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Commands;
 using VeloFile.Core.DragDrop;
+using VeloFile.Core.FileAssociations;
 using VeloFile.Core.Filtering;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
@@ -10,6 +11,7 @@ using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
+using VeloFile.Core.Terminal;
 using VeloFile.Core.Visibility;
 
 namespace VeloFile.App.ViewModels;
@@ -27,6 +29,8 @@ public sealed class AppShellViewModel
     private readonly FileOperationService? _fileOperationService;
     private readonly PreviewController? _previewController;
     private readonly ThumbnailController? _thumbnailController;
+    private readonly TerminalLaunchService? _terminalLaunchService;
+    private readonly FileAssociationLaunchService? _fileAssociationLaunchService;
     private readonly PreviewMetadataProvider _metadataProvider = new();
     private IShellDispatcher _shellDispatcher;
     private readonly int _viewportItemCount;
@@ -49,6 +53,9 @@ public sealed class AppShellViewModel
     private string? _pdfPageError;
     private PreviewContent? _lastSuccessfulPdfPageContent;
     private bool _preservePdfContextOnNextEmpty;
+    private string _launchStatusText = "";
+    private IReadOnlyList<TerminalTarget> _terminalTargets = [];
+    private string? _selectedTerminalTargetId;
 
     public AppShellViewModel(
         AppShellStartupState startupState,
@@ -59,9 +66,12 @@ public sealed class AppShellViewModel
         PreviewController? previewController = null,
         ThumbnailController? thumbnailController = null,
         IShellDispatcher? shellDispatcher = null,
+        TerminalLaunchService? terminalLaunchService = null,
+        FileAssociationLaunchService? fileAssociationLaunchService = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
+        _selectedTerminalTargetId = CommandSurface.PreferredTerminalTargetId;
         WindowPlacementResolution = startupState.WindowPlacementResolution;
         _commandRegistry = BuiltInCommandRegistry.CreateDefault();
         _keyboardCommandRouter = KeyboardCommandRouter.CreateDefault();
@@ -71,6 +81,8 @@ public sealed class AppShellViewModel
         _fileOperationService = fileOperationService;
         _previewController = previewController;
         _thumbnailController = thumbnailController;
+        _terminalLaunchService = terminalLaunchService;
+        _fileAssociationLaunchService = fileAssociationLaunchService;
         _shellDispatcher = shellDispatcher ?? ImmediateShellDispatcher.Instance;
         _viewportItemCount = viewportItemCount;
         if (_fileOperationService is not null)
@@ -105,6 +117,38 @@ public sealed class AppShellViewModel
     public void SetShellDispatcher(IShellDispatcher shellDispatcher)
     {
         _shellDispatcher = shellDispatcher;
+    }
+
+    public async Task LoadTerminalTargetsAsync()
+    {
+        if (_terminalLaunchService is null)
+        {
+            _terminalTargets = [];
+            _selectedTerminalTargetId = null;
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var discovery = await _terminalLaunchService.DiscoverAsync().ConfigureAwait(false);
+        _terminalTargets = discovery.Targets;
+        if (_terminalTargets.Count == 0)
+        {
+            _selectedTerminalTargetId = null;
+        }
+        else if (_selectedTerminalTargetId is null
+            || !_terminalTargets.Any(target => string.Equals(target.Id, _selectedTerminalTargetId, StringComparison.OrdinalIgnoreCase)))
+        {
+            _selectedTerminalTargetId = discovery.DefaultTarget?.Id;
+        }
+
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SelectTerminalTarget(TerminalTarget? target)
+    {
+        _selectedTerminalTargetId = target?.Id;
+        CommandSurface.SetPreferredTerminalTargetId(_selectedTerminalTargetId);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public AppShellCommandSurface CommandSurface { get; }
@@ -185,6 +229,15 @@ public sealed class AppShellViewModel
     public bool CanCancelFileOperation => _fileOperationService?.CanCancelCurrentOperation ?? false;
 
     public string FileOperationStatusText => FormatFileOperationStatus();
+
+    public string LaunchStatusText => _launchStatusText;
+
+    public IReadOnlyList<TerminalTarget> TerminalTargets => _terminalTargets;
+
+    public TerminalTarget? SelectedTerminalTarget =>
+        _selectedTerminalTargetId is null
+            ? null
+            : _terminalTargets.FirstOrDefault(target => string.Equals(target.Id, _selectedTerminalTargetId, StringComparison.OrdinalIgnoreCase));
 
     public DropActionResolution CurrentDropAction { get; private set; } = DropActionResolution.None("drop-not-started");
 
@@ -631,6 +684,12 @@ public sealed class AppShellViewModel
     {
         switch (commandId)
         {
+            case VeloFileCommandId.Open:
+                await OpenSelectedItemAsync(FileAssociationLaunchKind.Open).ConfigureAwait(false);
+                break;
+            case VeloFileCommandId.OpenWith:
+                await OpenSelectedItemAsync(FileAssociationLaunchKind.OpenWith).ConfigureAwait(false);
+                break;
             case VeloFileCommandId.CopyPath:
                 _clipboardCommands.CopyPath(SelectedFileItems);
                 break;
@@ -651,6 +710,9 @@ public sealed class AppShellViewModel
                 break;
             case VeloFileCommandId.ParentFolder:
                 NavigateToParent();
+                break;
+            case VeloFileCommandId.OpenTerminalHere:
+                await OpenTerminalHereAsync().ConfigureAwait(false);
                 break;
             case VeloFileCommandId.Delete:
                 if (_fileOperationService is not null && SelectedFileItems.Count > 0)
@@ -684,6 +746,41 @@ public sealed class AppShellViewModel
             default:
                 break;
         }
+    }
+
+    private async Task OpenSelectedItemAsync(FileAssociationLaunchKind kind)
+    {
+        var item = SelectedFileItems.FirstOrDefault();
+        if (item is null || _fileAssociationLaunchService is null)
+        {
+            SetLaunchStatus($"{FormatFileAssociationKind(kind)} failed: association-launch-unavailable");
+            return;
+        }
+
+        var result = kind is FileAssociationLaunchKind.OpenWith
+            ? await _fileAssociationLaunchService.OpenWithAsync(item).ConfigureAwait(false)
+            : await _fileAssociationLaunchService.OpenAsync(item).ConfigureAwait(false);
+        SetLaunchStatus(FormatFileAssociationLaunchResult(result));
+    }
+
+    private async Task OpenTerminalHereAsync()
+    {
+        if (_terminalLaunchService is null)
+        {
+            SetLaunchStatus("Terminal launch failed: terminal-launch-unavailable");
+            return;
+        }
+
+        var result = string.IsNullOrWhiteSpace(_selectedTerminalTargetId)
+            ? await _terminalLaunchService.LaunchDefaultAsync(ActivePath).ConfigureAwait(false)
+            : await _terminalLaunchService.LaunchAsync(_selectedTerminalTargetId, ActivePath).ConfigureAwait(false);
+        SetLaunchStatus(FormatTerminalLaunchResult(result));
+    }
+
+    private void SetLaunchStatus(string statusText)
+    {
+        _launchStatusText = statusText;
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task ResolveFileOperationConflictAsync(FileOperationConflictChoice choice)
@@ -1235,6 +1332,36 @@ public sealed class AppShellViewModel
         return string.IsNullOrWhiteSpace(_fileOperationRefreshWarning)
             ? statusText
             : $"{statusText}. {_fileOperationRefreshWarning}.";
+    }
+
+    private static string FormatTerminalLaunchResult(TerminalLaunchResult result)
+    {
+        return result.Status switch
+        {
+            TerminalLaunchStatus.Succeeded => "Terminal launched",
+            TerminalLaunchStatus.TerminalUnavailable => "Terminal launch failed: terminal-unavailable",
+            TerminalLaunchStatus.WorkingDirectoryUnavailable => "Terminal launch failed: working-directory-unavailable",
+            TerminalLaunchStatus.Failed when !string.IsNullOrWhiteSpace(result.ReasonCode) => $"Terminal launch failed: {result.ReasonCode}",
+            TerminalLaunchStatus.Failed => "Terminal launch failed",
+            _ => ""
+        };
+    }
+
+    private static string FormatFileAssociationLaunchResult(FileAssociationLaunchResult result)
+    {
+        var kind = FormatFileAssociationKind(result.Kind);
+        return result.Status switch
+        {
+            FileAssociationLaunchStatus.Succeeded => $"{kind} launched",
+            FileAssociationLaunchStatus.Failed when !string.IsNullOrWhiteSpace(result.ReasonCode) => $"{kind} failed: {result.ReasonCode}",
+            FileAssociationLaunchStatus.Failed => $"{kind} failed",
+            _ => ""
+        };
+    }
+
+    private static string FormatFileAssociationKind(FileAssociationLaunchKind kind)
+    {
+        return kind is FileAssociationLaunchKind.OpenWith ? "Open with" : "Open";
     }
 
     private string FormatPreviewStatus()

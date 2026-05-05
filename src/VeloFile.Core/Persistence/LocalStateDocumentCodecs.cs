@@ -17,7 +17,8 @@ public sealed class SettingsStateDocumentCodec : IDurableDocumentCodec<SettingsS
         {
             ["showHiddenFiles"] = envelope.Payload.ShowHiddenFiles,
             ["showProtectedOperatingSystemFiles"] = envelope.Payload.ShowProtectedOperatingSystemFiles,
-            ["showFileExtensions"] = envelope.Payload.ShowFileExtensions
+            ["showFileExtensions"] = envelope.Payload.ShowFileExtensions,
+            ["preferredTerminalTargetId"] = envelope.Payload.PreferredTerminalTargetId
         });
     }
 
@@ -35,7 +36,8 @@ public sealed class SettingsStateDocumentCodec : IDurableDocumentCodec<SettingsS
             var settings = new SettingsStatePayload(
                 ShowHiddenFiles: ReadOptionalBool(payload, "showHiddenFiles", defaults.ShowHiddenFiles, fallbacks, ref corruptFields),
                 ShowProtectedOperatingSystemFiles: ReadOptionalBool(payload, "showProtectedOperatingSystemFiles", defaults.ShowProtectedOperatingSystemFiles, fallbacks, ref corruptFields),
-                ShowFileExtensions: ReadOptionalBool(payload, "showFileExtensions", defaults.ShowFileExtensions, fallbacks, ref corruptFields));
+                ShowFileExtensions: ReadOptionalBool(payload, "showFileExtensions", defaults.ShowFileExtensions, fallbacks, ref corruptFields),
+                PreferredTerminalTargetId: ReadOptionalString(payload, "preferredTerminalTargetId", defaults.PreferredTerminalTargetId, fallbacks, ref corruptFields));
 
             var envelope = DurableDocumentEnvelope.Create(
                 header.DocumentType,
@@ -67,13 +69,33 @@ public sealed class SettingsStateDocumentCodec : IDurableDocumentCodec<SettingsS
         }
     }
 
+    private static string? ReadOptionalString(
+        JsonObject payload,
+        string fieldName,
+        string? fallback,
+        List<PersistenceFallbackEvent> fallbacks,
+        ref int corruptFields)
+    {
+        try
+        {
+            return payload[fieldName]?.GetValue<string>() ?? fallback;
+        }
+        catch (InvalidOperationException)
+        {
+            fallbacks.Add(new PersistenceFallbackEvent(fieldName, "malformed"));
+            corruptFields++;
+            return fallback;
+        }
+    }
+
     private static readonly HashSet<string> RootFields = DurableDocumentCodecJson.RootFields;
 
     private static readonly HashSet<string> SettingsFields = new(StringComparer.Ordinal)
     {
         "showHiddenFiles",
         "showProtectedOperatingSystemFiles",
-        "showFileExtensions"
+        "showFileExtensions",
+        "preferredTerminalTargetId"
     };
 }
 

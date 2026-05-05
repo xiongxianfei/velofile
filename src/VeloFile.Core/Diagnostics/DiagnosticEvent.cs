@@ -59,6 +59,8 @@ public sealed record DiagnosticEvent
 
     public string? ExtensionClass { get; init; }
 
+    public string? TerminalTargetKind { get; init; }
+
     public static DiagnosticEvent CreateFailure(
         string eventId,
         long sequenceNumber,
@@ -201,6 +203,7 @@ public static class DiagnosticJsonSerializer
         Add(fields, "pathClassification", diagnosticEvent.PathClassification);
         Add(fields, "pathFingerprint", diagnosticEvent.PathFingerprint);
         Add(fields, "extensionClass", diagnosticEvent.ExtensionClass);
+        Add(fields, "terminalTargetKind", diagnosticEvent.TerminalTargetKind);
 
         return JsonSerializer.Serialize(fields, Options);
     }

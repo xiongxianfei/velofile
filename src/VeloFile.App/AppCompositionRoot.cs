@@ -1,6 +1,7 @@
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Diagnostics;
+using VeloFile.Core.FileAssociations;
 using VeloFile.Core.Foundation;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Operations;
@@ -9,12 +10,15 @@ using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
+using VeloFile.Core.Terminal;
 using VeloFile.Core.Visibility;
 using VeloFile.Windows.Clipboard;
 using VeloFile.Windows.FileSystem;
 using VeloFile.Windows.Preview;
 using VeloFile.Windows.Shell;
+using VeloFile.Windows.ShellExecute;
 using VeloFile.Windows.Storage;
+using VeloFile.Windows.Terminal;
 using VeloFile.Windows.Windowing;
 
 namespace VeloFile.App;
@@ -97,6 +101,12 @@ public static class AppCompositionRoot
         var thumbnailController = new ThumbnailController(
             new WindowsThumbnailProvider(),
             PreviewTimeoutPolicy.Default);
+        var terminalLaunchService = new TerminalLaunchService(
+            new TerminalDiscoveryService(new WindowsTerminalTargetSource()),
+            new TerminalWorkingDirectoryProbe(pathProbe),
+            new WindowsTerminalProcessLauncher(),
+            diagnostics: diagnostics);
+        var fileAssociationLaunchService = new FileAssociationLaunchService(new WindowsFileAssociationLauncher());
         return new AppShellViewModel(
             startupState,
             new WindowsClipboardTextWriter(),
@@ -105,7 +115,9 @@ public static class AppCompositionRoot
             fileOperationService,
             previewController,
             thumbnailController,
-            shellDispatcher);
+            shellDispatcher,
+            terminalLaunchService,
+            fileAssociationLaunchService);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()
@@ -140,6 +152,21 @@ public static class AppCompositionRoot
         catch
         {
             return new PathRedactor(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        }
+    }
+
+    private sealed class TerminalWorkingDirectoryProbe : IWorkingDirectoryProbe
+    {
+        private readonly IPathExistenceProbe _pathExistenceProbe;
+
+        public TerminalWorkingDirectoryProbe(IPathExistenceProbe pathExistenceProbe)
+        {
+            _pathExistenceProbe = pathExistenceProbe;
+        }
+
+        public bool Exists(string path)
+        {
+            return _pathExistenceProbe.Exists(path);
         }
     }
 }

@@ -134,6 +134,8 @@ public sealed class AppShellCommandSurface
 
     public VisibilitySettings VisibilitySettings => Visibility.Settings;
 
+    public string? PreferredTerminalTargetId => Visibility.PreferredTerminalTargetId;
+
     public IReadOnlyList<ShellNavigationTarget> SidebarNavigationTargets
     {
         get
@@ -261,6 +263,12 @@ public sealed class AppShellCommandSurface
         }
 
         return status;
+    }
+
+    public void SetPreferredTerminalTargetId(string? targetId)
+    {
+        Visibility.SetPreferredTerminalTargetId(targetId);
+        PersistVisibilitySettings();
     }
 
     public void StartFresh()

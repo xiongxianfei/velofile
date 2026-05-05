@@ -526,13 +526,27 @@ Architectural boundaries to preserve:
 - Expected observable result: Users can explicitly open a configured terminal or open files through Windows associations without command injection or state corruption.
 - Commit message: `M14: implement safe terminal and file association integration`
 - Milestone closeout:
-  - validation passed
-  - progress updated
-  - decision log updated if needed
-  - validation notes updated
-  - milestone committed
+  - validation passed: `Terminal`, `FileAssociations`, build, full solution tests, and `scripts\ci.ps1`
+  - progress updated: Core, App, Windows, test, persistence, and change-local docs are updated
+  - decision log updated: selected terminal target is persisted in the existing settings payload; discovery is lazy and not invoked by app shell construction
+  - validation notes updated: see M14 implementation notes below
+  - milestone committed: `M14: implement safe terminal and file association integration`
 - Risks: Argument handling differs by terminal target.
 - Rollback/recovery: Failed launch leaves browsing state unchanged and records only redacted diagnostics.
+- M14 implementation notes:
+  - Added Core terminal discovery/launch services with default ordering for Windows Terminal, PowerShell 7, Windows PowerShell, and Command Prompt; Git Bash and WSL distributions remain selectable when available.
+  - Added Windows terminal discovery/probing and process launch adapters that pass folder paths as working-directory/argument data, not concatenated shell command text.
+  - Added Open/Open With Core and Windows ShellExecute boundaries. Open With uses the `openas` verb and association launch requests never modify system associations.
+  - Wired `Open`, `OpenWith`, and `OpenTerminalHere` through `AppShellViewModel.ExecuteBuiltInCommandAsync`; double-click routes to Open; launch failures update visible shell status while preserving browsing state.
+  - Added a lazy terminal target selector in the shell and persisted the selected terminal target through `SettingsStatePayload`.
+  - Added terminal launch diagnostics that record terminal identity and result state without recording active paths or command text.
+- M14 validation notes:
+  - `dotnet test VeloFile.sln -c Debug --filter Terminal` passed 9 Core, 7 App, and 3 Windows terminal tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"` passed 17 Core, 7 App, and 3 Windows tests after adding the terminal launch diagnostic field allowlist.
+  - `dotnet test VeloFile.sln -c Debug --filter FileAssociations` passed 3 Core, 7 App, and 3 Windows file-association tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --no-build` passed 321 tests across App, Core, Windows, and Corpus test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 321 tests across 4 test assemblies.
 
 ### M15. Benchmark Harness, Accessibility Checks, and Release Triage
 
@@ -1106,8 +1120,8 @@ Each milestone must update validation notes with the commands actually run and a
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, and M13 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, provider corpus evidence, and thumbnail/icon/details UI with bounded non-blocking thumbnail execution and UI-dispatched row updates. Later V1 terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M14-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, and M14 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, provider corpus evidence, thumbnail/icon/details UI with bounded non-blocking thumbnail execution and UI-dispatched row updates, safe explicit terminal launch with lazy target discovery, terminal selection persistence, and Windows file association Open/Open With integration. Later V1 benchmark, accessibility, release-triage, packaging, update, and release-readiness behavior remains assigned to M15-M16.
 
 ## Readiness
 
-M13 thumbnails, icons, details, and preview UI concurrency are implemented, review-resolution validation is passing, and the slice is ready for `code-review`.
+M14 terminal launch and file association integration is implemented, validation is passing, and the slice is ready for `code-review`.

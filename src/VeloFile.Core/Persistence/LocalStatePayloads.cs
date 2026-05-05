@@ -3,12 +3,14 @@ namespace VeloFile.Core.Persistence;
 public sealed record SettingsStatePayload(
     bool ShowHiddenFiles,
     bool ShowProtectedOperatingSystemFiles,
-    bool ShowFileExtensions)
+    bool ShowFileExtensions,
+    string? PreferredTerminalTargetId = null)
 {
     public static SettingsStatePayload Default { get; } = new(
         ShowHiddenFiles: false,
         ShowProtectedOperatingSystemFiles: false,
-        ShowFileExtensions: true);
+        ShowFileExtensions: true,
+        PreferredTerminalTargetId: null);
 }
 
 public sealed record FavoritesStatePayload(IReadOnlyList<PinnedLocationState> PinnedLocations)

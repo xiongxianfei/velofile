@@ -1,0 +1,60 @@
+id: 2026-05-05-m14-terminal-file-associations
+title: M14 terminal launch and file association integration
+status: implemented
+milestone: M14
+requirements:
+  - R54
+  - R55
+  - R56
+  - R57
+  - R58
+  - R59
+  - R81
+  - R82
+  - S1
+  - S2
+  - EC18
+  - EC19
+  - AC12
+architecture:
+  - ADR 0005
+  - docs/architecture/system/architecture.md#building-block-view
+files:
+  - src/VeloFile.Core/Terminal/
+  - src/VeloFile.Core/FileAssociations/
+  - src/VeloFile.Core/Persistence/LocalStatePayloads.cs
+  - src/VeloFile.Core/Persistence/LocalStateDocumentCodecs.cs
+  - src/VeloFile.Core/Diagnostics/DiagnosticEvent.cs
+  - src/VeloFile.Core/Diagnostics/DiagnosticStringSanitizer.cs
+  - src/VeloFile.Core/Shell/AppShellCommandSurface.cs
+  - src/VeloFile.Windows/Terminal/
+  - src/VeloFile.Windows/ShellExecute/
+  - src/VeloFile.Windows/Processes/
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - tests/VeloFile.Core.Tests/Terminal/
+  - tests/VeloFile.Core.Tests/FileAssociations/
+  - tests/VeloFile.App.Tests/AppShellLaunchCommandRouteTests.cs
+  - tests/VeloFile.Windows.Tests/Terminal/
+  - tests/VeloFile.Windows.Tests/ShellExecute/
+validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter Terminal
+    result: passed 9 Core, 7 App, and 3 Windows terminal tests; Corpus had no matching filter
+  - command: dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"
+    result: passed 17 Core, 7 App, and 3 Windows tests after adding the terminal launch diagnostic field allowlist; Corpus had no matching filter
+  - command: dotnet test VeloFile.sln -c Debug --filter FileAssociations
+    result: passed 3 Core, 7 App, and 3 Windows file-association tests; Corpus had no matching filter
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --no-build
+    result: passed 321 tests across App, Core, Windows, and Corpus test assemblies
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 321 tests across 4 test assemblies
+notes:
+  - Terminal discovery is lazy; the app shell constructor does not probe terminals during startup.
+  - Default terminal ordering is Windows Terminal, PowerShell 7, Windows PowerShell, then Command Prompt; Git Bash and WSL distributions remain selectable when discovered.
+  - Terminal launch uses structured process start data and working directories rather than concatenated shell command text.
+  - Terminal launch diagnostics record the selected terminal identity and result state, but not the working directory or command text.
+  - Open and Open With use a Windows ShellExecute boundary and always request association launches without modifying system associations.

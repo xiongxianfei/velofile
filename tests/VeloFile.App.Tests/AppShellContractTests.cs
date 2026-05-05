@@ -117,6 +117,9 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "Text=\"Copy path\"");
         StringAssert.Contains(xaml, "Text=\"Copy name\"");
         StringAssert.Contains(xaml, "Text=\"Open terminal here\"");
+        StringAssert.Contains(xaml, "x:Name=\"TerminalTargetComboBox\"");
+        StringAssert.Contains(xaml, "DropDownOpened=\"TerminalTargetComboBox_DropDownOpened\"");
+        StringAssert.Contains(xaml, "SelectionChanged=\"TerminalTargetComboBox_SelectionChanged\"");
         Assert.IsFalse(xaml.Contains("ShellExtension", StringComparison.OrdinalIgnoreCase));
         Assert.IsFalse(xaml.Contains("Show more options", StringComparison.OrdinalIgnoreCase));
 
@@ -128,6 +131,10 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "AppFileCommandAcceleratorRouter");
         StringAssert.Contains(codeBehind, "RefreshFileContextMenuAvailability");
         StringAssert.Contains(codeBehind, "ViewModel.IsBuiltInCommandAvailable");
+        StringAssert.Contains(codeBehind, "ViewModel.LoadTerminalTargetsAsync()");
+        StringAssert.Contains(codeBehind, "ViewModel.SelectTerminalTarget");
+        StringAssert.Contains(xaml, "DoubleTapped=\"FileListSurface_DoubleTapped\"");
+        StringAssert.Contains(codeBehind, "ExecuteAvailableBuiltInCommand(VeloFileCommandId.Open)");
     }
 
     [TestMethod]
@@ -141,6 +148,7 @@ public sealed class AppShellContractTests
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileOperationStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"LaunchStatusText\"");
         StringAssert.Contains(xaml, "x:Name=\"DropActionIndicatorText\"");
         StringAssert.Contains(xaml, "AllowDrop=\"True\"");
         StringAssert.Contains(xaml, "DragOver=\"FileListSurface_DragOver\"");
@@ -156,6 +164,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"ReplaceConflictButton\"");
         StringAssert.Contains(xaml, "x:Name=\"KeepBothConflictButton\"");
         StringAssert.Contains(codeBehind, "ViewModel.FileOperationStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.LaunchStatusText");
         StringAssert.Contains(codeBehind, "AppDragDropRoute");
         StringAssert.Contains(codeBehind, "WinUiFileDropPayloadExtractor");
         StringAssert.Contains(dragDropRouteCode, "CommitDropAsync");
@@ -172,6 +181,9 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "Recycle Bin delete is unavailable.");
         StringAssert.Contains(compositionCode, "new FileOperationService");
         StringAssert.Contains(compositionCode, "new WindowsShellFileOperationAdapter()");
+        StringAssert.Contains(compositionCode, "WindowsTerminalTargetSource");
+        StringAssert.Contains(compositionCode, "WindowsTerminalProcessLauncher");
+        StringAssert.Contains(compositionCode, "WindowsFileAssociationLauncher");
     }
 
     [TestMethod]

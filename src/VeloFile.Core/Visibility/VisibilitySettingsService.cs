@@ -17,12 +17,17 @@ public sealed class VisibilitySettingsService
 
     public VisibilitySettings Settings { get; private set; }
 
+    public string? PreferredTerminalTargetId { get; private set; }
+
     public static VisibilitySettingsService FromPayload(SettingsStatePayload payload)
     {
         return new VisibilitySettingsService(new VisibilitySettings(
             payload.ShowHiddenFiles,
             payload.ShowProtectedOperatingSystemFiles,
-            payload.ShowFileExtensions));
+            payload.ShowFileExtensions))
+        {
+            PreferredTerminalTargetId = payload.PreferredTerminalTargetId
+        };
     }
 
     public void SetShowHiddenFiles(bool show)
@@ -46,11 +51,17 @@ public sealed class VisibilitySettingsService
         return VisibilityChangeStatus.Applied;
     }
 
+    public void SetPreferredTerminalTargetId(string? targetId)
+    {
+        PreferredTerminalTargetId = string.IsNullOrWhiteSpace(targetId) ? null : targetId;
+    }
+
     public SettingsStatePayload ToPayload()
     {
         return new SettingsStatePayload(
             Settings.ShowHiddenFiles,
             Settings.ShowProtectedOperatingSystemFiles,
-            Settings.ShowFileExtensions);
+            Settings.ShowFileExtensions,
+            PreferredTerminalTargetId);
     }
 }

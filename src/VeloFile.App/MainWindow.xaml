@@ -237,6 +237,19 @@
                         AccessKey="E"
                         Toggled="ShowExtensionsToggle_Toggled"
                         AutomationProperties.Name="Show file extensions" />
+                    <ComboBox
+                        x:Name="TerminalTargetComboBox"
+                        Header="Terminal"
+                        PlaceholderText="Default terminal"
+                        DropDownOpened="TerminalTargetComboBox_DropDownOpened"
+                        SelectionChanged="TerminalTargetComboBox_SelectionChanged"
+                        AutomationProperties.Name="Terminal target">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
 
                 <ListView
@@ -321,6 +334,7 @@
                 DragOver="FileListSurface_DragOver"
                 DragLeave="FileListSurface_DragLeave"
                 Drop="FileListSurface_Drop"
+                DoubleTapped="FileListSurface_DoubleTapped"
                 SelectionMode="Extended"
                 SelectionChanged="FileListSurface_SelectionChanged"
                 AutomationProperties.Name="Files">
@@ -571,6 +585,10 @@
                     Spacing="8">
                     <TextBlock
                         x:Name="FileOperationStatusText"
+                        VerticalAlignment="Center"
+                        Opacity="0.75" />
+                    <TextBlock
+                        x:Name="LaunchStatusText"
                         VerticalAlignment="Center"
                         Opacity="0.75" />
                     <TextBlock

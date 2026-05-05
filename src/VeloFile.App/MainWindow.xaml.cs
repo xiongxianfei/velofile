@@ -166,6 +166,11 @@ public sealed partial class MainWindow : Window
         RefreshShellBindings();
     }
 
+    private void FileListSurface_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        ExecuteAvailableBuiltInCommand(VeloFileCommandId.Open);
+    }
+
     private void CurrentFolderFilterBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isRefreshingShellBindings)
@@ -315,6 +320,23 @@ public sealed partial class MainWindow : Window
         }
 
         ViewModel.SetShowFileExtensions(ShowExtensionsToggle.IsOn);
+    }
+
+    private async void TerminalTargetComboBox_DropDownOpened(object sender, object e)
+    {
+        await ViewModel.LoadTerminalTargetsAsync();
+        RefreshShellBindings();
+    }
+
+    private void TerminalTargetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
+        ViewModel.SelectTerminalTarget(TerminalTargetComboBox.SelectedItem as VeloFile.Core.Terminal.TerminalTarget);
+        RefreshShellBindings();
     }
 
     private void CloseMissingLocationTabButton_Click(object sender, RoutedEventArgs e)
@@ -696,6 +718,7 @@ public sealed partial class MainWindow : Window
             SkippedLocationsList.ItemsSource = ViewModel.SearchSkippedLocations;
             SkippedLocationsList.Visibility = ViewModel.SearchSkippedLocationsVisible ? Visibility.Visible : Visibility.Collapsed;
             FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
+            LaunchStatusText.Text = ViewModel.LaunchStatusText;
             DropActionIndicatorText.Text = ViewModel.DropActionIndicatorText;
             DropActionIndicatorText.Visibility = ViewModel.DropActionIndicatorVisible ? Visibility.Visible : Visibility.Collapsed;
             PreviewColumn.Width = ViewModel.IsPreviewPaneOpen ? new GridLength(320) : new GridLength(0);
@@ -736,6 +759,8 @@ public sealed partial class MainWindow : Window
             ShowHiddenFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowHiddenFiles;
             ShowSystemFilesToggle.IsOn = ViewModel.VisibilitySettings.ShowProtectedOperatingSystemFiles;
             ShowExtensionsToggle.IsOn = ViewModel.VisibilitySettings.ShowFileExtensions;
+            TerminalTargetComboBox.ItemsSource = ViewModel.TerminalTargets;
+            TerminalTargetComboBox.SelectedItem = ViewModel.SelectedTerminalTarget;
         }
         finally
         {

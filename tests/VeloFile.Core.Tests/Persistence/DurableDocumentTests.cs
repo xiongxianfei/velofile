@@ -84,6 +84,24 @@ public sealed class DurableDocumentTests
     }
 
     [TestMethod]
+    [TestCategory("Terminal")]
+    public void Settings_document_round_trips_preferred_terminal_target()
+    {
+        var envelope = DurableDocumentEnvelope.Create(
+            DurableDocumentTypes.Settings,
+            schemaVersion: 1,
+            minimumReaderVersion: 1,
+            appVersion: "1.0.0-test",
+            writtenAtUtc: DateTimeOffset.Parse("2026-05-05T00:00:00Z"),
+            SettingsStatePayload.Default with { PreferredTerminalTargetId = "git-bash" });
+
+        var roundTrip = SettingsStateDocumentCodec.Instance.Read(SettingsStateDocumentCodec.Instance.Serialize(envelope));
+
+        Assert.IsTrue(roundTrip.Success, roundTrip.FailureReason);
+        Assert.AreEqual("git-bash", roundTrip.Document!.Payload.PreferredTerminalTargetId);
+    }
+
+    [TestMethod]
     public void Session_document_round_trips_window_placement_and_falls_back_per_malformed_placement_field()
     {
         var payload = new SessionStatePayload(
