@@ -6,7 +6,7 @@ M13 adds thumbnail/icon enrichment and preview UI polish on top of the M11-M12 p
 
 `VeloFile.Core.Preview` now has thumbnail-specific models and a `ThumbnailController`. The controller starts thumbnail work for the current visible item set, limits concurrent provider calls to four operations, applies the 500 ms thumbnail budget per item from `PreviewTimeoutPolicy`, cancels older generations, ignores stale results, and falls back to generic icons on timeout or provider failure.
 
-Review resolution tightened the timeout contract for providers that ignore cancellation. The controller now races each visible thumbnail request against the configured thumbnail budget, marks the row with a timeout fallback when the visible deadline wins, and keeps the underlying provider task inside the semaphore-held work until it actually completes. That preserves both halves of R67: rows do not stay loading forever, and stuck provider calls still count against the live concurrency cap.
+Review resolution tightened the timeout contract for providers that ignore cancellation. The controller now races each visible thumbnail request against the configured thumbnail budget, marks the row with a timeout fallback when the visible deadline wins, and keeps the underlying provider task inside a controller-wide semaphore-held operation until it actually completes. That preserves both halves of R67: rows do not stay loading forever, and stuck provider calls still count against the live concurrency cap even after a new thumbnail generation starts.
 
 `VeloFile.Windows.Preview.WindowsThumbnailProvider` is the production Windows boundary. It asks Windows Storage APIs for file and folder thumbnails, reads returned thumbnail streams into immutable artifacts, and falls back to generic icon artifacts when thumbnails are unavailable or projection fails. Generic fallback artifacts are cached by directory or file-extension class.
 
@@ -38,6 +38,8 @@ Core tests cover:
 - per-item timeout converting unresolved thumbnail work to a generic icon;
 - visible timeout fallback when the provider ignores cancellation;
 - timed-out provider work continuing to count against the live-operation cap;
+- superseded generations being unable to bypass the live-operation cap while old timed-out provider calls are still running;
+- controller-wide slots becoming available to later explicit generations after old provider work actually completes;
 - late provider success not overwriting a timed-out fallback for the stale request;
 - old thumbnail generations being cancelled and ignored after a new visible item set starts.
 

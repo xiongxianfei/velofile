@@ -503,7 +503,8 @@ Architectural boundaries to preserve:
   - Solution-level `Thumbnails` and `PreviewUi` filters passed. Full `scripts\ci.ps1` first caught a stale App contract assertion for preview metadata binding; after updating it to `DetailsMetadataFields`, CI passed with 0 build warnings/errors and 291 tests.
   - Review resolution fixed the non-cooperative provider timeout gap by racing visible thumbnail requests against the thumbnail budget while keeping timed-out provider tasks counted against live concurrency until actual completion.
   - Review resolution added an app-layer shell dispatcher so thumbnail completion events post to the UI dispatcher before row view-model mutation or binding notification; production app launch now passes the WinUI dispatcher into composition before thumbnail event subscription.
-  - Review-resolution validation passed focused Core/App/Windows/Corpus thumbnail tests, direct thumbnail corpus execution, solution `Thumbnails` and `PreviewUi` filters, `dotnet build`, `dotnet test --no-build`, and `scripts\ci.ps1` with 295 tests.
+  - Review-resolution validation passed focused Core/App/Windows/Corpus thumbnail tests, direct thumbnail corpus execution, solution `Thumbnails` and `PreviewUi` filters, `dotnet build`, `dotnet test --no-build`, and `scripts\ci.ps1`.
+  - Second-pass review found the live thumbnail provider gate was still generation-local. The controller now owns one long-lived provider gate, so timed-out non-cooperative work from old generations remains counted until actual provider completion.
 
 ### M14. Terminal Launch and File Association Open
 
@@ -1088,7 +1089,8 @@ Each milestone must update validation notes with the commands actually run and a
   - Updated `ThumbnailController` to race provider work against the visible thumbnail deadline while keeping semaphore-held provider work alive until actual completion.
   - Added `IShellDispatcher`, passed a WinUI `DispatcherQueue` implementation through production app composition before thumbnail event subscription, and routed thumbnail state-change row refreshes through the dispatcher before row mutation.
   - Added App tests proving no row mutation or `PropertyChanged` occurs before dispatcher execution, and stale thumbnail completion does not update a recycled row.
-  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 4 Core thumbnail tests.
+  - Second-pass review found the live provider semaphore was generation-local. Added a failing cross-generation regression, moved the gate to controller scope, and added slot-reuse proof for future explicit generations after old provider completion.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 6 Core thumbnail tests.
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Thumbnails|PreviewUi" --no-restore` passed: 5 App thumbnail/preview UI tests.
   - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 2 Windows thumbnail tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>` passed.
@@ -1098,8 +1100,9 @@ Each milestone must update validation notes with the commands actually run and a
   - An intermediate parallel App focused test plus solution build hit the known App.Tests `obj` file-lock behavior; `dotnet build-server shutdown` followed by sequential validation passed.
   - The first post-composition full-suite run failed because an older app-launch contract assertion still expected the no-dispatcher composition call. The final test now asserts `CreateShellViewModel(shellDispatcher)`.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
-  - `dotnet test VeloFile.sln -c Debug --no-build` passed 295 tests across App, Core, Windows, and Corpus assemblies.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 295 tests across 4 test assemblies.
+  - Second-pass validation reran the focused M13 gates after the controller-wide throttle fix.
+  - `dotnet test VeloFile.sln -c Debug --no-build` passed 297 tests across App, Core, Windows, and Corpus assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 297 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

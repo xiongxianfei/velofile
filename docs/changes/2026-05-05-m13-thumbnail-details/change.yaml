@@ -46,7 +46,7 @@ files:
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
   - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore
-    result: passed 4 Core thumbnail controller tests, including non-cooperative timeout/live-slot and late-success ignore regressions
+    result: passed 6 Core thumbnail controller tests, including non-cooperative timeout/live-slot, cross-generation global throttle, slot-reuse, and late-success ignore regressions
   - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Thumbnails --no-restore
     result: passed 2 Windows thumbnail provider tests
   - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Thumbnails|PreviewUi" --no-restore
@@ -56,19 +56,19 @@ validation:
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>
     result: passed with thumbnail behavior-verifier evidence
   - command: dotnet test VeloFile.sln -c Debug --filter Thumbnails
-    result: passed 4 Core, 2 Windows, and 1 Corpus thumbnail tests; App tests had no matching Thumbnails-only filter in solution output and are covered by PreviewUi
+    result: passed 6 Core, 2 Windows, and 1 Corpus thumbnail tests; App tests had no matching Thumbnails-only filter in solution output and are covered by PreviewUi
   - command: dotnet test VeloFile.sln -c Debug --filter PreviewUi
     result: passed 5 App preview UI tests
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: dotnet test VeloFile.sln -c Debug --no-build
-    result: passed 295 tests across App, Core, Windows, and Corpus assemblies
+    result: passed 297 tests across App, Core, Windows, and Corpus assemblies
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-    result: passed dotnet info, restore, build with 0 warnings and 0 errors, and 295 tests across App, Core, Windows, and Corpus assemblies
+    result: passed dotnet info, restore, build with 0 warnings and 0 errors, and 297 tests across App, Core, Windows, and Corpus assemblies
 notes:
   - Thumbnail execution is now modeled separately from content preview with per-item timeout, concurrency limiting, stale-generation cancellation, and generic icon fallback.
   - Review resolution changed thumbnail timeout enforcement from cooperative cancellation only to a visible-deadline race, so rows leave Loading at the thumbnail budget even when a provider ignores cancellation.
-  - Timed-out provider work continues to hold a live provider slot until the provider task actually completes, which preserves the thumbnail concurrency cap under hung providers.
+  - Timed-out provider work continues to hold a controller-wide live provider slot until the provider task actually completes, which preserves the thumbnail concurrency cap under hung providers across superseded generations.
   - Late provider success after a visible timeout is ignored for that request generation, preventing stale thumbnail flicker.
   - Thumbnail StateChanged handling is marshaled through an app-layer shell dispatcher before refreshing row view models or raising shell binding notifications; production launch passes a WinUI dispatcher into composition before the view model subscribes to thumbnail events.
   - The production Windows thumbnail provider asks Windows for file/folder thumbnails and falls back to cached generic icon artifacts by directory or extension class.

@@ -67,6 +67,88 @@ public sealed class ThumbnailControllerTests
     }
 
     [TestMethod]
+    public async Task Thumbnails_controller_counts_timed_out_provider_work_across_generations()
+    {
+        var provider = new NonCooperativeThumbnailProvider();
+        var policy = new PreviewTimeoutPolicy(
+            ImageDecodeBudget: TimeSpan.FromSeconds(2),
+            TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+            PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+            MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+            ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(30),
+            ThumbnailConcurrencyLimit: 4);
+        var controller = new ThumbnailController(provider, policy);
+        var firstGeneration = Enumerable.Range(0, 4)
+            .Select(index => Item($"gen-a-{index}.txt"))
+            .ToArray();
+        var secondGeneration = Enumerable.Range(0, 4)
+            .Select(index => Item($"gen-b-{index}.txt"))
+            .ToArray();
+
+        controller.Start(firstGeneration);
+
+        await WaitUntilAsync(() => provider.StartedCount == 4);
+        await WaitUntilAsync(() => firstGeneration.All(item => controller.GetState(item).ReasonCode == "thumbnail-timeout"));
+
+        Assert.AreEqual(4, provider.LiveCount);
+
+        controller.Start(secondGeneration);
+
+        await WaitUntilAsync(() => secondGeneration.All(item => controller.GetState(item).ReasonCode == "thumbnail-timeout"));
+        await Task.Delay(80);
+
+        Assert.AreEqual(4, provider.StartedCount, "A superseding generation must not bypass live provider operations from an older generation.");
+        Assert.AreEqual(4, provider.LiveCount);
+        Assert.AreEqual(4, provider.MaxConcurrentCount);
+        Assert.IsTrue(secondGeneration.All(item => controller.GetState(item).Status is ThumbnailStatus.GenericIcon));
+
+        provider.Release("gen-a-0.txt");
+        await WaitUntilAsync(() => provider.LiveCount == 3);
+        await Task.Delay(80);
+
+        Assert.AreEqual(4, provider.StartedCount, "Second-generation requests that already timed out visibly must not start after an old provider slot finally frees.");
+        Assert.AreEqual(4, provider.MaxConcurrentCount);
+    }
+
+    [TestMethod]
+    public async Task Thumbnails_controller_reuses_global_slot_for_new_generation_after_provider_completion()
+    {
+        var provider = new NonCooperativeThumbnailProvider();
+        var controller = new ThumbnailController(
+            provider,
+            new PreviewTimeoutPolicy(
+                ImageDecodeBudget: TimeSpan.FromSeconds(2),
+                TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+                PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+                MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+                ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(30),
+                ThumbnailConcurrencyLimit: 1));
+        var first = Item("old-hung.txt");
+        var stale = Item("stale-timeout.txt");
+        var retry = Item("retry.txt");
+
+        controller.Start([first]);
+        await WaitUntilAsync(() => provider.Started("old-hung.txt"));
+        await WaitUntilAsync(() => controller.GetState(first).ReasonCode == "thumbnail-timeout");
+
+        controller.Start([stale]);
+        await WaitUntilAsync(() => controller.GetState(stale).ReasonCode == "thumbnail-timeout");
+        await Task.Delay(80);
+
+        Assert.IsFalse(provider.Started("stale-timeout.txt"));
+
+        provider.Release("old-hung.txt");
+        await WaitUntilAsync(() => provider.LiveCount == 0);
+
+        controller.Start([retry]);
+
+        await WaitUntilAsync(() => provider.Started("retry.txt"));
+
+        Assert.AreEqual(2, provider.StartedCount);
+        Assert.AreEqual(1, provider.MaxConcurrentCount);
+    }
+
+    [TestMethod]
     public async Task Thumbnails_controller_ignores_late_success_after_visible_timeout()
     {
         var provider = new NonCooperativeThumbnailProvider();
@@ -212,9 +294,12 @@ public sealed class ThumbnailControllerTests
     private sealed class NonCooperativeThumbnailProvider : IThumbnailProvider
     {
         private readonly Dictionary<string, TaskCompletionSource<ThumbnailProviderResult>> _pending = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _gate = new();
         private int _live;
+        private int _startedCount;
 
-        public int StartedCount { get; private set; }
+        public int StartedCount => _startedCount;
 
         public int LiveCount => _live;
 
@@ -225,12 +310,25 @@ public sealed class ThumbnailControllerTests
             ThumbnailProviderContext context,
             CancellationToken cancellationToken)
         {
-            StartedCount++;
+            Interlocked.Increment(ref _startedCount);
             var live = Interlocked.Increment(ref _live);
-            MaxConcurrentCount = Math.Max(MaxConcurrentCount, live);
             var completion = new TaskCompletionSource<ThumbnailProviderResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _pending[item.Name] = completion;
+            lock (_gate)
+            {
+                _started.Add(item.Name);
+                _pending[item.Name] = completion;
+                MaxConcurrentCount = Math.Max(MaxConcurrentCount, live);
+            }
+
             return new ValueTask<ThumbnailProviderResult>(WaitForCompletionAsync(item.Name, completion.Task));
+        }
+
+        public bool Started(string name)
+        {
+            lock (_gate)
+            {
+                return _started.Contains(name);
+            }
         }
 
         public void Release(string name)
@@ -240,7 +338,13 @@ public sealed class ThumbnailControllerTests
 
         public void Release(string name, ThumbnailProviderResult result)
         {
-            if (_pending.TryGetValue(name, out var completion))
+            TaskCompletionSource<ThumbnailProviderResult>? completion;
+            lock (_gate)
+            {
+                _pending.TryGetValue(name, out completion);
+            }
+
+            if (completion is not null)
             {
                 completion.TrySetResult(result);
             }

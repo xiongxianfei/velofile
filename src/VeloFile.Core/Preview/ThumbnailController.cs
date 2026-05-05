@@ -6,6 +6,7 @@ public sealed class ThumbnailController
 {
     private readonly IThumbnailProvider _provider;
     private readonly PreviewTimeoutPolicy _policy;
+    private readonly SemaphoreSlim _liveProviderGate;
     private readonly object _gate = new();
     private Dictionary<string, ThumbnailState> _states = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _expiredRequests = new(StringComparer.OrdinalIgnoreCase);
@@ -16,6 +17,7 @@ public sealed class ThumbnailController
     {
         _provider = provider;
         _policy = policy ?? PreviewTimeoutPolicy.Default;
+        _liveProviderGate = new SemaphoreSlim(Math.Max(1, _policy.ThumbnailConcurrencyLimit));
     }
 
     public event EventHandler? StateChanged;
@@ -93,8 +95,7 @@ public sealed class ThumbnailController
         int generation,
         CancellationToken cancellationToken)
     {
-        using var semaphore = new SemaphoreSlim(Math.Max(1, _policy.ThumbnailConcurrencyLimit));
-        var tasks = items.Select(item => RunItemWithVisibleDeadlineAsync(item, generation, semaphore, cancellationToken)).ToArray();
+        var tasks = items.Select(item => RunItemWithVisibleDeadlineAsync(item, generation, cancellationToken)).ToArray();
         try
         {
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -107,12 +108,11 @@ public sealed class ThumbnailController
     private async Task RunItemWithVisibleDeadlineAsync(
         ListedFileItem item,
         int generation,
-        SemaphoreSlim semaphore,
         CancellationToken cancellationToken)
     {
         var timeoutBudget = _policy.GetBudget(PreviewOperation.ThumbnailGeneration);
         using var visibleTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var workTask = RunItemAsync(item, generation, semaphore, visibleTimeout.Token);
+        var workTask = RunItemAsync(item, generation, visibleTimeout.Token);
         var timeoutTask = Task.Delay(timeoutBudget, cancellationToken);
         var completed = await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false);
 
@@ -144,12 +144,11 @@ public sealed class ThumbnailController
     private async Task RunItemAsync(
         ListedFileItem item,
         int generation,
-        SemaphoreSlim semaphore,
         CancellationToken cancellationToken)
     {
         try
         {
-            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _liveProviderGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -176,7 +175,7 @@ public sealed class ThumbnailController
         }
         finally
         {
-            semaphore.Release();
+            _liveProviderGate.Release();
         }
     }
 
