@@ -12,6 +12,7 @@ using VeloFile.Core.Shell;
 using VeloFile.Core.Visibility;
 using VeloFile.Windows.Clipboard;
 using VeloFile.Windows.FileSystem;
+using VeloFile.Windows.Preview;
 using VeloFile.Windows.Shell;
 using VeloFile.Windows.Storage;
 using VeloFile.Windows.Windowing;
@@ -89,7 +90,7 @@ public static class AppCompositionRoot
         var searchService = new RecursiveSearchService(folderEntrySource);
         var fileOperationService = new FileOperationService(new WindowsShellFileOperationAdapter());
         var previewController = new PreviewController(
-            [new MetadataOnlyPreviewProvider()],
+            WindowsPreviewProviderFactory.CreateDefault(),
             new PreviewMetadataProvider(),
             diagnostics: diagnostics,
             pathRedactor: CreatePathRedactor(appDataRoot));

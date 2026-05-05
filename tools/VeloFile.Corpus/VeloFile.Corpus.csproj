@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\VeloFile.Core\VeloFile.Core.csproj" />
+    <ProjectReference Include="..\..\src\VeloFile.Windows\VeloFile.Windows.csproj" />
   </ItemGroup>
 
 </Project>

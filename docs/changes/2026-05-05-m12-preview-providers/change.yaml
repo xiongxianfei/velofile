@@ -1,0 +1,63 @@
+id: 2026-05-05-m12-preview-providers
+title: M12 image text and PDF preview providers
+status: implemented
+milestone: M12
+requirements:
+  - R61
+  - R62
+  - R63
+  - R64
+  - R65
+  - R66
+  - R67
+  - R69
+  - R70
+  - R71
+  - R72
+  - I3
+  - S7
+  - EC10
+  - EC11
+  - AC10
+  - AC11
+architecture:
+  - ADR 0004
+  - ADR 0008
+  - docs/architecture/system/architecture.md#preview
+files:
+  - src/VeloFile.Windows/Preview/
+  - src/VeloFile.Core/Preview/PreviewModels.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - tools/VeloFile.Corpus/Program.cs
+  - tools/VeloFile.Corpus/VeloFile.Corpus.csproj
+  - scripts/Invoke-CorpusTool.ps1
+  - tests/VeloFile.Windows.Tests/Preview/
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
+validation:
+  - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter PreviewProviders
+    result: first failed for missing VeloFile.Windows.Preview namespace; final run passed 5 Windows provider tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter PreviewProviders
+    result: first failed because production composition still used metadata-only provider; final run passed 1 App composition test
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter PreviewProviders
+    result: first failed because provider scope was unimplemented; after adding Windows project copying to the corpus wrapper, final run passed 1 Corpus provider evidence test
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope providers -ScratchRoot <scratch-root>
+    result: passed with a compliant scratch root and provider behavior-verifier evidence
+  - command: dotnet test VeloFile.sln -c Debug --filter PreviewProviders
+    result: passed 1 App, 5 Windows, and 1 Corpus provider tests; Core tests had no matching filter
+  - command: dotnet test VeloFile.sln -c Debug --filter PreviewContract
+    result: passed 17 Core, 4 App, and 1 Corpus preview-contract tests; Windows tests had no matching filter
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug
+    result: first failed because shared corpus wrapper intermediate-output overrides corrupted project-reference deps after adding Windows; final run passed 8 Corpus tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: first failed for the same corpus wrapper project-reference deps issue; final run passed restore, build with 0 warnings and 0 errors, and 269 tests across Windows, App, Core, and Corpus test assemblies
+notes:
+  - Image preview supports common image extensions through bounded header inspection, enforces the 100 MB input cap, and rejects decoded dimensions above 8192 by 8192 before content success.
+  - Text/code preview reads at most the first 1 MB, reports truncation, rejects binary-looking inputs, and uses the 100 MB metadata-only cap.
+  - PDF preview validates a bounded first-page-capable PDF header/body sample and uses the 500 MB metadata-only cap.
+  - Production app composition now uses Windows image, text, and PDF providers before metadata fallback.
+  - Provider corpus scope now invokes provider behavior checks and writes provider evidence under the preview corpus result path.
+  - The corpus wrapper now lets each copied project use scratch-local default bin/obj folders instead of sharing one intermediate-output directory across project references.
+  - Thumbnail execution remains assigned to M13; M12 only preserves the R67 thumbnail budget in policy from M11.

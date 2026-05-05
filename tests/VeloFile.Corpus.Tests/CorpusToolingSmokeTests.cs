@@ -61,6 +61,7 @@ public sealed class CorpusToolingSmokeTests
         AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "paths", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-ScratchRoot", scratch.Root));
         AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "contract", "-ScratchRoot", scratch.Root));
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "providers", "-ScratchRoot", scratch.Root));
 
         var operationsResultPath = Path.Combine(scratch.Root, "corpora", "operations", "compat", "operations-result.json");
         Assert.IsTrue(File.Exists(operationsResultPath), "Operations compatibility runner must write a result document.");
@@ -161,6 +162,35 @@ public sealed class CorpusToolingSmokeTests
         Assert.IsTrue((bool?)result["verifiedBehavior"]);
         CollectionAssert.IsSubsetOf(
             new[] { "loading-delay", "timeout-policy", "timeout", "metadata-fallback", "stale-selection" },
+            cases.Select(value => (string)value["caseId"]!).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("PreviewProviders")]
+    public void PreviewProviders_scope_records_provider_behavior_evidence()
+    {
+        using var scratch = ScratchWorkspace.Create();
+
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "providers", "-ScratchRoot", scratch.Root));
+
+        var resultPath = Path.Combine(
+            scratch.Root,
+            "corpora",
+            "preview",
+            "preview",
+            "preview-providers-result.json");
+        Assert.IsTrue(File.Exists(resultPath), "Preview providers scope must write a durable result document.");
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        var cases = result["caseResults"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+
+        Assert.AreEqual("providers", (string?)result["scope"]);
+        Assert.AreEqual("verified", (string?)result["status"]);
+        Assert.IsTrue((bool?)result["behaviorVerifierInvoked"]);
+        Assert.IsTrue((bool?)result["verifiedBehavior"]);
+        CollectionAssert.IsSubsetOf(
+            new[] { "image-success", "text-truncation", "pdf-first-page", "oversize-fallback", "source-non-mutation" },
             cases.Select(value => (string)value["caseId"]!).ToArray());
     }
 

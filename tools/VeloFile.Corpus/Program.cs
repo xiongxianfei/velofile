@@ -9,6 +9,7 @@ using VeloFile.Core.Listing;
 using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
 using VeloFile.Core.Visibility;
+using VeloFile.Windows.Preview;
 
 return CorpusCli.Run(args, Console.Out, Console.Error);
 
@@ -797,6 +798,32 @@ internal static class CorpusCli
             return failedCount == 0 ? 0 : 1;
         }
 
+        if (StringComparer.OrdinalIgnoreCase.Equals(scope, "providers"))
+        {
+            var providersRoot = ScratchRootGuard.Prepare(options.Required("root"));
+            CorpusProfileGenerator.Generate(providersRoot, "preview");
+            var caseResults = PreviewProviderCorpusVerifier.Verify(providersRoot);
+            var failedCount = caseResults.Count(result => result.Status is not "verified");
+
+            var providersResult = new
+            {
+                documentType = "velofilePreviewCorpusResult",
+                schemaVersion = 1,
+                scope = "providers",
+                status = failedCount == 0 ? "verified" : "failed",
+                behaviorVerifierInvoked = caseResults.All(result => result.BehaviorVerifierInvoked),
+                verifiedBehavior = caseResults.All(result => result.VerifiedBehavior),
+                evidenceKind = "preview-providers",
+                caseResults
+            };
+
+            WriteJson(ScratchRootGuard.PathUnderRoot(providersRoot, "corpora", "preview", "preview", "preview-providers-result.json"), providersResult);
+            output.WriteLine(failedCount == 0
+                ? "Preview providers corpus passed."
+                : "Preview providers corpus failed.");
+            return failedCount == 0 ? 0 : 1;
+        }
+
         if (!StringComparer.OrdinalIgnoreCase.Equals(scope, "smoke"))
         {
             ScratchRootGuard.ValidateOnly(options.Required("root"));
@@ -1095,6 +1122,241 @@ internal sealed record PreviewContractCaseResult(
     bool VerifiedBehavior,
     string EvidenceKind,
     string ReasonCode);
+
+internal static class PreviewProviderCorpusVerifier
+{
+    public static IReadOnlyList<PreviewContractCaseResult> Verify(DirectoryInfo root)
+    {
+        return VerifyAsync(root).GetAwaiter().GetResult();
+    }
+
+    private static async Task<IReadOnlyList<PreviewContractCaseResult>> VerifyAsync(DirectoryInfo root)
+    {
+        var fixtureRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", "preview", "preview");
+        Directory.CreateDirectory(fixtureRoot);
+        WriteBytes(Path.Combine(fixtureRoot, "image-success.png"), PngBytes(width: 24, height: 18));
+        WriteBytes(Path.Combine(fixtureRoot, "text-truncation.txt"), Encoding.UTF8.GetBytes(new string('t', 1024 * 1024) + "TAIL"));
+        WriteBytes(Path.Combine(fixtureRoot, "document.pdf"), MinimalPdfBytes());
+
+        return
+        [
+            await VerifyCaseAsync("image-success", () => VerifyImageAsync(fixtureRoot)).ConfigureAwait(false),
+            await VerifyCaseAsync("text-truncation", () => VerifyTextAsync(fixtureRoot)).ConfigureAwait(false),
+            await VerifyCaseAsync("pdf-first-page", () => VerifyPdfAsync(fixtureRoot)).ConfigureAwait(false),
+            await VerifyCaseAsync("oversize-fallback", () => VerifyOversizeFallbackAsync(fixtureRoot)).ConfigureAwait(false),
+            await VerifyCaseAsync("source-non-mutation", () => VerifyNonMutationAsync(fixtureRoot)).ConfigureAwait(false)
+        ];
+    }
+
+    private static async Task<PreviewContractCaseResult> VerifyCaseAsync(
+        string caseId,
+        Func<Task<bool>> verify)
+    {
+        try
+        {
+            var verified = await verify().ConfigureAwait(false);
+            return new PreviewContractCaseResult(
+                caseId,
+                verified ? "verified" : "failed",
+                true,
+                verified,
+                "preview-providers",
+                verified ? "verified" : caseId + "-failed");
+        }
+        catch (OperationCanceledException)
+        {
+            return new PreviewContractCaseResult(
+                caseId,
+                "failed",
+                true,
+                false,
+                "preview-providers",
+                "preview-provider-timeout");
+        }
+        catch
+        {
+            return new PreviewContractCaseResult(
+                caseId,
+                "failed",
+                true,
+                false,
+                "preview-providers",
+                "preview-provider-exception");
+        }
+    }
+
+    private static async Task<bool> VerifyImageAsync(string fixtureRoot)
+    {
+        var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "image-success.png"))).ConfigureAwait(false);
+        return state.Status is PreviewStatus.Success
+            && state.Content?.Kind is PreviewContentKind.Image
+            && state.Content.WidthPixels == 24
+            && state.Content.HeightPixels == 18;
+    }
+
+    private static async Task<bool> VerifyTextAsync(string fixtureRoot)
+    {
+        var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "text-truncation.txt"))).ConfigureAwait(false);
+        return state.Status is PreviewStatus.Success
+            && state.Content?.Kind is PreviewContentKind.Text
+            && state.Content.IsTruncated
+            && state.Content.TextContent?.Length == 1024 * 1024
+            && !state.Content.TextContent.Contains("TAIL", StringComparison.Ordinal);
+    }
+
+    private static async Task<bool> VerifyPdfAsync(string fixtureRoot)
+    {
+        var state = await PreviewAsync(Item(Path.Combine(fixtureRoot, "document.pdf"))).ConfigureAwait(false);
+        return state.Status is PreviewStatus.Success
+            && state.Content?.Kind is PreviewContentKind.Pdf
+            && state.Content.PageNumber == 1;
+    }
+
+    private static async Task<bool> VerifyOversizeFallbackAsync(string fixtureRoot)
+    {
+        var imageState = await PreviewAsync(Item(
+            Path.Combine(fixtureRoot, "image-success.png"),
+            lengthOverride: 100L * 1024 * 1024 + 1)).ConfigureAwait(false);
+        var pdfState = await PreviewAsync(Item(
+            Path.Combine(fixtureRoot, "document.pdf"),
+            lengthOverride: 500L * 1024 * 1024 + 1)).ConfigureAwait(false);
+
+        return imageState.Status is PreviewStatus.Unsupported
+            && imageState.ReasonCode == "image-too-large"
+            && pdfState.Status is PreviewStatus.Unsupported
+            && pdfState.ReasonCode == "pdf-too-large";
+    }
+
+    private static async Task<bool> VerifyNonMutationAsync(string fixtureRoot)
+    {
+        var paths = new[]
+        {
+            Path.Combine(fixtureRoot, "image-success.png"),
+            Path.Combine(fixtureRoot, "text-truncation.txt"),
+            Path.Combine(fixtureRoot, "document.pdf")
+        };
+        var before = paths.ToDictionary(path => path, Snapshot);
+        foreach (var path in paths)
+        {
+            var state = await PreviewAsync(Item(path)).ConfigureAwait(false);
+            if (state.Status is not PreviewStatus.Success)
+            {
+                return false;
+            }
+        }
+
+        return paths.All(path => Snapshot(path).Equals(before[path]));
+    }
+
+    private static async Task<PreviewState> PreviewAsync(ListedFileItem item)
+    {
+        var controller = new PreviewController(
+            WindowsPreviewProviderFactory.CreateDefault(),
+            new PreviewMetadataProvider(),
+            new PreviewControllerOptions(
+                TimeSpan.FromMilliseconds(5),
+                PreviewTimeoutPolicy.Default));
+
+        controller.StartPreview(item);
+        await WaitUntilAsync(() => controller.State.Status is PreviewStatus.Success or PreviewStatus.Unsupported or PreviewStatus.Failed).ConfigureAwait(false);
+        return controller.State;
+    }
+
+    private static ListedFileItem Item(string path, long? lengthOverride = null)
+    {
+        var info = new FileInfo(path);
+        return new ListedFileItem(
+            path,
+            info.Name,
+            info.Name,
+            FileSystemEntryKind.File,
+            lengthOverride ?? info.Length,
+            info.LastWriteTimeUtc,
+            info.Attributes,
+            IsHidden: false,
+            IsProtectedOperatingSystemFile: false,
+            IsVisuallyDimmed: false,
+            CreationTimeUtc: info.CreationTimeUtc,
+            LastAccessTimeUtc: info.LastAccessTimeUtc);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!condition())
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+        }
+    }
+
+    private static FileSnapshot Snapshot(string path)
+    {
+        var info = new FileInfo(path);
+        return new FileSnapshot(
+            info.Length,
+            Sha256(path),
+            info.CreationTimeUtc,
+            info.LastWriteTimeUtc,
+            info.Attributes);
+    }
+
+    private static void WriteBytes(string path, byte[] bytes)
+    {
+        File.WriteAllBytes(path, bytes);
+        File.SetCreationTimeUtc(path, new DateTime(2026, 2, 1, 2, 3, 4, DateTimeKind.Utc));
+        File.SetLastWriteTimeUtc(path, new DateTime(2026, 2, 2, 3, 4, 5, DateTimeKind.Utc));
+        File.SetAttributes(path, FileAttributes.Archive);
+    }
+
+    private static byte[] PngBytes(int width, int height)
+    {
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l3EX7wAAAABJRU5ErkJggg==");
+        WriteBigEndian(bytes, 16, width);
+        WriteBigEndian(bytes, 20, height);
+        return bytes;
+    }
+
+    private static void WriteBigEndian(byte[] bytes, int offset, int value)
+    {
+        bytes[offset] = (byte)((value >> 24) & 0xff);
+        bytes[offset + 1] = (byte)((value >> 16) & 0xff);
+        bytes[offset + 2] = (byte)((value >> 8) & 0xff);
+        bytes[offset + 3] = (byte)(value & 0xff);
+    }
+
+    private static byte[] MinimalPdfBytes()
+    {
+        return Encoding.ASCII.GetBytes("""
+            %PDF-1.4
+            1 0 obj
+            << /Type /Catalog /Pages 2 0 R >>
+            endobj
+            2 0 obj
+            << /Type /Pages /Kids [3 0 R] /Count 1 >>
+            endobj
+            3 0 obj
+            << /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>
+            endobj
+            trailer
+            << /Root 1 0 R >>
+            %%EOF
+            """);
+    }
+
+    private static string Sha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
+    }
+
+    private sealed record FileSnapshot(
+        long Length,
+        string Sha256,
+        DateTime CreationTimeUtc,
+        DateTime LastWriteTimeUtc,
+        FileAttributes Attributes);
+}
 
 internal static class ScratchRootGuard
 {

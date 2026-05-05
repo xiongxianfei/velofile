@@ -223,6 +223,19 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    [TestCategory("PreviewProviders")]
+    public void PreviewProviders_app_composition_uses_windows_content_providers_before_metadata_fallback()
+    {
+        var repoRoot = FindRepoRoot();
+        var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
+
+        StringAssert.Contains(composition, "WindowsPreviewProviderFactory.CreateDefault()");
+        Assert.IsFalse(
+            composition.Contains("[new MetadataOnlyPreviewProvider()]", StringComparison.Ordinal),
+            "Production composition must not stop at metadata-only preview after M12.");
+    }
+
+    [TestMethod]
     public void Main_window_file_list_binds_real_items_and_maps_selection_to_listed_file_models()
     {
         var repoRoot = FindRepoRoot();

@@ -22,11 +22,33 @@ public enum PreviewContentKind
 public sealed record PreviewContent(
     PreviewContentKind Kind,
     string? TextContent,
-    bool IsTruncated)
+    bool IsTruncated,
+    int? WidthPixels = null,
+    int? HeightPixels = null,
+    int? PageNumber = null)
 {
     public static PreviewContent Text(string text, bool truncated)
     {
         return new PreviewContent(PreviewContentKind.Text, text, truncated);
+    }
+
+    public static PreviewContent Image(int widthPixels, int heightPixels)
+    {
+        return new PreviewContent(
+            PreviewContentKind.Image,
+            $"Image {widthPixels} x {heightPixels}",
+            IsTruncated: false,
+            WidthPixels: widthPixels,
+            HeightPixels: heightPixels);
+    }
+
+    public static PreviewContent PdfFirstPage(string text)
+    {
+        return new PreviewContent(
+            PreviewContentKind.Pdf,
+            text,
+            IsTruncated: false,
+            PageNumber: 1);
     }
 }
 
