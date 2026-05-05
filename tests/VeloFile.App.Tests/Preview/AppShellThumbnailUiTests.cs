@@ -51,6 +51,80 @@ public sealed class AppShellThumbnailUiTests
     }
 
     [TestMethod]
+    [TestCategory("Thumbnails")]
+    [TestCategory("PreviewUi")]
+    public async Task PreviewUi_thumbnail_completion_is_marshaled_before_row_mutation()
+    {
+        var provider = new ManualThumbnailProvider();
+        var thumbnailController = new ThumbnailController(
+            provider,
+            PreviewTimeoutPolicy.ForTesting(TimeSpan.FromSeconds(5)));
+        var dispatcher = new RecordingShellDispatcher();
+        var viewModel = CreateViewModel(thumbnailController, dispatcher: dispatcher);
+        var item = Item("alpha.txt");
+        viewModel.SetFileItems([item]);
+        var row = viewModel.FileListRows[0];
+        var propertyChangedCount = 0;
+        row.PropertyChanged += (_, _) => propertyChangedCount++;
+
+        await WaitUntilAsync(() => dispatcher.PendingCount > 0);
+        dispatcher.RunAll();
+        Assert.AreEqual(ThumbnailStatus.Loading, row.ThumbnailStatus);
+        propertyChangedCount = 0;
+
+        await WaitUntilAsync(() => provider.Started("alpha.txt"));
+        provider.Complete("alpha.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("TXT")));
+        await WaitUntilAsync(() => dispatcher.PendingCount > 0);
+
+        Assert.AreEqual(ThumbnailStatus.Loading, row.ThumbnailStatus);
+        Assert.AreEqual(0, propertyChangedCount);
+
+        dispatcher.RunNext();
+
+        Assert.AreEqual(ThumbnailStatus.Ready, row.ThumbnailStatus);
+        Assert.IsGreaterThan(0, propertyChangedCount);
+    }
+
+    [TestMethod]
+    [TestCategory("Thumbnails")]
+    [TestCategory("PreviewUi")]
+    public async Task PreviewUi_stale_thumbnail_completion_does_not_update_replaced_visible_row()
+    {
+        var provider = new ManualThumbnailProvider();
+        var thumbnailController = new ThumbnailController(
+            provider,
+            PreviewTimeoutPolicy.ForTesting(TimeSpan.FromSeconds(5)));
+        var dispatcher = new RecordingShellDispatcher();
+        var viewModel = CreateViewModel(thumbnailController, dispatcher: dispatcher);
+        var oldItem = Item("a.txt");
+        var newItem = Item("b.txt");
+
+        viewModel.SetFileItems([oldItem]);
+        await WaitUntilAsync(() => dispatcher.PendingCount > 0);
+        dispatcher.RunAll();
+        await WaitUntilAsync(() => provider.Started("a.txt"));
+
+        viewModel.SetFileItems([newItem]);
+        await WaitUntilAsync(() => dispatcher.PendingCount > 0);
+        dispatcher.RunAll();
+        var row = viewModel.FileListRows[0];
+        await WaitUntilAsync(() => provider.Started("b.txt"));
+
+        provider.Complete("a.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("OLD")));
+        await Task.Delay(50);
+        dispatcher.RunAll();
+
+        Assert.AreSame(newItem, row.FileItem);
+        Assert.AreNotEqual("OLD", row.ThumbnailDisplayText);
+
+        provider.Complete("b.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("NEW")));
+        await WaitUntilAsync(() => dispatcher.PendingCount > 0);
+        dispatcher.RunAll();
+
+        Assert.AreEqual("NEW", row.ThumbnailDisplayText);
+    }
+
+    [TestMethod]
     [TestCategory("PreviewUi")]
     public async Task PreviewUi_preview_accessibility_name_distinguishes_empty_loading_unsupported_and_failed()
     {
@@ -90,7 +164,8 @@ public sealed class AppShellThumbnailUiTests
 
     private static AppShellViewModel CreateViewModel(
         ThumbnailController? thumbnailController = null,
-        PreviewController? previewController = null)
+        PreviewController? previewController = null,
+        IShellDispatcher? dispatcher = null)
     {
         return new AppShellViewModel(
             new AppShellStartupState(
@@ -107,7 +182,8 @@ public sealed class AppShellThumbnailUiTests
                     () => DateTimeOffset.Parse("2026-05-05T00:00:00Z")),
                 WindowPlacementResolution.DoNotApply(WindowPlacementResolutionStatus.DoNotApplyPersistedPlacement)),
             previewController: previewController,
-            thumbnailController: thumbnailController);
+            thumbnailController: thumbnailController,
+            shellDispatcher: dispatcher);
     }
 
     private static ListedFileItem Item(string name, bool isVisuallyDimmed = false)
@@ -152,6 +228,61 @@ public sealed class AppShellThumbnailUiTests
             CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(_results[item.Name]);
+        }
+    }
+
+    private sealed class ManualThumbnailProvider : IThumbnailProvider
+    {
+        private readonly Dictionary<string, TaskCompletionSource<ThumbnailProviderResult>> _pending = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
+
+        public ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            var completion = new TaskCompletionSource<ThumbnailProviderResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending[item.Name] = completion;
+            _started.Add(item.Name);
+            return new ValueTask<ThumbnailProviderResult>(completion.Task);
+        }
+
+        public bool Started(string name)
+        {
+            return _started.Contains(name);
+        }
+
+        public void Complete(string name, ThumbnailProviderResult result)
+        {
+            if (_pending.TryGetValue(name, out var completion))
+            {
+                completion.TrySetResult(result);
+            }
+        }
+    }
+
+    private sealed class RecordingShellDispatcher : IShellDispatcher
+    {
+        private readonly Queue<Action> _actions = new();
+
+        public int PendingCount => _actions.Count;
+
+        public void Post(Action action)
+        {
+            _actions.Enqueue(action);
+        }
+
+        public void RunNext()
+        {
+            _actions.Dequeue().Invoke();
+        }
+
+        public void RunAll()
+        {
+            while (_actions.Count > 0)
+            {
+                RunNext();
+            }
         }
     }
 

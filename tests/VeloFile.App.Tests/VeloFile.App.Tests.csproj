@@ -27,6 +27,7 @@
     <Compile Include="..\..\src\VeloFile.App\Input\WinUiStorageItemDropPayloadProjection.cs" Link="Linked\WinUiStorageItemDropPayloadProjection.cs" />
     <Compile Include="..\..\src\VeloFile.App\ViewModels\AppShellViewModel.cs" Link="Linked\AppShellViewModel.cs" />
     <Compile Include="..\..\src\VeloFile.App\ViewModels\FileListRowViewModel.cs" Link="Linked\FileListRowViewModel.cs" />
+    <Compile Include="..\..\src\VeloFile.App\ViewModels\IShellDispatcher.cs" Link="Linked\IShellDispatcher.cs" />
   </ItemGroup>
 
 </Project>

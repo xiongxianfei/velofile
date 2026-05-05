@@ -28,6 +28,7 @@ public sealed class AppShellViewModel
     private readonly PreviewController? _previewController;
     private readonly ThumbnailController? _thumbnailController;
     private readonly PreviewMetadataProvider _metadataProvider = new();
+    private IShellDispatcher _shellDispatcher;
     private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _activeListingItems = [];
     private IReadOnlyList<ListedFileItem> _fileItems = [];
@@ -57,6 +58,7 @@ public sealed class AppShellViewModel
         FileOperationService? fileOperationService = null,
         PreviewController? previewController = null,
         ThumbnailController? thumbnailController = null,
+        IShellDispatcher? shellDispatcher = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
@@ -69,6 +71,7 @@ public sealed class AppShellViewModel
         _fileOperationService = fileOperationService;
         _previewController = previewController;
         _thumbnailController = thumbnailController;
+        _shellDispatcher = shellDispatcher ?? ImmediateShellDispatcher.Instance;
         _viewportItemCount = viewportItemCount;
         if (_fileOperationService is not null)
         {
@@ -86,8 +89,11 @@ public sealed class AppShellViewModel
         {
             _thumbnailController.StateChanged += (_, _) =>
             {
-                RefreshFileListRows();
-                ShellStateChanged?.Invoke(this, EventArgs.Empty);
+                _shellDispatcher.Post(() =>
+                {
+                    RefreshFileListRows();
+                    ShellStateChanged?.Invoke(this, EventArgs.Empty);
+                });
             };
         }
 
@@ -95,6 +101,11 @@ public sealed class AppShellViewModel
     }
 
     public event EventHandler? ShellStateChanged;
+
+    public void SetShellDispatcher(IShellDispatcher shellDispatcher)
+    {
+        _shellDispatcher = shellDispatcher;
+    }
 
     public AppShellCommandSurface CommandSurface { get; }
 

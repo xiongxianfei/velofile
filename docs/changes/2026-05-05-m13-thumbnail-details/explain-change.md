@@ -6,9 +6,13 @@ M13 adds thumbnail/icon enrichment and preview UI polish on top of the M11-M12 p
 
 `VeloFile.Core.Preview` now has thumbnail-specific models and a `ThumbnailController`. The controller starts thumbnail work for the current visible item set, limits concurrent provider calls to four operations, applies the 500 ms thumbnail budget per item from `PreviewTimeoutPolicy`, cancels older generations, ignores stale results, and falls back to generic icons on timeout or provider failure.
 
+Review resolution tightened the timeout contract for providers that ignore cancellation. The controller now races each visible thumbnail request against the configured thumbnail budget, marks the row with a timeout fallback when the visible deadline wins, and keeps the underlying provider task inside the semaphore-held work until it actually completes. That preserves both halves of R67: rows do not stay loading forever, and stuck provider calls still count against the live concurrency cap.
+
 `VeloFile.Windows.Preview.WindowsThumbnailProvider` is the production Windows boundary. It asks Windows Storage APIs for file and folder thumbnails, reads returned thumbnail streams into immutable artifacts, and falls back to generic icon artifacts when thumbnails are unavailable or projection fails. Generic fallback artifacts are cached by directory or file-extension class.
 
 `AppShellViewModel` now accepts a thumbnail controller, starts thumbnail work when the visible folder/search/filter rows change, clears stale work when the visible list is empty, and exposes `FileListRows` as the shell-facing row projection. The new `FileListRowViewModel` keeps the canonical `ListedFileItem` available for selection mapping while adding thumbnail display state and hidden/protected dimming. Rows are updated in place when thumbnail state changes so loading thumbnails do not replace visible row objects and risk clearing selection.
+
+Review resolution also added `IShellDispatcher`. Thumbnail controller events can arrive from worker continuations, so `AppShellViewModel` now posts thumbnail row refreshes through the shell dispatcher before mutating row view models or raising shell binding notifications. Production launch passes a WinUI `DispatcherQueue` implementation into composition before the view model subscribes to thumbnail events, `MainWindow` refreshes the dispatcher for injected shell instances, and tests use immediate or recording dispatchers.
 
 The WinUI file list binds to `FileListRows` and displays a compact thumbnail/icon slot before name, kind, and modified time. The preview/details pane now exposes a stable accessibility name derived from preview state and binds metadata details through the view model, so empty, loading, unsupported, and failed preview states are distinguishable to assistive technology.
 
@@ -32,6 +36,9 @@ Core tests cover:
 
 - maximum four concurrent thumbnail provider calls;
 - per-item timeout converting unresolved thumbnail work to a generic icon;
+- visible timeout fallback when the provider ignores cancellation;
+- timed-out provider work continuing to count against the live-operation cap;
+- late provider success not overwriting a timed-out fallback for the stale request;
 - old thumbnail generations being cancelled and ignored after a new visible item set starts.
 
 Windows tests cover:
@@ -43,6 +50,8 @@ App tests cover:
 
 - file-list row projection exposing thumbnail state and hidden/protected dimming;
 - stable row objects across thumbnail state updates;
+- thumbnail completion being dispatched before any row mutation or `PropertyChanged`;
+- stale thumbnail completion not updating a recycled visible row;
 - preview accessibility names for empty, loading, unsupported, and failed states;
 - details metadata fields including size, timestamps, attributes, and type;
 - MainWindow binding the file list to row view models and setting the preview pane automation name.
@@ -64,5 +73,6 @@ This slice does not change image/text/PDF content preview rendering, PDF page na
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>`
 - `dotnet test VeloFile.sln -c Debug --filter Thumbnails`
 - `dotnet test VeloFile.sln -c Debug --filter PreviewUi`
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-restore`
+- `dotnet build VeloFile.sln -c Debug`
+- `dotnet test VeloFile.sln -c Debug --no-build`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`

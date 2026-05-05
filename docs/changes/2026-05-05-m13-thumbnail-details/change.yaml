@@ -1,6 +1,6 @@
 id: 2026-05-05-m13-thumbnail-details
 title: M13 thumbnails icons and preview UI concurrency
-status: implemented
+status: review-resolution-implemented
 milestone: M13
 requirements:
   - R60
@@ -29,11 +29,14 @@ files:
   - src/VeloFile.Core/Preview/ThumbnailModels.cs
   - src/VeloFile.Core/Preview/ThumbnailController.cs
   - src/VeloFile.Windows/Preview/WindowsThumbnailProvider.cs
+  - src/VeloFile.App/App.xaml.cs
   - src/VeloFile.App/AppCompositionRoot.cs
   - src/VeloFile.App/MainWindow.xaml
   - src/VeloFile.App/MainWindow.xaml.cs
   - src/VeloFile.App/ViewModels/AppShellViewModel.cs
   - src/VeloFile.App/ViewModels/FileListRowViewModel.cs
+  - src/VeloFile.App/ViewModels/IShellDispatcher.cs
+  - src/VeloFile.App/ViewModels/WinUiShellDispatcher.cs
   - tools/VeloFile.Corpus/Program.cs
   - tests/VeloFile.Core.Tests/Preview/ThumbnailControllerTests.cs
   - tests/VeloFile.Windows.Tests/Preview/WindowsThumbnailProviderTests.cs
@@ -43,25 +46,31 @@ files:
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
   - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore
-    result: passed 2 Core thumbnail controller tests
+    result: passed 4 Core thumbnail controller tests, including non-cooperative timeout/live-slot and late-success ignore regressions
   - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Thumbnails --no-restore
     result: passed 2 Windows thumbnail provider tests
   - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Thumbnails|PreviewUi" --no-restore
-    result: passed 3 App thumbnail and preview UI tests, including stable row-object proof across thumbnail state updates
+    result: passed 5 App thumbnail and preview UI tests, including dispatcher-marshaled row mutation and stale visible-row protection
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Thumbnails --no-restore
-    result: passed 1 Corpus thumbnail evidence test after switching the script harness to Windows PowerShell on Windows
+    result: passed 1 Corpus thumbnail evidence test after stopping a stale timed-out test process tree and rerunning cleanly
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>
     result: passed with thumbnail behavior-verifier evidence
   - command: dotnet test VeloFile.sln -c Debug --filter Thumbnails
-    result: passed 2 Core, 2 Windows, and 1 Corpus thumbnail tests; App tests had no matching Thumbnails-only filter in solution output and are covered by PreviewUi
+    result: passed 4 Core, 2 Windows, and 1 Corpus thumbnail tests; App tests had no matching Thumbnails-only filter in solution output and are covered by PreviewUi
   - command: dotnet test VeloFile.sln -c Debug --filter PreviewUi
-    result: passed 3 App preview UI tests
-  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-restore
-    result: passed 85 App tests after updating the preview-pane contract assertion to DetailsMetadataFields
+    result: passed 5 App preview UI tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --no-build
+    result: passed 295 tests across App, Core, Windows, and Corpus assemblies
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-    result: first failed because an older App contract assertion still expected PreviewMetadataFields; final run after stable row-object validation passed dotnet info, restore, build with 0 warnings and 0 errors, and 291 tests across App, Core, Windows, and Corpus assemblies
+    result: passed dotnet info, restore, build with 0 warnings and 0 errors, and 295 tests across App, Core, Windows, and Corpus assemblies
 notes:
   - Thumbnail execution is now modeled separately from content preview with per-item timeout, concurrency limiting, stale-generation cancellation, and generic icon fallback.
+  - Review resolution changed thumbnail timeout enforcement from cooperative cancellation only to a visible-deadline race, so rows leave Loading at the thumbnail budget even when a provider ignores cancellation.
+  - Timed-out provider work continues to hold a live provider slot until the provider task actually completes, which preserves the thumbnail concurrency cap under hung providers.
+  - Late provider success after a visible timeout is ignored for that request generation, preventing stale thumbnail flicker.
+  - Thumbnail StateChanged handling is marshaled through an app-layer shell dispatcher before refreshing row view models or raising shell binding notifications; production launch passes a WinUI dispatcher into composition before the view model subscribes to thumbnail events.
   - The production Windows thumbnail provider asks Windows for file/folder thumbnails and falls back to cached generic icon artifacts by directory or extension class.
   - The file list binds row view models that combine visible listing rows with thumbnail state and hidden/protected visual dimming.
   - File-list row view models are stable and update thumbnail properties in place, so thumbnail completion does not replace row objects and risk clearing selection.

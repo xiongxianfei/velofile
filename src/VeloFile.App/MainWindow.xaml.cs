@@ -40,6 +40,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         ViewModel = viewModel;
+        ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue));
         _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
         _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
         _dragDropRoute = new AppDragDropRoute(ViewModel, new WinUiFileDropPayloadExtractor());

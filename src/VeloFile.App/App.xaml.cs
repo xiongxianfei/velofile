@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using VeloFile.App.ViewModels;
 
 namespace VeloFile.App;
 
@@ -13,8 +14,9 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        var shellDispatcher = new WinUiShellDispatcher(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
         _window = new MainWindow(
-            AppCompositionRoot.CreateShellViewModel(),
+            AppCompositionRoot.CreateShellViewModel(shellDispatcher),
             AppCompositionRoot.CreateWindowPlacementApplier());
         _window.Activate();
     }

@@ -21,7 +21,7 @@ namespace VeloFile.App;
 
 public static class AppCompositionRoot
 {
-    public static AppShellViewModel CreateShellViewModel()
+    public static AppShellViewModel CreateShellViewModel(IShellDispatcher? shellDispatcher = null)
     {
         var initialState = new AppBootstrapper().CreateInitialState();
         var appDataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ProductIdentity.Name);
@@ -104,7 +104,8 @@ public static class AppCompositionRoot
             searchService,
             fileOperationService,
             previewController,
-            thumbnailController);
+            thumbnailController,
+            shellDispatcher);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

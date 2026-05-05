@@ -67,7 +67,7 @@ public sealed class AppShellContractTests
         var appCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
-        StringAssert.Contains(appCode, "AppCompositionRoot.CreateShellViewModel()");
+        StringAssert.Contains(appCode, "AppCompositionRoot.CreateShellViewModel(shellDispatcher)");
         StringAssert.Contains(compositionCode, "DurableDocumentRepository<SessionStatePayload>");
         StringAssert.Contains(compositionCode, "DurableDocumentRepository<SettingsStatePayload>");
         StringAssert.Contains(compositionCode, "DurableDocumentRepository<FavoritesStatePayload>");
@@ -243,12 +243,20 @@ public sealed class AppShellContractTests
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+        var app = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
+        var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
+        var normalizedComposition = composition.Replace("\r\n", "\n", StringComparison.Ordinal);
 
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(xaml, "Text=\"{Binding ThumbnailDisplayText}\"");
         StringAssert.Contains(xaml, "Opacity=\"{Binding RowOpacity}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
+        StringAssert.Contains(codeBehind, "ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue))");
+        StringAssert.Contains(app, "new WinUiShellDispatcher(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread())");
+        StringAssert.Contains(app, "AppCompositionRoot.CreateShellViewModel(shellDispatcher)");
+        StringAssert.Contains(composition, "CreateShellViewModel(IShellDispatcher? shellDispatcher = null)");
+        StringAssert.Contains(normalizedComposition, "thumbnailController,\n            shellDispatcher");
     }
 
     [TestMethod]

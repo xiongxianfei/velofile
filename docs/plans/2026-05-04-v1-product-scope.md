@@ -501,6 +501,9 @@ Architectural boundaries to preserve:
   - Added `preview --scope thumbnails` corpus evidence for concurrency, timeout, fallback, and stale-result behavior.
   - Focused validation passed for Core/Windows/App/Corpus thumbnail and preview UI tests plus the standalone thumbnail corpus script.
   - Solution-level `Thumbnails` and `PreviewUi` filters passed. Full `scripts\ci.ps1` first caught a stale App contract assertion for preview metadata binding; after updating it to `DetailsMetadataFields`, CI passed with 0 build warnings/errors and 291 tests.
+  - Review resolution fixed the non-cooperative provider timeout gap by racing visible thumbnail requests against the thumbnail budget while keeping timed-out provider tasks counted against live concurrency until actual completion.
+  - Review resolution added an app-layer shell dispatcher so thumbnail completion events post to the UI dispatcher before row view-model mutation or binding notification; production app launch now passes the WinUI dispatcher into composition before thumbnail event subscription.
+  - Review-resolution validation passed focused Core/App/Windows/Corpus thumbnail tests, direct thumbnail corpus execution, solution `Thumbnails` and `PreviewUi` filters, `dotnet build`, `dotnet test --no-build`, and `scripts\ci.ps1` with 295 tests.
 
 ### M14. Terminal Launch and File Association Open
 
@@ -673,7 +676,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M10 complete.
 - [x] M11 complete.
 - [x] M12 complete.
-- [ ] M13 complete.
+- [x] M13 complete.
 - [ ] M14 complete.
 - [ ] M15 complete.
 - [ ] M16 complete.
@@ -1070,11 +1073,38 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test VeloFile.sln -c Debug --no-build` passed 283 tests across App, Core, Windows, and Corpus assemblies.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` first failed because the corpus wrapper used one shared intermediate-output directory for multiple copied project references; final run passed 8 Corpus tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` review-resolution run passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 283 tests across 4 test assemblies.
+- M13 test-first implementation evidence:
+  - Added Core thumbnail controller tests before the thumbnail controller existed; the first focused run failed for missing thumbnail controller APIs.
+  - Added Windows thumbnail provider tests before the production Windows provider existed; the first focused run failed for missing provider types.
+  - Added App preview UI tests before file-list rows exposed thumbnail state or preview accessibility names; the first focused run failed for missing row/presenter surface.
+  - Added Corpus thumbnail scope tests before `preview --scope thumbnails` existed; the first corpus run failed for missing scope support.
+  - Implemented Core thumbnail state, four-operation concurrency, per-item timeout fallback, generation cancellation, and stale-result ignore.
+  - Implemented the Windows thumbnail provider with Windows Storage thumbnail APIs and cached generic fallback artifacts.
+  - Bound the file list to stable row view models that expose thumbnail state, dimming, selection identity, and preview/details accessibility state.
+  - Expanded the preview corpus thumbnail scope with behavior-verifier evidence for concurrency, timeout, fallback, and stale-result behavior.
+- M13 review-resolution:
+  - First-pass `code-review` requested proof and implementation for non-cooperative provider timeout behavior and UI-dispatcher-bound thumbnail row updates.
+  - Added non-cooperative provider tests proving visible timeout fallback, live-slot retention after timeout, queued-row deadline fallback, and late success ignore.
+  - Updated `ThumbnailController` to race provider work against the visible thumbnail deadline while keeping semaphore-held provider work alive until actual completion.
+  - Added `IShellDispatcher`, passed a WinUI `DispatcherQueue` implementation through production app composition before thumbnail event subscription, and routed thumbnail state-change row refreshes through the dispatcher before row mutation.
+  - Added App tests proving no row mutation or `PropertyChanged` occurs before dispatcher execution, and stale thumbnail completion does not update a recycled row.
+  - `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 4 Core thumbnail tests.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Thumbnails|PreviewUi" --no-restore` passed: 5 App thumbnail/preview UI tests.
+  - `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 2 Windows thumbnail tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>` passed.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Thumbnails --no-restore` passed: 1 Corpus thumbnail test.
+  - `dotnet test VeloFile.sln -c Debug --filter Thumbnails` passed: 4 Core, 2 Windows, and 1 Corpus thumbnail tests.
+  - `dotnet test VeloFile.sln -c Debug --filter PreviewUi` passed: 5 App preview UI tests.
+  - An intermediate parallel App focused test plus solution build hit the known App.Tests `obj` file-lock behavior; `dotnet build-server shutdown` followed by sequential validation passed.
+  - The first post-composition full-suite run failed because an older app-launch contract assertion still expected the no-dispatcher composition call. The final test now asserts `CreateShellViewModel(shellDispatcher)`.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `dotnet test VeloFile.sln -c Debug --no-build` passed 295 tests across App, Core, Windows, and Corpus assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 295 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, and M12 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, and bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, and provider corpus evidence. Later V1 thumbnail/icon/details UI, terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M13-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, and M13 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, provider corpus evidence, and thumbnail/icon/details UI with bounded non-blocking thumbnail execution and UI-dispatched row updates. Later V1 terminal, file-association Open/Open With, benchmark, and packaging behavior remains assigned to M14-M16.
 
 ## Readiness
 
-M12 image, text, and PDF preview providers are implemented, review-resolution validation is passing, and the slice is ready for `code-review`.
+M13 thumbnails, icons, details, and preview UI concurrency are implemented, review-resolution validation is passing, and the slice is ready for `code-review`.

@@ -31,6 +31,69 @@ public sealed class ThumbnailControllerTests
     }
 
     [TestMethod]
+    public async Task Thumbnails_controller_times_out_noncooperative_provider_without_releasing_live_slot()
+    {
+        var provider = new NonCooperativeThumbnailProvider();
+        var policy = new PreviewTimeoutPolicy(
+            ImageDecodeBudget: TimeSpan.FromSeconds(2),
+            TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+            PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+            MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+            ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(30),
+            ThumbnailConcurrencyLimit: 2);
+        var controller = new ThumbnailController(provider, policy);
+        var first = Item("first.txt");
+        var second = Item("second.txt");
+        var third = Item("third.txt");
+
+        controller.Start([first, second, third]);
+
+        await WaitUntilAsync(() => provider.StartedCount == 2);
+        await WaitUntilAsync(() => controller.GetState(first).ReasonCode == "thumbnail-timeout"
+            && controller.GetState(second).ReasonCode == "thumbnail-timeout"
+            && controller.GetState(third).ReasonCode == "thumbnail-timeout");
+
+        Assert.AreEqual(2, provider.StartedCount);
+        Assert.AreEqual(2, provider.LiveCount);
+        Assert.AreEqual(2, provider.MaxConcurrentCount);
+        Assert.AreEqual(ThumbnailStatus.GenericIcon, controller.GetState(third).Status);
+
+        provider.Release("first.txt");
+        await WaitUntilAsync(() => provider.LiveCount == 1);
+        await Task.Delay(80);
+
+        Assert.AreEqual(2, provider.StartedCount, "Queued requests that already reached their visible deadline must not start later.");
+        Assert.AreEqual(2, provider.MaxConcurrentCount);
+    }
+
+    [TestMethod]
+    public async Task Thumbnails_controller_ignores_late_success_after_visible_timeout()
+    {
+        var provider = new NonCooperativeThumbnailProvider();
+        var controller = new ThumbnailController(
+            provider,
+            new PreviewTimeoutPolicy(
+                ImageDecodeBudget: TimeSpan.FromSeconds(2),
+                TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+                PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+                MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+                ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(30),
+                ThumbnailConcurrencyLimit: 1));
+        var item = Item("late.txt");
+
+        controller.Start([item]);
+        await WaitUntilAsync(() => controller.GetState(item).ReasonCode == "thumbnail-timeout");
+
+        provider.Release("late.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("LATE")));
+        await WaitUntilAsync(() => provider.LiveCount == 0);
+        await Task.Delay(50);
+
+        Assert.AreEqual(ThumbnailStatus.GenericIcon, controller.GetState(item).Status);
+        Assert.AreEqual("thumbnail-timeout", controller.GetState(item).ReasonCode);
+        Assert.AreNotEqual("LATE", controller.GetState(item).Artifact?.DisplayText);
+    }
+
+    [TestMethod]
     public async Task Thumbnails_controller_ignores_stale_results_after_new_generation()
     {
         var provider = new ManualThumbnailProvider();
@@ -142,6 +205,56 @@ public sealed class ThumbnailControllerTests
             if (_pending.TryGetValue(name, out var completion))
             {
                 completion.TrySetResult(result);
+            }
+        }
+    }
+
+    private sealed class NonCooperativeThumbnailProvider : IThumbnailProvider
+    {
+        private readonly Dictionary<string, TaskCompletionSource<ThumbnailProviderResult>> _pending = new(StringComparer.OrdinalIgnoreCase);
+        private int _live;
+
+        public int StartedCount { get; private set; }
+
+        public int LiveCount => _live;
+
+        public int MaxConcurrentCount { get; private set; }
+
+        public ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            StartedCount++;
+            var live = Interlocked.Increment(ref _live);
+            MaxConcurrentCount = Math.Max(MaxConcurrentCount, live);
+            var completion = new TaskCompletionSource<ThumbnailProviderResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending[item.Name] = completion;
+            return new ValueTask<ThumbnailProviderResult>(WaitForCompletionAsync(item.Name, completion.Task));
+        }
+
+        public void Release(string name)
+        {
+            Release(name, ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon(name)));
+        }
+
+        public void Release(string name, ThumbnailProviderResult result)
+        {
+            if (_pending.TryGetValue(name, out var completion))
+            {
+                completion.TrySetResult(result);
+            }
+        }
+
+        private async Task<ThumbnailProviderResult> WaitForCompletionAsync(string name, Task<ThumbnailProviderResult> completion)
+        {
+            try
+            {
+                return await completion.ConfigureAwait(false);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _live);
             }
         }
     }

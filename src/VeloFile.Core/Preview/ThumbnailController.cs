@@ -8,6 +8,7 @@ public sealed class ThumbnailController
     private readonly PreviewTimeoutPolicy _policy;
     private readonly object _gate = new();
     private Dictionary<string, ThumbnailState> _states = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _expiredRequests = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _activeCancellation;
     private int _generation;
 
@@ -57,6 +58,7 @@ public sealed class ThumbnailController
                     group => group.Key,
                     _ => ThumbnailState.Loading,
                     StringComparer.OrdinalIgnoreCase);
+            _expiredRequests = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         previous?.Cancel();
@@ -79,6 +81,7 @@ public sealed class ThumbnailController
             _activeCancellation = null;
             _generation++;
             _states = new Dictionary<string, ThumbnailState>(StringComparer.OrdinalIgnoreCase);
+            _expiredRequests = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         previous?.Cancel();
@@ -91,12 +94,49 @@ public sealed class ThumbnailController
         CancellationToken cancellationToken)
     {
         using var semaphore = new SemaphoreSlim(Math.Max(1, _policy.ThumbnailConcurrencyLimit));
-        var tasks = items.Select(item => RunItemAsync(item, generation, semaphore, cancellationToken)).ToArray();
+        var tasks = items.Select(item => RunItemWithVisibleDeadlineAsync(item, generation, semaphore, cancellationToken)).ToArray();
         try
         {
             await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RunItemWithVisibleDeadlineAsync(
+        ListedFileItem item,
+        int generation,
+        SemaphoreSlim semaphore,
+        CancellationToken cancellationToken)
+    {
+        var timeoutBudget = _policy.GetBudget(PreviewOperation.ThumbnailGeneration);
+        using var visibleTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var workTask = RunItemAsync(item, generation, semaphore, visibleTimeout.Token);
+        var timeoutTask = Task.Delay(timeoutBudget, cancellationToken);
+        var completed = await Task.WhenAny(workTask, timeoutTask).ConfigureAwait(false);
+
+        if (completed == workTask)
+        {
+            await workTask.ConfigureAwait(false);
+            return;
+        }
+
+        ExpireRequest(generation, item, "thumbnail-timeout");
+        visibleTimeout.Cancel();
+        _ = ObserveLateCompletionAsync(workTask);
+    }
+
+    private static async Task ObserveLateCompletionAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch
         {
         }
     }
@@ -118,19 +158,13 @@ public sealed class ThumbnailController
 
         try
         {
-            using var itemCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            itemCancellation.CancelAfter(_policy.GetBudget(PreviewOperation.ThumbnailGeneration));
             try
             {
                 var result = await _provider.GenerateAsync(
                     item,
                     new ThumbnailProviderContext(_policy.GetBudget(PreviewOperation.ThumbnailGeneration)),
-                    itemCancellation.Token).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
                 ApplyState(generation, item, ToState(item, result));
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                ApplyState(generation, item, ThumbnailState.GenericIcon(GenericIconFor(item), "thumbnail-timeout"));
             }
             catch (OperationCanceledException)
             {
@@ -146,12 +180,38 @@ public sealed class ThumbnailController
         }
     }
 
+    private void ExpireRequest(int generation, ListedFileItem item, string reasonCode)
+    {
+        var shouldRaise = false;
+        lock (_gate)
+        {
+            if (generation != _generation || !_states.ContainsKey(item.FullPath))
+            {
+                return;
+            }
+
+            _expiredRequests.Add(item.FullPath);
+            _states[item.FullPath] = ThumbnailState.GenericIcon(GenericIconFor(item), reasonCode);
+            shouldRaise = true;
+        }
+
+        if (shouldRaise)
+        {
+            RaiseStateChanged();
+        }
+    }
+
     private void ApplyState(int generation, ListedFileItem item, ThumbnailState state)
     {
         var shouldRaise = false;
         lock (_gate)
         {
             if (generation != _generation || !_states.ContainsKey(item.FullPath))
+            {
+                return;
+            }
+
+            if (_expiredRequests.Contains(item.FullPath))
             {
                 return;
             }
