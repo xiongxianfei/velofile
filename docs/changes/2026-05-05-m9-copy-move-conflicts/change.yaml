@@ -32,7 +32,7 @@ files:
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Operations
-    result: first failed for missing copy/move/conflict contracts; final targeted run passed with 13 Core operation tests, 23 App operation shell/route tests, and 12 Windows shell-operation tests
+    result: first failed for missing copy/move/conflict contracts; final review-resolution targeted run passed with 15 Core operation tests, 26 App operation shell/route tests, and 13 Windows shell-operation tests
   - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug
     result: passed 6 corpus tooling tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope operations -ScratchRoot <scratch-root>
@@ -40,7 +40,7 @@ validation:
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build with 0 warnings and 0 errors, and 208 tests across Windows, App, Core, and Corpus test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 214 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Copy and Cut stage file transfers in the app shell; Paste routes staged transfers through the operation service against the active target folder.
   - Copy and Move are explicit Core operation kinds with target-directory validation, visible running/completed/failed/cancelled/conflict states, and cancellation propagation through the adapter boundary.
@@ -48,4 +48,6 @@ notes:
   - Windows copy/move mapping stays behind `VeloFile.Windows`; the adapter probes same-name collisions before execution and never performs hidden permanent-delete behavior.
   - Copy is never undo-eligible. Move, rename, and Recycle Bin delete remain undo-eligible only when the adapter reports support. Permanent delete remains non-undoable.
   - Batch Skip handling skips only colliding destinations and continues unaffected copy/move items.
+  - Review-resolution tests now directly prove partial-progress cancellation preserves `1 of 3` progress, ends cancelled, and suppresses undo.
+  - Review-resolution tests now directly prove App/Core Skip and Keep Both conflict choices, plus Windows executor Keep Both behavior with a distinct destination file.
   - The operations corpus profile now includes copy, move, collision, delete, rename, and partial-batch placeholders, and the operations compatibility runner validates those fixtures under a scratch root.

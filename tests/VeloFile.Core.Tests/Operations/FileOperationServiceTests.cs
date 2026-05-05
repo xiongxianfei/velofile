@@ -106,23 +106,96 @@ public sealed class FileOperationServiceTests
     }
 
     [TestMethod]
-    public async Task Move_cancel_after_partial_progress_records_cancelled_status()
+    public async Task Move_cancel_after_completed_item_records_partial_cancel_and_no_undo()
     {
         var adapter = new PendingFileOperationAdapter(supportsCancellation: true);
         var service = new FileOperationService(adapter);
-        var item = Item(@"D:\scratch\source\move-me.txt", "move-me.txt");
+        var items = new[]
+        {
+            Item(@"D:\scratch\source\one.txt", "one.txt"),
+            Item(@"D:\scratch\source\two.txt", "two.txt"),
+            Item(@"D:\scratch\source\three.txt", "three.txt")
+        };
+        adapter.ProgressToReport = new FileOperationProgress(
+            FileOperationKind.Move,
+            CompletedItemCount: 1,
+            TotalItemCount: items.Length,
+            StatusText: "Moved 1 of 3");
 
-        var operation = service.MoveAsync([item], @"D:\scratch\target");
+        var operation = service.MoveAsync(items, @"D:\scratch\target");
 
         Assert.IsFalse(operation.IsCompleted);
         Assert.AreEqual(FileOperationKind.Move, service.State.Kind);
         Assert.IsTrue(service.State.CanCancel);
+        Assert.AreEqual(1, service.State.Progress.CompletedItemCount);
+        Assert.AreEqual(3, service.State.Progress.TotalItemCount);
 
         service.CancelCurrentOperation();
         await operation;
 
         Assert.IsTrue(adapter.CancellationObserved);
         Assert.AreEqual(FileOperationStatus.Cancelled, service.State.Status);
+        Assert.AreEqual(1, service.State.Progress.CompletedItemCount);
+        Assert.AreEqual(3, service.State.Progress.TotalItemCount);
+        Assert.IsFalse(service.State.UndoEligibility.CanUndo);
+    }
+
+    [TestMethod]
+    public async Task Copy_conflict_resolution_routes_skip_choice()
+    {
+        var item = Item(@"D:\scratch\source\copy-me.txt", "copy-me.txt");
+        var adapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.ConflictRequired(
+                "name-conflict",
+                new FileOperationConflict(
+                    FileOperationKind.Copy,
+                    [FileOperationTarget.FromListedItem(item)],
+                    @"D:\scratch\target",
+                    "copy-me.txt"))
+        };
+        var service = new FileOperationService(adapter);
+
+        await service.CopyAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConflict, service.State.Status);
+
+        adapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: false);
+        await service.ResolveConflictAsync(FileOperationConflictChoice.Skip);
+
+        Assert.AreEqual(2, adapter.Requests.Count);
+        Assert.AreEqual(FileOperationConflictChoice.Skip, adapter.LastRequest?.ConflictChoice);
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.IsNull(service.PendingConflict);
+    }
+
+    [TestMethod]
+    public async Task Copy_conflict_resolution_routes_keep_both_choice()
+    {
+        var item = Item(@"D:\scratch\source\copy-me.txt", "copy-me.txt");
+        var adapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.ConflictRequired(
+                "name-conflict",
+                new FileOperationConflict(
+                    FileOperationKind.Copy,
+                    [FileOperationTarget.FromListedItem(item)],
+                    @"D:\scratch\target",
+                    "copy-me.txt"))
+        };
+        var service = new FileOperationService(adapter);
+
+        await service.CopyAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConflict, service.State.Status);
+
+        adapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: false);
+        await service.ResolveConflictAsync(FileOperationConflictChoice.KeepBoth);
+
+        Assert.AreEqual(2, adapter.Requests.Count);
+        Assert.AreEqual(FileOperationConflictChoice.KeepBoth, adapter.LastRequest?.ConflictChoice);
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.IsNull(service.PendingConflict);
     }
 
     [TestMethod]
@@ -323,6 +396,8 @@ public sealed class FileOperationServiceTests
 
         public bool CancellationObserved { get; private set; }
 
+        public FileOperationProgress? ProgressToReport { get; set; }
+
         public bool CanCancel(FileOperationRequest request)
         {
             return _supportsCancellation;
@@ -334,6 +409,11 @@ public sealed class FileOperationServiceTests
             CancellationToken cancellationToken)
         {
             LastRequest = request;
+            if (ProgressToReport is not null)
+            {
+                progress?.Report(ProgressToReport);
+            }
+
             cancellationToken.Register(() =>
             {
                 CancellationObserved = true;

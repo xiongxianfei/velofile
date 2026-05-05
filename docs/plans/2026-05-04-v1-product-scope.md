@@ -932,6 +932,15 @@ Each milestone must update validation notes with the commands actually run and a
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope operations -ScratchRoot <scratch-root>` passed with a compliant scratch root.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 208 tests across 4 test assemblies.
+- M9 code-review resolution:
+  - Added direct Core and App route proof for cancellation after one completed move item, retained `1 of 3` progress, cancelled final state, and no undo eligibility.
+  - Added Core/App route proof for Skip and Keep Both conflict choices, including visible target-list refresh after the selected resolution completes.
+  - Added a Windows executor scratch test proving Keep Both preserves the existing destination file and writes the incoming file to a distinct non-colliding destination.
+  - `dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter Operations` passed: 15 Core operation tests.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter Operations` first failed because operation status text did not include retained partial progress; after adding progress count formatting, it passed: 26 App operation shell/route tests.
+  - `dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter Operations` passed: 13 Windows shell-operation tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Operations` passed: 15 Core operation tests, 26 App operation shell/route tests, and 13 Windows shell-operation tests; Corpus tests had no matching `Operations` category.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 214 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
@@ -939,4 +948,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, and M9 complete. The repository now has a builda
 
 ## Readiness
 
-M9 copy/move, conflicts, progress, cancellation, and undo eligibility is implemented and ready for `code-review`.
+M9 copy/move, conflicts, progress, cancellation, and undo eligibility is implemented with code-review resolution fixes and ready for `code-review`.

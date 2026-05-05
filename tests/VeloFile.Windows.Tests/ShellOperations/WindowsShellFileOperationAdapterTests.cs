@@ -170,6 +170,33 @@ public sealed class WindowsShellFileOperationAdapterTests
     }
 
     [TestMethod]
+    public void Copy_keep_both_preserves_existing_target_and_writes_incoming_to_distinct_name()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var source = scratch.CreateDirectory("source");
+        var target = scratch.CreateDirectory("target");
+        var incomingSource = scratch.WriteFile(Path.Combine("source", "report.txt"), "incoming");
+        var existingTarget = scratch.WriteFile(Path.Combine("target", "report.txt"), "existing");
+        var intent = new WindowsShellFileOperationIntent(
+            WindowsShellFileOperationKind.Copy,
+            [FileOperationTarget.FromListedItem(Item(incomingSource, "report.txt"))],
+            TargetName: null,
+            target,
+            WindowsShellConflictChoice.KeepBoth,
+            WindowsShellDeleteDisposition.None,
+            AllowUndoBypassingDelete: false);
+
+        VisualBasicShellFileOperationExecutor.Instance.Execute(intent, progress: null, CancellationToken.None);
+
+        Assert.AreEqual("existing", File.ReadAllText(existingTarget));
+        var destinationFiles = Directory.GetFiles(target, "*.txt");
+        Assert.AreEqual(2, destinationFiles.Length);
+        var incomingDestination = destinationFiles.Single(path => !string.Equals(path, existingTarget, StringComparison.OrdinalIgnoreCase));
+        Assert.AreNotEqual(existingTarget, incomingDestination);
+        Assert.AreEqual("incoming", File.ReadAllText(incomingDestination));
+    }
+
+    [TestMethod]
     public async Task Recycle_bin_delete_for_unc_path_returns_unavailable_without_executing_delete()
     {
         var executor = new RecordingWindowsShellFileOperationExecutor();

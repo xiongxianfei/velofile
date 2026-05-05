@@ -26,6 +26,12 @@ New tests cover:
 - XAML/code-behind conflict panel routes for Skip, Replace, and Keep both;
 - operations corpus runner support and fixture result shape.
 
+## Review Resolution
+
+The first M9 review found two proof gaps. The resolution adds direct Core and App route tests for cancelling a move after one of three items has reported completion. The retained progress is now surfaced in the operation status text as `1 of 3`, the final state remains `Cancelled`, and undo stays unavailable.
+
+The resolution also adds direct Skip and Keep Both conflict-route tests. App/Core tests now prove the selected conflict choice reaches the operation service and refreshes the visible target rows after completion. A Windows executor scratch test proves Keep Both leaves the existing destination file untouched and writes the incoming file to a separate non-colliding destination.
+
 ## Validation
 
 - `dotnet test VeloFile.sln -c Debug --filter Operations`

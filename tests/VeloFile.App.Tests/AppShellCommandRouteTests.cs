@@ -396,6 +396,103 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("Operations")]
+    public async Task Operations_copy_conflict_skip_preserves_existing_target_and_copies_unaffected_item()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var conflictItem = Item(@"D:\source\report.txt", "report.txt");
+        var unaffectedItem = Item(@"D:\source\fresh.txt", "fresh.txt");
+        var existingTarget = Item(@"D:\target\report.txt", "report.txt");
+        var freshTarget = Item(@"D:\target\fresh.txt", "fresh.txt");
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.ConflictRequired(
+                "name-conflict",
+                new FileOperationConflict(
+                    FileOperationKind.Copy,
+                    [FileOperationTarget.FromListedItem(conflictItem), FileOperationTarget.FromListedItem(unaffectedItem)],
+                    @"D:\target",
+                    "report.txt"))
+        };
+        source.SetEntries(@"D:\source", conflictItem, unaffectedItem);
+        source.SetEntries(@"D:\target", existingTarget);
+        var viewModel = CreateViewModel(
+            clipboard,
+            initialPath: @"D:\source",
+            listingSource: source,
+            operationAdapter: operationAdapter,
+            existingPaths: [@"D:\source", @"D:\target"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+
+        viewModel.SetSelectedFileItems([conflictItem, unaffectedItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Copy);
+        Assert.IsTrue(viewModel.SubmitPath(@"D:\target").Accepted);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Paste);
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConflict, viewModel.FileOperation.Status);
+
+        source.SetEntries(@"D:\target", existingTarget, freshTarget);
+        operationAdapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: false);
+        await viewModel.ResolveFileOperationConflictAsync(FileOperationConflictChoice.Skip);
+
+        Assert.AreEqual(FileOperationConflictChoice.Skip, operationAdapter.LastRequest?.ConflictChoice);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        CollectionAssert.AreEqual(
+            new[] { "report.txt", "fresh.txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(1, viewModel.FileItems.Count(item => item.Name == "report.txt"));
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_copy_conflict_keep_both_creates_distinct_destination_and_refreshes_visible_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var conflictItem = Item(@"D:\source\report.txt", "report.txt");
+        var existingTarget = Item(@"D:\target\report.txt", "report.txt");
+        var keptTarget = Item(@"D:\target\report (2).txt", "report (2).txt");
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.ConflictRequired(
+                "name-conflict",
+                new FileOperationConflict(
+                    FileOperationKind.Copy,
+                    [FileOperationTarget.FromListedItem(conflictItem)],
+                    @"D:\target",
+                    "report.txt"))
+        };
+        source.SetEntries(@"D:\source", conflictItem);
+        source.SetEntries(@"D:\target", existingTarget);
+        var viewModel = CreateViewModel(
+            clipboard,
+            initialPath: @"D:\source",
+            listingSource: source,
+            operationAdapter: operationAdapter,
+            existingPaths: [@"D:\source", @"D:\target"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1);
+
+        viewModel.SetSelectedFileItems([conflictItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Copy);
+        Assert.IsTrue(viewModel.SubmitPath(@"D:\target").Accepted);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Paste);
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConflict, viewModel.FileOperation.Status);
+
+        source.SetEntries(@"D:\target", existingTarget, keptTarget);
+        operationAdapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: false);
+        await viewModel.ResolveFileOperationConflictAsync(FileOperationConflictChoice.KeepBoth);
+
+        Assert.AreEqual(FileOperationConflictChoice.KeepBoth, operationAdapter.LastRequest?.ConflictChoice);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        CollectionAssert.AreEqual(
+            new[] { "report.txt", "report (2).txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreNotEqual(existingTarget.FullPath, keptTarget.FullPath);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
     public async Task Operations_conflict_resolution_refreshes_original_target_when_user_navigates_elsewhere()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -846,6 +943,58 @@ public sealed class AppShellCommandRouteTests
         Assert.AreEqual(FileOperationStatus.Cancelled, viewModel.FileOperation.Status);
         Assert.IsFalse(viewModel.CanCancelFileOperation);
         StringAssert.Contains(viewModel.FileOperationStatusText, "cancelled");
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_move_cancel_after_partial_progress_keeps_visible_cancel_status_and_hides_undo()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var first = Item(@"D:\projects\one.txt", "one.txt");
+        var second = Item(@"D:\projects\two.txt", "two.txt");
+        var third = Item(@"D:\projects\three.txt", "three.txt");
+        source.SetEntries(@"D:\projects", first, second, third);
+        source.SetEntries(@"D:\target");
+        var operationAdapter = new CancellablePendingFileOperationAdapter(supportsCancellation: true)
+        {
+            ProgressToReport = new FileOperationProgress(
+                FileOperationKind.Move,
+                CompletedItemCount: 1,
+                TotalItemCount: 3,
+                StatusText: "Moved 1 of 3")
+        };
+        var viewModel = CreateViewModel(
+            clipboard,
+            listingSource: source,
+            operationAdapter: operationAdapter,
+            existingPaths: [@"D:\projects", @"D:\target"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 3);
+
+        viewModel.SetSelectedFileItems([first, second, third]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Cut);
+        Assert.IsTrue(viewModel.SubmitPath(@"D:\target").Accepted);
+        await WaitUntilAsync(() => viewModel.ActivePath == @"D:\target" && source.EnumerationCount(@"D:\target") == 1);
+        var operation = viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Paste);
+
+        Assert.AreEqual(FileOperationStatus.Running, viewModel.FileOperation.Status);
+        Assert.IsTrue(viewModel.CanCancelFileOperation);
+        Assert.AreEqual(1, viewModel.FileOperation.Progress.CompletedItemCount);
+        Assert.AreEqual(3, viewModel.FileOperation.Progress.TotalItemCount);
+        StringAssert.Contains(viewModel.FileOperationStatusText, "1 of 3");
+
+        viewModel.CancelFileOperation();
+        await operation;
+
+        Assert.IsTrue(operationAdapter.CancellationObserved);
+        Assert.AreEqual(FileOperationStatus.Cancelled, viewModel.FileOperation.Status);
+        Assert.AreEqual(1, viewModel.FileOperation.Progress.CompletedItemCount);
+        Assert.AreEqual(3, viewModel.FileOperation.Progress.TotalItemCount);
+        Assert.IsFalse(viewModel.FileOperation.UndoEligibility.CanUndo);
+        Assert.IsFalse(viewModel.FileOperationStatusText.Contains("Undo available", StringComparison.Ordinal));
+        StringAssert.Contains(viewModel.FileOperationStatusText, "cancelled");
+        StringAssert.Contains(viewModel.FileOperationStatusText, "1 of 3");
+        Assert.AreEqual(1, source.EnumerationCount(@"D:\target"));
     }
 
     [TestMethod]
@@ -1382,6 +1531,10 @@ public sealed class AppShellCommandRouteTests
 
         public bool CancellationObserved { get; private set; }
 
+        public FileOperationRequest? LastRequest { get; private set; }
+
+        public FileOperationProgress? ProgressToReport { get; set; }
+
         public bool CanCancel(FileOperationRequest request)
         {
             return _supportsCancellation;
@@ -1392,6 +1545,12 @@ public sealed class AppShellCommandRouteTests
             IProgress<FileOperationProgress>? progress,
             CancellationToken cancellationToken)
         {
+            LastRequest = request;
+            if (ProgressToReport is not null)
+            {
+                progress?.Report(ProgressToReport);
+            }
+
             cancellationToken.Register(() =>
             {
                 CancellationObserved = true;

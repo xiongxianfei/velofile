@@ -831,6 +831,12 @@ public sealed class AppShellViewModel
             statusText = $"{statusText}. Undo available";
         }
 
+        if (state.Status is FileOperationStatus.Running or FileOperationStatus.Cancelling or FileOperationStatus.Cancelled
+            && state.Progress.TotalItemCount > 0)
+        {
+            statusText = $"{statusText} ({state.Progress.CompletedItemCount} of {state.Progress.TotalItemCount})";
+        }
+
         return string.IsNullOrWhiteSpace(_fileOperationRefreshWarning)
             ? statusText
             : $"{statusText}. {_fileOperationRefreshWarning}.";
