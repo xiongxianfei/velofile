@@ -36,21 +36,24 @@ files:
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Operations
-    result: first failed for missing Operations contracts and Windows shell mapper, then passed with 7 Core operation tests, 3 Windows shell-operation tests, and 5 App operation shell/route tests
+    result: first failed for missing Operations contracts and Windows shell mapper; review-resolution regressions then failed for missing production recycle/cancellation/rename APIs; final run passed with 9 Core operation tests, 6 Windows shell-operation tests, and 10 App operation shell/route tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope safe-delete -ScratchRoot <scratch-root>
-    result: first failed for a corpus tool compile/scoping issue and then a fixture path check, then passed after safe-delete scope generated and verified operations fixtures
+    result: first M8 run failed for a corpus tool compile/scoping issue and then a fixture path check; review-resolution rerun first failed because the scratch-root leaf did not include both required safety tokens, then passed after using a compliant scratch root
   - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug
     result: passed 6 corpus tooling tests
   - command: dotnet build VeloFile.sln -c Debug
     result: passed with 0 warnings and 0 errors
   - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug
-    result: passed 39 App shell contract/route tests
+    result: passed 44 App shell contract/route tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
-    result: passed restore, build with 0 warnings and 0 errors, and 175 tests across Windows, App, Core, and Corpus test assemblies
+    result: passed restore, build with 0 warnings and 0 errors, and 185 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Normal Delete routes through the operation service as Recycle Bin delete.
+  - The production Windows adapter classifies known unsupported Recycle Bin targets, including UNC paths, as RecycleBinUnavailable before invoking any delete executor.
   - Shift+Delete and unsupported Recycle Bin fallback create a permanent-delete confirmation state before any destructive adapter call.
+  - Ambiguous Windows/Shell failures stay recoverable failures and do not offer destructive fallback.
   - Permanent delete requests sent to the Windows shell adapter must be explicitly confirmed and are never undo-eligible.
-  - Rename is a two-step shell route: command starts pending rename and commit supplies the target name to the operation service.
+  - Rename is a complete two-step shell route: command starts visible rename state; Enter/button commit calls the operation service; Escape/button cancel clears pending state without adapter calls.
+  - Running operations expose cancellable state when the adapter supports cancellation, and the shell routes Cancel operation to the retained in-flight cancellation token.
   - The Windows shell-operation adapter maps operation requests to explicit rename, Recycle Bin delete, or permanent delete intents and runs blocking Windows work off the UI call path.
   - Copy/move conflict handling, batch operation continuation, and full undo execution remain assigned to M9.

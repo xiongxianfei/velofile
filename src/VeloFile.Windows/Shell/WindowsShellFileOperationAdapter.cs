@@ -26,6 +26,26 @@ public sealed record WindowsShellFileOperationIntent(
     WindowsShellDeleteDisposition DeleteDisposition,
     bool AllowUndoBypassingDelete);
 
+public enum RecycleBinCapability
+{
+    Recyclable,
+    NotRecyclable,
+    Unknown
+}
+
+public interface IRecycleBinCapabilityProbe
+{
+    RecycleBinCapability GetCapability(IReadOnlyList<FileOperationTarget> targets);
+}
+
+public interface IWindowsShellFileOperationExecutor
+{
+    void Execute(
+        WindowsShellFileOperationIntent intent,
+        IProgress<FileOperationProgress>? progress,
+        CancellationToken cancellationToken);
+}
+
 public static class WindowsShellFileOperationRequestMapper
 {
     public static WindowsShellFileOperationIntent Map(FileOperationRequest request)
@@ -76,8 +96,24 @@ public static class WindowsShellFileOperationRequestMapper
     }
 }
 
-public sealed class WindowsShellFileOperationAdapter : IFileOperationAdapter
+public sealed class WindowsShellFileOperationAdapter : ICancellableFileOperationAdapter
 {
+    private readonly IRecycleBinCapabilityProbe _recycleBinCapabilityProbe;
+    private readonly IWindowsShellFileOperationExecutor _executor;
+
+    public WindowsShellFileOperationAdapter(
+        IRecycleBinCapabilityProbe? recycleBinCapabilityProbe = null,
+        IWindowsShellFileOperationExecutor? executor = null)
+    {
+        _recycleBinCapabilityProbe = recycleBinCapabilityProbe ?? DefaultRecycleBinCapabilityProbe.Instance;
+        _executor = executor ?? VisualBasicShellFileOperationExecutor.Instance;
+    }
+
+    public bool CanCancel(FileOperationRequest request)
+    {
+        return true;
+    }
+
     public Task<FileOperationAdapterResult> ExecuteAsync(
         FileOperationRequest request,
         IProgress<FileOperationProgress>? progress,
@@ -86,7 +122,7 @@ public sealed class WindowsShellFileOperationAdapter : IFileOperationAdapter
         return Task.Run(() => ExecuteCore(request, progress, cancellationToken), CancellationToken.None);
     }
 
-    private static FileOperationAdapterResult ExecuteCore(
+    private FileOperationAdapterResult ExecuteCore(
         FileOperationRequest request,
         IProgress<FileOperationProgress>? progress,
         CancellationToken cancellationToken)
@@ -95,8 +131,14 @@ public sealed class WindowsShellFileOperationAdapter : IFileOperationAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var intent = WindowsShellFileOperationRequestMapper.Map(request);
+            if (IsRecycleBinDelete(intent)
+                && _recycleBinCapabilityProbe.GetCapability(intent.Targets) is RecycleBinCapability.NotRecyclable)
+            {
+                return FileOperationAdapterResult.RecycleBinUnavailable("recycle-bin-unavailable");
+            }
+
             progress?.Report(new FileOperationProgress(request.Kind, 0, request.Items.Count, "Starting"));
-            ExecuteIntent(intent, progress, cancellationToken);
+            _executor.Execute(intent, progress, cancellationToken);
             return FileOperationAdapterResult.Completed(undoSupported: request.Kind is not FileOperationKind.PermanentDelete);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -109,7 +151,86 @@ public sealed class WindowsShellFileOperationAdapter : IFileOperationAdapter
         }
     }
 
-    private static void ExecuteIntent(
+    private static bool IsRecycleBinDelete(WindowsShellFileOperationIntent intent)
+    {
+        return intent.Kind is WindowsShellFileOperationKind.Delete
+            && intent.DeleteDisposition is WindowsShellDeleteDisposition.RecycleBin;
+    }
+}
+
+public sealed class DefaultRecycleBinCapabilityProbe : IRecycleBinCapabilityProbe
+{
+    public static DefaultRecycleBinCapabilityProbe Instance { get; } = new();
+
+    public RecycleBinCapability GetCapability(IReadOnlyList<FileOperationTarget> targets)
+    {
+        var sawUnknown = false;
+
+        foreach (var target in targets)
+        {
+            var capability = GetTargetCapability(target.Path);
+            if (capability is RecycleBinCapability.NotRecyclable)
+            {
+                return RecycleBinCapability.NotRecyclable;
+            }
+
+            sawUnknown |= capability is RecycleBinCapability.Unknown;
+        }
+
+        return sawUnknown ? RecycleBinCapability.Unknown : RecycleBinCapability.Recyclable;
+    }
+
+    private static RecycleBinCapability GetTargetCapability(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return RecycleBinCapability.Unknown;
+        }
+
+        if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
+        {
+            return RecycleBinCapability.NotRecyclable;
+        }
+
+        if (path.StartsWith(@"\\", StringComparison.Ordinal)
+            && !path.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+        {
+            return RecycleBinCapability.NotRecyclable;
+        }
+
+        try
+        {
+            var root = Path.GetPathRoot(path);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return RecycleBinCapability.Unknown;
+            }
+
+            var drive = new DriveInfo(root);
+            return drive.DriveType is DriveType.Network
+                ? RecycleBinCapability.NotRecyclable
+                : RecycleBinCapability.Recyclable;
+        }
+        catch (Exception ex) when (ExpectedFileSystemExceptions.IsExpected(ex))
+        {
+            return RecycleBinCapability.Unknown;
+        }
+        catch (ArgumentException)
+        {
+            return RecycleBinCapability.Unknown;
+        }
+        catch (NotSupportedException)
+        {
+            return RecycleBinCapability.Unknown;
+        }
+    }
+}
+
+public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOperationExecutor
+{
+    public static VisualBasicShellFileOperationExecutor Instance { get; } = new();
+
+    public void Execute(
         WindowsShellFileOperationIntent intent,
         IProgress<FileOperationProgress>? progress,
         CancellationToken cancellationToken)

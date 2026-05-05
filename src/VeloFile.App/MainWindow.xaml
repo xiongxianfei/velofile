@@ -385,6 +385,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
@@ -442,8 +443,35 @@
                     </ListView.ItemTemplate>
                 </ListView>
                 <StackPanel
-                    x:Name="PermanentDeleteConfirmationPanel"
+                    x:Name="RenamePanel"
                     Grid.Row="2"
+                    Grid.ColumnSpan="6"
+                    Margin="0,6,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBox
+                        x:Name="RenameTextBox"
+                        Width="260"
+                        TextChanged="RenameTextBox_TextChanged"
+                        KeyDown="RenameTextBox_KeyDown"
+                        AutomationProperties.Name="Rename item" />
+                    <Button
+                        x:Name="CommitRenameButton"
+                        Content="Rename"
+                        Click="CommitRenameButton_Click" />
+                    <Button
+                        x:Name="CancelRenameButton"
+                        Content="Cancel"
+                        Click="CancelRenameButton_Click" />
+                    <TextBlock
+                        x:Name="RenameErrorText"
+                        VerticalAlignment="Center"
+                        Opacity="0.75" />
+                </StackPanel>
+                <StackPanel
+                    x:Name="PermanentDeleteConfirmationPanel"
+                    Grid.Row="3"
                     Grid.ColumnSpan="6"
                     Margin="0,6,0,0"
                     Orientation="Horizontal"
@@ -488,12 +516,22 @@
                     Grid.Column="2"
                     Text="Unable to open location"
                     Opacity="0.75" />
-                <TextBlock
-                    x:Name="FileOperationStatusText"
+                <StackPanel
                     Grid.Row="1"
                     Grid.ColumnSpan="3"
                     Margin="0,6,0,0"
-                    Opacity="0.75" />
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <TextBlock
+                        x:Name="FileOperationStatusText"
+                        VerticalAlignment="Center"
+                        Opacity="0.75" />
+                    <Button
+                        x:Name="CancelFileOperationButton"
+                        Content="Cancel operation"
+                        Click="CancelFileOperationButton_Click"
+                        Visibility="Collapsed" />
+                </StackPanel>
             </Grid>
         </Grid>
 

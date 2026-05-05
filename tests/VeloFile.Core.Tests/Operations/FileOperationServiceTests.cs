@@ -137,11 +137,51 @@ public sealed class FileOperationServiceTests
 
         Assert.IsFalse(operation.IsCompleted);
         Assert.AreEqual(FileOperationStatus.Running, service.State.Status);
+        Assert.IsTrue(service.State.CanCancel);
         Assert.AreEqual(FileOperationKind.RecycleBinDelete, adapter.LastRequest?.Kind);
 
         adapter.Complete(FileOperationAdapterResult.Completed(undoSupported: true));
         await operation;
 
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.IsFalse(service.State.CanCancel);
+    }
+
+    [TestMethod]
+    public async Task Operation_service_cancel_current_operation_signals_in_flight_token_and_records_cancelled_state()
+    {
+        var adapter = new PendingFileOperationAdapter(supportsCancellation: true);
+        var service = new FileOperationService(adapter);
+
+        var operation = service.DeleteToRecycleBinAsync([Item(@"D:\scratch\slow-delete.txt", "slow-delete.txt")]);
+
+        Assert.IsFalse(operation.IsCompleted);
+        Assert.IsTrue(service.State.CanCancel);
+
+        service.CancelCurrentOperation();
+        await operation;
+
+        Assert.IsTrue(adapter.CancellationObserved);
+        Assert.AreEqual(FileOperationStatus.Cancelled, service.State.Status);
+        Assert.IsFalse(service.State.CanCancel);
+    }
+
+    [TestMethod]
+    public async Task Operation_service_hides_cancel_when_adapter_does_not_support_cancellation()
+    {
+        var adapter = new PendingFileOperationAdapter(supportsCancellation: false);
+        var service = new FileOperationService(adapter);
+
+        var operation = service.DeleteToRecycleBinAsync([Item(@"D:\scratch\slow-delete.txt", "slow-delete.txt")]);
+
+        Assert.IsFalse(operation.IsCompleted);
+        Assert.IsFalse(service.State.CanCancel);
+
+        service.CancelCurrentOperation();
+        adapter.Complete(FileOperationAdapterResult.Completed(undoSupported: true));
+        await operation;
+
+        Assert.IsFalse(adapter.CancellationObserved);
         Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
     }
 
@@ -185,12 +225,25 @@ public sealed class FileOperationServiceTests
         }
     }
 
-    private sealed class PendingFileOperationAdapter : IFileOperationAdapter
+    private sealed class PendingFileOperationAdapter : IFileOperationAdapter, ICancellableFileOperationAdapter
     {
         private readonly TaskCompletionSource<FileOperationAdapterResult> _completion =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly bool _supportsCancellation;
+
+        public PendingFileOperationAdapter(bool supportsCancellation = true)
+        {
+            _supportsCancellation = supportsCancellation;
+        }
 
         public FileOperationRequest? LastRequest { get; private set; }
+
+        public bool CancellationObserved { get; private set; }
+
+        public bool CanCancel(FileOperationRequest request)
+        {
+            return _supportsCancellation;
+        }
 
         public Task<FileOperationAdapterResult> ExecuteAsync(
             FileOperationRequest request,
@@ -198,6 +251,11 @@ public sealed class FileOperationServiceTests
             CancellationToken cancellationToken)
         {
             LastRequest = request;
+            cancellationToken.Register(() =>
+            {
+                CancellationObserved = true;
+                _completion.TrySetResult(FileOperationAdapterResult.Cancelled());
+            });
             return _completion.Task;
         }
 

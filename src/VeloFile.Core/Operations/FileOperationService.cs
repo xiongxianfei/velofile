@@ -6,6 +6,7 @@ namespace VeloFile.Core.Operations;
 public sealed class FileOperationService
 {
     private readonly IFileOperationAdapter _adapter;
+    private CancellationTokenSource? _currentOperationCancellation;
 
     public FileOperationService(IFileOperationAdapter adapter)
     {
@@ -17,6 +18,8 @@ public sealed class FileOperationService
     public FileOperationState State { get; private set; } = FileOperationState.Idle;
 
     public PermanentDeleteConfirmationRequest? PendingPermanentDeleteConfirmation { get; private set; }
+
+    public bool CanCancelCurrentOperation => State.CanCancel;
 
     public async Task RenameAsync(ListedFileItem item, string targetName, CancellationToken cancellationToken = default)
     {
@@ -71,7 +74,8 @@ public sealed class FileOperationService
             {
                 Status = FileOperationStatus.Cancelled,
                 ReasonCode = "confirmation-cancelled",
-                UndoEligibility = FileOperationUndoEligibility.None
+                UndoEligibility = FileOperationUndoEligibility.None,
+                CanCancel = false
             });
             return;
         }
@@ -84,26 +88,53 @@ public sealed class FileOperationService
         await ExecuteAdapterRequestAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
+    public void CancelCurrentOperation()
+    {
+        if (_currentOperationCancellation is null || !State.CanCancel)
+        {
+            return;
+        }
+
+        _currentOperationCancellation.Cancel();
+        SetState(State with
+        {
+            Status = FileOperationStatus.Cancelling,
+            ReasonCode = "cancelling",
+            CanCancel = false
+        });
+    }
+
     private async Task<FileOperationAdapterResult> ExecuteAdapterRequestAsync(
         FileOperationRequest request,
         CancellationToken cancellationToken)
     {
         PendingPermanentDeleteConfirmation = null;
-        SetState(FileOperationState.Running(request.Kind, request.Items.Count));
+        var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _currentOperationCancellation = operationCancellation;
+        SetState(FileOperationState.Running(request.Kind, request.Items.Count, CanCancel(request)));
         var progress = new OperationProgressSink(UpdateProgress);
         FileOperationAdapterResult result;
 
         try
         {
-            result = await _adapter.ExecuteAsync(request, progress, cancellationToken).ConfigureAwait(false);
+            result = await _adapter.ExecuteAsync(request, progress, operationCancellation.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (operationCancellation.Token.IsCancellationRequested)
         {
             result = FileOperationAdapterResult.Cancelled();
         }
         catch (Exception ex)
         {
             result = FileOperationAdapterResult.Failed(ExpectedFileSystemExceptions.ReasonCode(ex));
+        }
+        finally
+        {
+            if (ReferenceEquals(_currentOperationCancellation, operationCancellation))
+            {
+                _currentOperationCancellation = null;
+            }
+
+            operationCancellation.Dispose();
         }
 
         ApplyResult(request, result);
@@ -135,8 +166,15 @@ public sealed class FileOperationService
         {
             Status = status,
             ReasonCode = result.ReasonCode,
-            UndoEligibility = undo
+            UndoEligibility = undo,
+            CanCancel = false
         });
+    }
+
+    private bool CanCancel(FileOperationRequest request)
+    {
+        return _adapter is ICancellableFileOperationAdapter cancellableAdapter
+            && cancellableAdapter.CanCancel(request);
     }
 
     private static void EnsureSelection(IReadOnlyList<ListedFileItem> items)

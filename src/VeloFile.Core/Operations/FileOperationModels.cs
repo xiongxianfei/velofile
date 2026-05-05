@@ -13,6 +13,7 @@ public enum FileOperationStatus
 {
     Idle,
     Running,
+    Cancelling,
     WaitingForConfirmation,
     Completed,
     Failed,
@@ -101,23 +102,26 @@ public sealed record FileOperationState(
     FileOperationKind? Kind,
     FileOperationProgress Progress,
     string? ReasonCode,
-    FileOperationUndoEligibility UndoEligibility)
+    FileOperationUndoEligibility UndoEligibility,
+    bool CanCancel)
 {
     public static FileOperationState Idle { get; } = new(
         FileOperationStatus.Idle,
         Kind: null,
         new FileOperationProgress(FileOperationKind.RecycleBinDelete, 0, 0, ""),
         ReasonCode: null,
-        FileOperationUndoEligibility.None);
+        FileOperationUndoEligibility.None,
+        CanCancel: false);
 
-    public static FileOperationState Running(FileOperationKind kind, int totalItemCount)
+    public static FileOperationState Running(FileOperationKind kind, int totalItemCount, bool canCancel)
     {
         return new FileOperationState(
             FileOperationStatus.Running,
             kind,
             new FileOperationProgress(kind, CompletedItemCount: 0, totalItemCount, "Running"),
             ReasonCode: null,
-            FileOperationUndoEligibility.None);
+            FileOperationUndoEligibility.None,
+            canCancel);
     }
 
     public static FileOperationState WaitingForConfirmation(
@@ -129,7 +133,8 @@ public sealed record FileOperationState(
             confirmation.Kind,
             new FileOperationProgress(confirmation.Kind, CompletedItemCount: 0, confirmation.Items.Count, "Waiting for confirmation"),
             reasonCode,
-            FileOperationUndoEligibility.None);
+            FileOperationUndoEligibility.None,
+            CanCancel: false);
     }
 }
 
@@ -165,4 +170,9 @@ public interface IFileOperationAdapter
         FileOperationRequest request,
         IProgress<FileOperationProgress>? progress,
         CancellationToken cancellationToken);
+}
+
+public interface ICancellableFileOperationAdapter : IFileOperationAdapter
+{
+    bool CanCancel(FileOperationRequest request);
 }

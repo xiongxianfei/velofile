@@ -202,6 +202,53 @@ public sealed partial class MainWindow : Window
         RefreshShellBindings();
     }
 
+    private async void RenameTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is VirtualKey.Enter)
+        {
+            ViewModel.SetPendingRenameText(RenameTextBox.Text);
+            await ViewModel.CommitPendingRenameAsync();
+            e.Handled = true;
+            RefreshShellBindings();
+        }
+        else if (e.Key is VirtualKey.Escape)
+        {
+            ViewModel.CancelPendingRename();
+            e.Handled = true;
+            RefreshShellBindings();
+        }
+    }
+
+    private void RenameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isRefreshingShellBindings)
+        {
+            return;
+        }
+
+        ViewModel.SetPendingRenameText(RenameTextBox.Text);
+        RefreshShellBindings();
+    }
+
+    private async void CommitRenameButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SetPendingRenameText(RenameTextBox.Text);
+        await ViewModel.CommitPendingRenameAsync();
+        RefreshShellBindings();
+    }
+
+    private void CancelRenameButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CancelPendingRename();
+        RefreshShellBindings();
+    }
+
+    private void CancelFileOperationButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CancelFileOperation();
+        RefreshShellBindings();
+    }
+
     private void ViewModel_ShellStateChanged(object? sender, EventArgs e)
     {
         DispatcherQueue.TryEnqueue(RefreshShellBindings);
@@ -462,6 +509,7 @@ public sealed partial class MainWindow : Window
         }
 
         args.Handled = true;
+        RefreshShellBindings();
         return true;
     }
 
@@ -511,6 +559,12 @@ public sealed partial class MainWindow : Window
             SkippedLocationsList.ItemsSource = ViewModel.SearchSkippedLocations;
             SkippedLocationsList.Visibility = ViewModel.SearchSkippedLocationsVisible ? Visibility.Visible : Visibility.Collapsed;
             FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
+            CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
+            CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;
+            RenamePanel.Visibility = ViewModel.IsRenameActive ? Visibility.Visible : Visibility.Collapsed;
+            RenameTextBox.Text = ViewModel.PendingRenameText;
+            CommitRenameButton.IsEnabled = ViewModel.CanCommitRename;
+            RenameErrorText.Text = ViewModel.RenameError ?? "";
             PermanentDeleteConfirmationPanel.Visibility = ViewModel.PendingPermanentDeleteConfirmation is null ? Visibility.Collapsed : Visibility.Visible;
             PermanentDeleteConfirmationText.Text = ViewModel.PendingPermanentDeleteConfirmation is null
                 ? ""

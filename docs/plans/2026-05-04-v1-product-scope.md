@@ -898,14 +898,24 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 39 App shell contract/route tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 175 tests across 4 test assemblies.
+- M8 review-resolution:
+  - `dotnet test VeloFile.sln -c Debug --filter Operations` first failed after adding regressions for missing production Recycle Bin classification, missing rename commit/cancel shell route, and missing in-flight operation cancellation; final run passed: 9 Core operation tests, 6 Windows shell-operation tests, and 10 App operation shell/route tests.
+  - Added a production Windows recycle-capability seam. Known unsupported Recycle Bin targets, including UNC paths, now return `RecycleBinUnavailable` before any delete executor call; ambiguous failures remain normal failed operations and do not enter destructive fallback.
+  - Added visible rename commit/cancel shell state and invalid-name recovery. F2/context Rename starts rename mode; Enter/button commit calls the operation boundary; Escape/button cancel avoids adapter calls.
+  - Added cancellable operation state for adapters that support it, plus a shell Cancel operation route to the retained in-flight cancellation token.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 44 App shell contract/route tests.
+  - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope safe-delete -ScratchRoot <scratch-root>` first failed because the scratch-root leaf did not contain both required safety tokens; rerun with a compliant `<scratch-root>` passed.
+  - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 corpus tooling tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 185 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, and M8 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, and first-pass file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, and safe-delete corpus validation. Later V1 copy/move/conflict, drag/drop, preview, benchmark, and packaging behavior remains assigned to M9-M16.
+M1, M2, M3, M4, M5, M6, M7, and M8 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, and reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, in-flight cancellation, production unsupported-Recycle-Bin classification, and safe-delete corpus validation. Later V1 copy/move/conflict, drag/drop, preview, benchmark, and packaging behavior remains assigned to M9-M16.
 
 ## Readiness
 
-M8 file operation contracts, safe delete, and rename are implemented and ready for follow-up `code-review`.
+M8 file operation contracts, safe delete, and rename review-resolution is implemented and ready for follow-up `code-review`.
 
 Implementation resumes after M8 review/verify with:
 

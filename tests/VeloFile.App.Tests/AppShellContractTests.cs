@@ -140,15 +140,37 @@ public sealed class AppShellContractTests
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileOperationStatusText\"");
+        StringAssert.Contains(xaml, "x:Name=\"CancelFileOperationButton\"");
+        StringAssert.Contains(xaml, "Click=\"CancelFileOperationButton_Click\"");
         StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
         StringAssert.Contains(xaml, "Click=\"ConfirmPermanentDeleteButton_Click\"");
         StringAssert.Contains(xaml, "Click=\"CancelPermanentDeleteButton_Click\"");
         StringAssert.Contains(codeBehind, "ViewModel.FileOperationStatusText");
+        StringAssert.Contains(codeBehind, "ViewModel.CanCancelFileOperation");
+        StringAssert.Contains(codeBehind, "ViewModel.CancelFileOperation()");
         StringAssert.Contains(codeBehind, "ViewModel.PendingPermanentDeleteConfirmation");
         StringAssert.Contains(codeBehind, "ViewModel.ConfirmPermanentDeleteAsync(confirm: true)");
         StringAssert.Contains(codeBehind, "Recycle Bin delete is unavailable.");
         StringAssert.Contains(compositionCode, "new FileOperationService");
         StringAssert.Contains(compositionCode, "new WindowsShellFileOperationAdapter()");
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public void Operations_shell_exposes_rename_commit_and_cancel_routes()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(xaml, "x:Name=\"RenamePanel\"");
+        StringAssert.Contains(xaml, "x:Name=\"RenameTextBox\"");
+        StringAssert.Contains(xaml, "KeyDown=\"RenameTextBox_KeyDown\"");
+        StringAssert.Contains(xaml, "Click=\"CommitRenameButton_Click\"");
+        StringAssert.Contains(xaml, "Click=\"CancelRenameButton_Click\"");
+        StringAssert.Contains(codeBehind, "ViewModel.SetPendingRenameText(RenameTextBox.Text)");
+        StringAssert.Contains(codeBehind, "ViewModel.CommitPendingRenameAsync()");
+        StringAssert.Contains(codeBehind, "ViewModel.CancelPendingRename()");
     }
 
     [TestMethod]

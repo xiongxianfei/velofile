@@ -2,6 +2,8 @@ using VeloFile.Core.Listing;
 using VeloFile.Core.Operations;
 using VeloFile.Windows.Shell;
 
+#pragma warning disable MSTEST0037
+
 namespace VeloFile.Windows.Tests.ShellOperations;
 
 [TestClass]
@@ -51,6 +53,54 @@ public sealed class WindowsShellFileOperationAdapterTests
         Assert.AreEqual(@"D:\scratch\old.txt", intent.Targets.Single().Path);
     }
 
+    [TestMethod]
+    public async Task Recycle_bin_delete_for_unc_path_returns_unavailable_without_executing_delete()
+    {
+        var executor = new RecordingWindowsShellFileOperationExecutor();
+        var adapter = new WindowsShellFileOperationAdapter(executor: executor);
+        var request = FileOperationRequest.RecycleBinDelete([Item(@"\\server\share\delete-me.txt", "delete-me.txt")]);
+
+        var result = await adapter.ExecuteAsync(request, progress: null, CancellationToken.None);
+
+        Assert.AreEqual(FileOperationAdapterResultStatus.RecycleBinUnavailable, result.Status);
+        Assert.AreEqual(0, executor.Intents.Count);
+    }
+
+    [TestMethod]
+    public async Task Recycle_bin_probe_unsupported_result_returns_unavailable_without_executing_delete()
+    {
+        var executor = new RecordingWindowsShellFileOperationExecutor();
+        var adapter = new WindowsShellFileOperationAdapter(
+            new StaticRecycleBinCapabilityProbe(RecycleBinCapability.NotRecyclable),
+            executor);
+        var request = FileOperationRequest.RecycleBinDelete([Item(@"D:\scratch\delete-me.txt", "delete-me.txt")]);
+
+        var result = await adapter.ExecuteAsync(request, progress: null, CancellationToken.None);
+
+        Assert.AreEqual(FileOperationAdapterResultStatus.RecycleBinUnavailable, result.Status);
+        Assert.AreEqual(0, executor.Intents.Count);
+    }
+
+    [TestMethod]
+    public async Task Ambiguous_recycle_bin_delete_failure_returns_failed_without_permanent_delete_fallback()
+    {
+        var executor = new RecordingWindowsShellFileOperationExecutor
+        {
+            ExceptionToThrow = new IOException("ambiguous shell failure")
+        };
+        var adapter = new WindowsShellFileOperationAdapter(
+            new StaticRecycleBinCapabilityProbe(RecycleBinCapability.Unknown),
+            executor);
+        var request = FileOperationRequest.RecycleBinDelete([Item(@"D:\scratch\delete-me.txt", "delete-me.txt")]);
+
+        var result = await adapter.ExecuteAsync(request, progress: null, CancellationToken.None);
+
+        Assert.AreEqual(FileOperationAdapterResultStatus.Failed, result.Status);
+        Assert.AreEqual(1, executor.Intents.Count);
+        Assert.AreEqual(WindowsShellDeleteDisposition.RecycleBin, executor.Intents.Single().DeleteDisposition);
+        Assert.AreNotEqual(WindowsShellDeleteDisposition.Permanent, executor.Intents.Single().DeleteDisposition);
+    }
+
     private static ListedFileItem Item(string fullPath, string name)
     {
         return new ListedFileItem(
@@ -64,5 +114,39 @@ public sealed class WindowsShellFileOperationAdapterTests
             IsHidden: false,
             IsProtectedOperatingSystemFile: false,
             IsVisuallyDimmed: false);
+    }
+
+    private sealed class StaticRecycleBinCapabilityProbe : IRecycleBinCapabilityProbe
+    {
+        private readonly RecycleBinCapability _capability;
+
+        public StaticRecycleBinCapabilityProbe(RecycleBinCapability capability)
+        {
+            _capability = capability;
+        }
+
+        public RecycleBinCapability GetCapability(IReadOnlyList<FileOperationTarget> targets)
+        {
+            return _capability;
+        }
+    }
+
+    private sealed class RecordingWindowsShellFileOperationExecutor : IWindowsShellFileOperationExecutor
+    {
+        public List<WindowsShellFileOperationIntent> Intents { get; } = [];
+
+        public Exception? ExceptionToThrow { get; set; }
+
+        public void Execute(
+            WindowsShellFileOperationIntent intent,
+            IProgress<FileOperationProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            Intents.Add(intent);
+            if (ExceptionToThrow is not null)
+            {
+                throw ExceptionToThrow;
+            }
+        }
     }
 }

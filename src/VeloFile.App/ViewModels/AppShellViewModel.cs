@@ -113,7 +113,19 @@ public sealed class AppShellViewModel
     public PermanentDeleteConfirmationRequest? PendingPermanentDeleteConfirmation =>
         _fileOperationService?.PendingPermanentDeleteConfirmation;
 
-    public bool RenamePending => _pendingRenameItem is not null;
+    public ListedFileItem? PendingRenameItem => _pendingRenameItem;
+
+    public bool RenamePending => IsRenameActive;
+
+    public bool IsRenameActive => _pendingRenameItem is not null;
+
+    public string PendingRenameText { get; private set; } = "";
+
+    public string? RenameError { get; private set; }
+
+    public bool CanCommitRename => IsRenameActive && IsValidRenameText(PendingRenameText);
+
+    public bool CanCancelFileOperation => _fileOperationService?.CanCancelCurrentOperation ?? false;
 
     public string FileOperationStatusText => FormatFileOperationStatus();
 
@@ -400,11 +412,29 @@ public sealed class AppShellViewModel
                 break;
             case VeloFileCommandId.Rename:
                 _pendingRenameItem = SelectedFileItems.Count == 1 ? SelectedFileItems[0] : null;
+                PendingRenameText = _pendingRenameItem?.Name ?? "";
+                RenameError = null;
                 ShellStateChanged?.Invoke(this, EventArgs.Empty);
                 break;
             default:
                 break;
         }
+    }
+
+    public void SetPendingRenameText(string? targetName)
+    {
+        PendingRenameText = targetName ?? "";
+        if (RenameError is not null && IsValidRenameText(PendingRenameText))
+        {
+            RenameError = null;
+        }
+
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task CommitPendingRenameAsync()
+    {
+        await CommitPendingRenameAsync(PendingRenameText).ConfigureAwait(false);
     }
 
     public async Task CommitPendingRenameAsync(string targetName)
@@ -414,9 +444,32 @@ public sealed class AppShellViewModel
             return;
         }
 
+        if (!IsValidRenameText(targetName))
+        {
+            RenameError = "The file name is invalid.";
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         var item = _pendingRenameItem;
         _pendingRenameItem = null;
+        PendingRenameText = "";
+        RenameError = null;
         await _fileOperationService.RenameAsync(item, targetName).ConfigureAwait(false);
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CancelPendingRename()
+    {
+        _pendingRenameItem = null;
+        PendingRenameText = "";
+        RenameError = null;
+        ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CancelFileOperation()
+    {
+        _fileOperationService?.CancelCurrentOperation();
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -607,6 +660,7 @@ public sealed class AppShellViewModel
         return state.Status switch
         {
             FileOperationStatus.Running => $"{operation} running",
+            FileOperationStatus.Cancelling => $"{operation} cancelling",
             FileOperationStatus.WaitingForConfirmation when !string.IsNullOrWhiteSpace(state.ReasonCode) => $"{operation} waiting for confirmation: {state.ReasonCode}",
             FileOperationStatus.WaitingForConfirmation => $"{operation} waiting for confirmation",
             FileOperationStatus.Completed => $"{operation} completed",
@@ -615,6 +669,19 @@ public sealed class AppShellViewModel
             FileOperationStatus.Failed => $"{operation} failed",
             _ => ""
         };
+    }
+
+    private static bool IsValidRenameText(string? targetName)
+    {
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
+            return false;
+        }
+
+        var trimmed = targetName.Trim();
+        return trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+            && !trimmed.Contains('\\')
+            && !trimmed.Contains('/');
     }
 
     private sealed class NoOpClipboardTextWriter : IClipboardTextWriter

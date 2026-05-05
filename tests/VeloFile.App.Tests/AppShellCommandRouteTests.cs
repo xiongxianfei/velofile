@@ -334,11 +334,105 @@ public sealed class AppShellCommandRouteTests
         viewModel.SetSelectedFileItems([item]);
 
         await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
-        await viewModel.CommitPendingRenameAsync("new.txt");
+        Assert.IsTrue(viewModel.IsRenameActive);
+        Assert.AreEqual(item, viewModel.PendingRenameItem);
+        Assert.AreEqual("old.txt", viewModel.PendingRenameText);
+
+        viewModel.SetPendingRenameText("new.txt");
+        await viewModel.CommitPendingRenameAsync();
 
         Assert.AreEqual(FileOperationKind.Rename, operationAdapter.LastRequest?.Kind);
         Assert.AreEqual("new.txt", operationAdapter.LastRequest?.TargetName);
         Assert.IsTrue(viewModel.FileOperation.UndoEligibility.CanUndo);
+        Assert.IsFalse(viewModel.IsRenameActive);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_rename_cancel_clears_pending_rename_without_adapter_call()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\old.txt", "old.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText("new.txt");
+        viewModel.CancelPendingRename();
+
+        Assert.IsFalse(viewModel.IsRenameActive);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_invalid_rename_stays_recoverable_without_adapter_call()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\old.txt", "old.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText(@"bad\name.txt");
+        await viewModel.CommitPendingRenameAsync();
+
+        Assert.IsTrue(viewModel.IsRenameActive);
+        StringAssert.Contains(viewModel.RenameError!, "invalid");
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_delete_exposes_cancel_command_and_routes_cancellation_to_adapter()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new CancellablePendingFileOperationAdapter(supportsCancellation: true);
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        var operation = viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.AreEqual(FileOperationStatus.Running, viewModel.FileOperation.Status);
+        Assert.IsTrue(viewModel.CanCancelFileOperation);
+
+        viewModel.CancelFileOperation();
+        await operation;
+
+        Assert.IsTrue(operationAdapter.CancellationObserved);
+        Assert.AreEqual(FileOperationStatus.Cancelled, viewModel.FileOperation.Status);
+        Assert.IsFalse(viewModel.CanCancelFileOperation);
+        StringAssert.Contains(viewModel.FileOperationStatusText, "cancelled");
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_non_cancellable_operation_hides_cancel_command()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var operationAdapter = new CancellablePendingFileOperationAdapter(supportsCancellation: false);
+        var viewModel = CreateViewModel(clipboard, operationAdapter: operationAdapter);
+        var item = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        viewModel.SetFileItems([item]);
+        viewModel.SetSelectedFileItems([item]);
+
+        var operation = viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.AreEqual(FileOperationStatus.Running, viewModel.FileOperation.Status);
+        Assert.IsFalse(viewModel.CanCancelFileOperation);
+
+        viewModel.CancelFileOperation();
+        operationAdapter.Complete(FileOperationAdapterResult.Completed(undoSupported: true));
+        await operation;
+
+        Assert.IsFalse(operationAdapter.CancellationObserved);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
     }
 
     [TestMethod]
@@ -828,6 +922,43 @@ public sealed class AppShellCommandRouteTests
             return Task.FromResult(NextResult.Status is FileOperationAdapterResultStatus.Completed
                 ? FileOperationAdapterResult.Completed(undoSupported: request.Kind is not FileOperationKind.PermanentDelete)
                 : NextResult);
+        }
+    }
+
+    private sealed class CancellablePendingFileOperationAdapter : IFileOperationAdapter, ICancellableFileOperationAdapter
+    {
+        private readonly TaskCompletionSource<FileOperationAdapterResult> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly bool _supportsCancellation;
+
+        public CancellablePendingFileOperationAdapter(bool supportsCancellation)
+        {
+            _supportsCancellation = supportsCancellation;
+        }
+
+        public bool CancellationObserved { get; private set; }
+
+        public bool CanCancel(FileOperationRequest request)
+        {
+            return _supportsCancellation;
+        }
+
+        public Task<FileOperationAdapterResult> ExecuteAsync(
+            FileOperationRequest request,
+            IProgress<FileOperationProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.Register(() =>
+            {
+                CancellationObserved = true;
+                _completion.TrySetResult(FileOperationAdapterResult.Cancelled());
+            });
+            return _completion.Task;
+        }
+
+        public void Complete(FileOperationAdapterResult result)
+        {
+            _completion.TrySetResult(result);
         }
     }
 
