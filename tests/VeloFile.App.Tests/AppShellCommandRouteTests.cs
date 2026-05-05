@@ -476,6 +476,66 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("Operations")]
+    public async Task Operations_delete_failure_preserves_visible_rows_and_shows_recoverable_status()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.Failed("access-denied")
+        };
+        var deleteMe = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        var keep = Item(@"D:\projects\keep.txt", "keep.txt");
+        source.SetEntries(@"D:\projects", keep, deleteMe);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+        var enumerationCountAfterInitialLoad = source.EnumerationCount(@"D:\projects");
+
+        source.SetEntries(@"D:\projects", keep);
+        viewModel.SetSelectedFileItems([deleteMe]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        CollectionAssert.AreEqual(
+            new[] { "keep.txt", "delete-me.txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+        CollectionAssert.AreEqual(new[] { "delete-me.txt" }, viewModel.SelectedFileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(enumerationCountAfterInitialLoad, source.EnumerationCount(@"D:\projects"));
+        Assert.AreEqual(FileOperationStatus.Failed, viewModel.FileOperation.Status);
+        StringAssert.Contains(viewModel.FileOperationStatusText, "Recycle Bin delete failed");
+        Assert.IsNull(viewModel.PendingPermanentDeleteConfirmation);
+        Assert.AreEqual(@"D:\projects", viewModel.ActivePath);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_completed_mutation_with_failed_refresh_preserves_rows_and_shows_refresh_warning()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var deleteMe = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        var keep = Item(@"D:\projects\keep.txt", "keep.txt");
+        source.SetEntries(@"D:\projects", keep, deleteMe);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+        var enumerationCountAfterInitialLoad = source.EnumerationCount(@"D:\projects");
+
+        source.SetException(@"D:\projects", new UnauthorizedAccessException("denied"));
+        viewModel.SetSelectedFileItems([deleteMe]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        CollectionAssert.AreEqual(
+            new[] { "keep.txt", "delete-me.txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(enumerationCountAfterInitialLoad + 1, source.EnumerationCount(@"D:\projects"));
+        StringAssert.Contains(viewModel.FileOperationStatusText, "Recycle Bin delete completed");
+        StringAssert.Contains(viewModel.FileOperationStatusText, "Could not refresh the folder");
+        Assert.AreEqual(@"D:\projects", viewModel.ActivePath);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
     public async Task Operations_late_post_mutation_refresh_cannot_overwrite_newer_navigation()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -509,6 +569,52 @@ public sealed class AppShellCommandRouteTests
 
         Assert.AreEqual(@"D:\other", viewModel.ActivePath);
         CollectionAssert.AreEqual(new[] { "other.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_late_post_mutation_refresh_cannot_overwrite_active_tab_after_tab_switch()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new DelayedSecondListingFolderEntrySource(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var oldItem = Item(@"D:\projects\a-old.txt", "a-old.txt");
+        var renamedItem = Item(@"D:\projects\a-new.txt", "a-new.txt");
+        var otherItem = Item(@"D:\other\b.txt", "b.txt");
+        source.SetEntries(@"D:\projects", oldItem);
+        source.SetEntries(@"D:\other", otherItem);
+        var viewModel = CreateViewModel(
+            clipboard,
+            defaultPath: @"D:\other",
+            listingSource: source,
+            operationAdapter: operationAdapter,
+            existingPaths: [@"D:\projects", @"D:\other"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "a-old.txt");
+
+        viewModel.NewTab();
+        await WaitUntilAsync(() => viewModel.ActiveTabIndex == 1 && viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "b.txt");
+        viewModel.SwitchToTab(0);
+        await WaitUntilAsync(() => viewModel.ActiveTabIndex == 0 && viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "a-old.txt");
+
+        source.SetEntries(@"D:\projects", renamedItem);
+        viewModel.SetSelectedFileItems([oldItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText("a-new.txt");
+        var rename = viewModel.CommitPendingRenameAsync();
+        await WaitUntilAsync(() => viewModel.FileOperation.Status is FileOperationStatus.Completed);
+
+        viewModel.SwitchToTab(1);
+        await WaitUntilAsync(() => viewModel.ActiveTabIndex == 1 && viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "b.txt");
+
+        source.Release();
+        await rename;
+
+        Assert.AreEqual(1, viewModel.ActiveTabIndex);
+        Assert.AreEqual(@"D:\other", viewModel.ActivePath);
+        CollectionAssert.AreEqual(new[] { "b.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+
+        viewModel.SwitchToTab(0);
+        await WaitUntilAsync(() => viewModel.ActiveTabIndex == 0 && viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "a-new.txt");
     }
 
     [TestMethod]
@@ -980,8 +1086,14 @@ public sealed class AppShellCommandRouteTests
     {
         private readonly Dictionary<string, IReadOnlyList<FileSystemEntrySnapshot>> _entries = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Exception> _exceptions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _enumerationCounts = new(StringComparer.OrdinalIgnoreCase);
 
         public int SearchEnumerationCount { get; private set; }
+
+        public int EnumerationCount(string path)
+        {
+            return _enumerationCounts.TryGetValue(path, out var count) ? count : 0;
+        }
 
         public void SetEntries(string path, params ListedFileItem[] items)
         {
@@ -1004,6 +1116,7 @@ public sealed class AppShellCommandRouteTests
         public virtual async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await Task.Yield();
+            _enumerationCounts[path] = EnumerationCount(path) + 1;
             if (path == @"D:\projects")
             {
                 SearchEnumerationCount++;

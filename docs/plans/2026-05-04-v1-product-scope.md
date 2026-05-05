@@ -909,16 +909,17 @@ Each milestone must update validation notes with the commands actually run and a
   - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 corpus tooling tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 185 tests across 4 test assemblies.
 - M8 post-review refresh resolution:
-  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter Operations` first failed after adding regressions because successful rename/delete/permanent-delete operations did not refresh visible rows; final run passed: 16 App operation shell/route tests.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter Operations` first failed after adding regressions because successful rename/delete/permanent-delete operations did not refresh visible rows; final run passed: 19 App operation shell/route tests.
   - Completed rename, Recycle Bin delete, and confirmed permanent delete now refresh the operation origin tab/path through `FolderListingCoordinator`.
   - Failed, cancelled, and confirmation-waiting operations preserve visible rows and keep recoverable operation state visible.
+  - Added direct app-route proof for failed delete preservation, completed mutation with failed refresh warning, and delayed origin-tab refresh suppression after switching to another tab.
   - A late post-mutation refresh cannot overwrite newer navigation because the refresh result must still match the coordinator's active tab request/version and the view model's active tab/path before visible rows are applied.
-  - `dotnet test VeloFile.sln -c Debug --filter Operations` passed: 9 Core operation tests, 6 Windows shell-operation tests, and 16 App operation shell/route tests.
-  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 50 App shell contract/route tests.
+  - `dotnet test VeloFile.sln -c Debug --filter Operations` passed: 9 Core operation tests, 6 Windows shell-operation tests, and 19 App operation shell/route tests.
+  - `dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug` passed: 53 App shell contract/route tests.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope safe-delete -ScratchRoot <scratch-root>` passed with a compliant scratch root.
   - `dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug` passed: 6 corpus tooling tests.
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 191 tests across 4 test assemblies.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: restore, build with 0 warnings and 0 errors, and 194 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 

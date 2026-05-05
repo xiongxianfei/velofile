@@ -46,8 +46,9 @@ New tests cover:
 - rename commit, cancel, and invalid-name recovery through the view-model shell route;
 - in-flight operation cancellation through the retained token;
 - visible row refresh after completed rename, Recycle Bin delete, and confirmed permanent delete;
-- preservation of visible rows for failed, cancelled, and confirmation-waiting operation states;
-- stale post-mutation refresh suppression after navigation;
+- preservation of visible rows for failed delete, failed rename, cancelled delete, and confirmation-waiting operation states;
+- completed mutation with failed listing refresh preserving rows while showing a refresh warning;
+- stale post-mutation refresh suppression after navigation and active-tab switching;
 - safe-delete corpus runner support.
 
 ## Validation
