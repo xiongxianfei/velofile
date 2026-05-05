@@ -195,6 +195,35 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory("Thumbnails")]
+    public void Thumbnails_scope_records_thumbnail_behavior_evidence()
+    {
+        using var scratch = ScratchWorkspace.Create();
+
+        AssertCommandSucceeded(RunScript("run-preview-corpus.ps1", "-Scope", "thumbnails", "-ScratchRoot", scratch.Root));
+
+        var resultPath = Path.Combine(
+            scratch.Root,
+            "corpora",
+            "preview",
+            "preview",
+            "preview-thumbnails-result.json");
+        Assert.IsTrue(File.Exists(resultPath), "Thumbnail preview scope must write a durable result document.");
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        var cases = result["caseResults"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+
+        Assert.AreEqual("thumbnails", (string?)result["scope"]);
+        Assert.AreEqual("verified", (string?)result["status"]);
+        Assert.IsTrue((bool?)result["behaviorVerifierInvoked"]);
+        Assert.IsTrue((bool?)result["verifiedBehavior"]);
+        CollectionAssert.IsSubsetOf(
+            new[] { "thumbnail-concurrency", "thumbnail-timeout", "generic-icon-fallback", "stale-thumbnail-ignore" },
+            cases.Select(value => (string)value["caseId"]!).ToArray());
+    }
+
+    [TestMethod]
     public void Benchmark_stub_emits_non_gating_report_shape()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -264,7 +293,10 @@ public sealed class CorpusToolingSmokeTests
         var repoRoot = FindRepoRoot();
         var scriptPath = Path.Combine(repoRoot.FullName, "scripts", scriptName);
 
-        var startInfo = new ProcessStartInfo("pwsh")
+        var shell = OperatingSystem.IsWindows()
+            ? "powershell.exe"
+            : "pwsh";
+        var startInfo = new ProcessStartInfo(shell)
         {
             WorkingDirectory = repoRoot.FullName,
             RedirectStandardOutput = true,

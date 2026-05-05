@@ -1,5 +1,6 @@
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -686,7 +687,7 @@ public sealed partial class MainWindow : Window
             TabList.SelectedIndex = ViewModel.ActiveTabIndex;
             SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
             BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
-            FileListSurface.ItemsSource = ViewModel.VisibleItems;
+            FileListSurface.ItemsSource = ViewModel.FileListRows;
             CurrentFolderFilterBox.Text = ViewModel.CurrentFolderFilterText;
             CancelSearchButton.IsEnabled = ViewModel.RecursiveSearch.CanCancel;
             ClearSearchButton.IsEnabled = ViewModel.IsRecursiveSearchDisplayActive;
@@ -698,6 +699,7 @@ public sealed partial class MainWindow : Window
             DropActionIndicatorText.Visibility = ViewModel.DropActionIndicatorVisible ? Visibility.Visible : Visibility.Collapsed;
             PreviewColumn.Width = ViewModel.IsPreviewPaneOpen ? new GridLength(320) : new GridLength(0);
             PreviewPane.Visibility = ViewModel.IsPreviewPaneOpen ? Visibility.Visible : Visibility.Collapsed;
+            AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName);
             PreviewStatusText.Text = ViewModel.PreviewStatusText;
             PreviewContentText.Text = ViewModel.PreviewContentText;
             PdfPageNavigationPanel.Visibility = ViewModel.CanNavigatePdfPages ? Visibility.Visible : Visibility.Collapsed;
@@ -705,7 +707,7 @@ public sealed partial class MainWindow : Window
             PdfPreviousPageButton.IsEnabled = ViewModel.CanRequestPreviousPdfPage;
             PdfNextPageButton.IsEnabled = ViewModel.CanRequestNextPdfPage;
             _ = SetPreviewArtifactAsync(ViewModel.PreviewDisplayContent, ++_previewArtifactVersion);
-            PreviewMetadataList.ItemsSource = ViewModel.PreviewMetadataFields;
+            PreviewMetadataList.ItemsSource = ViewModel.DetailsMetadataFields;
             CancelFileOperationButton.IsEnabled = ViewModel.CanCancelFileOperation;
             CancelFileOperationButton.Visibility = ViewModel.CanCancelFileOperation ? Visibility.Visible : Visibility.Collapsed;
             RenamePanel.Visibility = ViewModel.IsRenameActive ? Visibility.Visible : Visibility.Collapsed;

@@ -1,0 +1,71 @@
+id: 2026-05-05-m13-thumbnail-details
+title: M13 thumbnails icons and preview UI concurrency
+status: implemented
+milestone: M13
+requirements:
+  - R60
+  - R67
+  - R68
+  - R69
+  - R70
+  - R71
+  - R72
+  - R78
+  - A11Y1
+  - A11Y2
+  - A11Y3
+  - A11Y4
+  - A11Y5
+  - A11Y6
+  - AC10
+  - AC11
+  - AC19
+  - QS-PREVIEW-TIMEOUT-01
+architecture:
+  - ADR 0004
+  - ADR 0008
+  - docs/architecture/system/architecture.md#preview
+files:
+  - src/VeloFile.Core/Preview/ThumbnailModels.cs
+  - src/VeloFile.Core/Preview/ThumbnailController.cs
+  - src/VeloFile.Windows/Preview/WindowsThumbnailProvider.cs
+  - src/VeloFile.App/AppCompositionRoot.cs
+  - src/VeloFile.App/MainWindow.xaml
+  - src/VeloFile.App/MainWindow.xaml.cs
+  - src/VeloFile.App/ViewModels/AppShellViewModel.cs
+  - src/VeloFile.App/ViewModels/FileListRowViewModel.cs
+  - tools/VeloFile.Corpus/Program.cs
+  - tests/VeloFile.Core.Tests/Preview/ThumbnailControllerTests.cs
+  - tests/VeloFile.Windows.Tests/Preview/WindowsThumbnailProviderTests.cs
+  - tests/VeloFile.App.Tests/Preview/AppShellThumbnailUiTests.cs
+  - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj
+  - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
+validation:
+  - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --filter Thumbnails --no-restore
+    result: passed 2 Core thumbnail controller tests
+  - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --filter Thumbnails --no-restore
+    result: passed 2 Windows thumbnail provider tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Thumbnails|PreviewUi" --no-restore
+    result: passed 3 App thumbnail and preview UI tests, including stable row-object proof across thumbnail state updates
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter Thumbnails --no-restore
+    result: passed 1 Corpus thumbnail evidence test after switching the script harness to Windows PowerShell on Windows
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-preview-corpus.ps1 -Scope thumbnails -ScratchRoot <scratch-root>
+    result: passed with thumbnail behavior-verifier evidence
+  - command: dotnet test VeloFile.sln -c Debug --filter Thumbnails
+    result: passed 2 Core, 2 Windows, and 1 Corpus thumbnail tests; App tests had no matching Thumbnails-only filter in solution output and are covered by PreviewUi
+  - command: dotnet test VeloFile.sln -c Debug --filter PreviewUi
+    result: passed 3 App preview UI tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-restore
+    result: passed 85 App tests after updating the preview-pane contract assertion to DetailsMetadataFields
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: first failed because an older App contract assertion still expected PreviewMetadataFields; final run after stable row-object validation passed dotnet info, restore, build with 0 warnings and 0 errors, and 291 tests across App, Core, Windows, and Corpus assemblies
+notes:
+  - Thumbnail execution is now modeled separately from content preview with per-item timeout, concurrency limiting, stale-generation cancellation, and generic icon fallback.
+  - The production Windows thumbnail provider asks Windows for file/folder thumbnails and falls back to cached generic icon artifacts by directory or extension class.
+  - The file list binds row view models that combine visible listing rows with thumbnail state and hidden/protected visual dimming.
+  - File-list row view models are stable and update thumbnail properties in place, so thumbnail completion does not replace row objects and risk clearing selection.
+  - The preview/details surface exposes accessibility names for empty, loading, unsupported, and failed preview states and uses complete metadata fields for the details pane.
+  - The preview corpus now supports `preview --scope thumbnails` and records thumbnail concurrency, timeout, generic-icon fallback, and stale-result behavior evidence.
+  - Corpus tests use `powershell.exe` on Windows because launching `pwsh` from the redirected MSTest harness can leave the child host stuck after the copied corpus tool is published; the standalone `pwsh` corpus script remains validated directly.
+  - The preview pane contract now expects DetailsMetadataFields because M13 deliberately routes the details pane through selected-item metadata rather than preview-only fallback metadata.

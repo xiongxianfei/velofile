@@ -824,6 +824,32 @@ internal static class CorpusCli
             return failedCount == 0 ? 0 : 1;
         }
 
+        if (StringComparer.OrdinalIgnoreCase.Equals(scope, "thumbnails"))
+        {
+            var thumbnailsRoot = ScratchRootGuard.Prepare(options.Required("root"));
+            CorpusProfileGenerator.Generate(thumbnailsRoot, "preview");
+            var caseResults = ThumbnailCorpusVerifier.Verify();
+            var failedCount = caseResults.Count(result => result.Status is not "verified");
+
+            var thumbnailsResult = new
+            {
+                documentType = "velofilePreviewCorpusResult",
+                schemaVersion = 1,
+                scope = "thumbnails",
+                status = failedCount == 0 ? "verified" : "failed",
+                behaviorVerifierInvoked = caseResults.All(result => result.BehaviorVerifierInvoked),
+                verifiedBehavior = caseResults.All(result => result.VerifiedBehavior),
+                evidenceKind = "preview-thumbnails",
+                caseResults
+            };
+
+            WriteJson(ScratchRootGuard.PathUnderRoot(thumbnailsRoot, "corpora", "preview", "preview", "preview-thumbnails-result.json"), thumbnailsResult);
+            output.WriteLine(failedCount == 0
+                ? "Preview thumbnails corpus passed."
+                : "Preview thumbnails corpus failed.");
+            return failedCount == 0 ? 0 : 1;
+        }
+
         if (!StringComparer.OrdinalIgnoreCase.Equals(scope, "smoke"))
         {
             ScratchRootGuard.ValidateOnly(options.Required("root"));
@@ -1403,6 +1429,235 @@ internal static class PreviewProviderCorpusVerifier
         DateTime CreationTimeUtc,
         DateTime LastWriteTimeUtc,
         FileAttributes Attributes);
+}
+
+internal static class ThumbnailCorpusVerifier
+{
+    public static IReadOnlyList<PreviewContractCaseResult> Verify()
+    {
+        return VerifyAsync().GetAwaiter().GetResult();
+    }
+
+    private static async Task<IReadOnlyList<PreviewContractCaseResult>> VerifyAsync()
+    {
+        return
+        [
+            await VerifyCaseAsync("thumbnail-concurrency", VerifyConcurrencyAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("thumbnail-timeout", VerifyTimeoutAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("generic-icon-fallback", VerifyGenericFallbackAsync).ConfigureAwait(false),
+            await VerifyCaseAsync("stale-thumbnail-ignore", VerifyStaleIgnoreAsync).ConfigureAwait(false)
+        ];
+    }
+
+    private static async Task<PreviewContractCaseResult> VerifyCaseAsync(
+        string caseId,
+        Func<Task<bool>> verify)
+    {
+        try
+        {
+            var verified = await verify().ConfigureAwait(false);
+            return new PreviewContractCaseResult(
+                caseId,
+                verified ? "verified" : "failed",
+                true,
+                verified,
+                "preview-thumbnails",
+                verified ? "verified" : caseId + "-failed");
+        }
+        catch
+        {
+            return new PreviewContractCaseResult(
+                caseId,
+                "failed",
+                true,
+                false,
+                "preview-thumbnails",
+                "thumbnail-verifier-exception");
+        }
+    }
+
+    private static async Task<bool> VerifyConcurrencyAsync()
+    {
+        var provider = new BlockingThumbnailProvider();
+        var controller = new ThumbnailController(provider, PreviewTimeoutPolicy.Default);
+
+        controller.Start(Enumerable.Range(0, 8).Select(index => Item($"concurrent-{index}.txt")).ToArray());
+        await WaitUntilAsync(() => provider.MaxConcurrentCount == PreviewTimeoutPolicy.Default.ThumbnailConcurrencyLimit).ConfigureAwait(false);
+        provider.ReleaseAll();
+        await WaitUntilAsync(() => controller.Snapshot.Values.All(state => state.Status is ThumbnailStatus.Ready)).ConfigureAwait(false);
+
+        return provider.MaxConcurrentCount == PreviewTimeoutPolicy.Default.ThumbnailConcurrencyLimit;
+    }
+
+    private static async Task<bool> VerifyTimeoutAsync()
+    {
+        var policy = new PreviewTimeoutPolicy(
+            ImageDecodeBudget: TimeSpan.FromSeconds(2),
+            TextReadAndEncodingDetectionBudget: TimeSpan.FromSeconds(1),
+            PdfFirstPageRenderBudget: TimeSpan.FromSeconds(3),
+            MetadataFallbackBudget: TimeSpan.FromMilliseconds(200),
+            ThumbnailGenerationBudget: TimeSpan.FromMilliseconds(30),
+            ThumbnailConcurrencyLimit: 4);
+        var controller = new ThumbnailController(new NeverCompletingThumbnailProvider(), policy);
+        var item = Item("timeout.txt");
+
+        controller.Start([item]);
+        await WaitUntilAsync(() => controller.GetState(item).Status is ThumbnailStatus.GenericIcon).ConfigureAwait(false);
+
+        return controller.GetState(item).ReasonCode == "thumbnail-timeout";
+    }
+
+    private static async Task<bool> VerifyGenericFallbackAsync()
+    {
+        var provider = new FailingThumbnailProvider();
+        var controller = new ThumbnailController(provider, PreviewTimeoutPolicy.Default);
+        var item = Item("fallback.bin");
+
+        controller.Start([item]);
+        await WaitUntilAsync(() => controller.GetState(item).Status is ThumbnailStatus.GenericIcon).ConfigureAwait(false);
+
+        return controller.GetState(item).Artifact?.DisplayText == "BIN";
+    }
+
+    private static async Task<bool> VerifyStaleIgnoreAsync()
+    {
+        var provider = new ManualThumbnailProvider();
+        var controller = new ThumbnailController(provider, PreviewTimeoutPolicy.Default);
+        var oldItem = Item("old.txt");
+        var newItem = Item("new.txt");
+
+        controller.Start([oldItem]);
+        await WaitUntilAsync(() => provider.Started("old.txt")).ConfigureAwait(false);
+        controller.Start([newItem]);
+        await WaitUntilAsync(() => provider.Cancelled("old.txt") && provider.Started("new.txt")).ConfigureAwait(false);
+
+        provider.Complete("old.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("OLD")));
+        provider.Complete("new.txt", ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon("NEW")));
+        await WaitUntilAsync(() => controller.GetState(newItem).Artifact?.DisplayText == "NEW").ConfigureAwait(false);
+
+        return controller.GetState(oldItem).Status is ThumbnailStatus.NotLoaded
+            && controller.GetState(newItem).Status is ThumbnailStatus.Ready;
+    }
+
+    private static ListedFileItem Item(string name)
+    {
+        return new ListedFileItem(
+            @"C:\velofile-thumbnails\" + name,
+            name,
+            name,
+            FileSystemEntryKind.File,
+            128,
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            FileAttributes.Archive,
+            IsHidden: false,
+            IsProtectedOperatingSystemFile: false,
+            IsVisuallyDimmed: false);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        while (!condition())
+        {
+            timeout.Token.ThrowIfCancellationRequested();
+            await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+        }
+    }
+
+    private sealed class BlockingThumbnailProvider : IThumbnailProvider
+    {
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _current;
+
+        public int MaxConcurrentCount { get; private set; }
+
+        public async ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            var current = Interlocked.Increment(ref _current);
+            MaxConcurrentCount = Math.Max(MaxConcurrentCount, current);
+            try
+            {
+                await _release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon(item.Name));
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _current);
+            }
+        }
+
+        public void ReleaseAll()
+        {
+            _release.TrySetResult();
+        }
+    }
+
+    private sealed class NeverCompletingThumbnailProvider : IThumbnailProvider
+    {
+        public async ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            return ThumbnailProviderResult.Success(ThumbnailArtifact.GenericIcon(item.Name));
+        }
+    }
+
+    private sealed class FailingThumbnailProvider : IThumbnailProvider
+    {
+        public ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(ThumbnailProviderResult.Failed("thumbnail-failed"));
+        }
+    }
+
+    private sealed class ManualThumbnailProvider : IThumbnailProvider
+    {
+        private readonly Dictionary<string, TaskCompletionSource<ThumbnailProviderResult>> _pending = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _started = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _cancelled = new(StringComparer.OrdinalIgnoreCase);
+
+        public ValueTask<ThumbnailProviderResult> GenerateAsync(
+            ListedFileItem item,
+            ThumbnailProviderContext context,
+            CancellationToken cancellationToken)
+        {
+            var completion = new TaskCompletionSource<ThumbnailProviderResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending[item.Name] = completion;
+            _started.Add(item.Name);
+            cancellationToken.Register(() =>
+            {
+                _cancelled.Add(item.Name);
+                completion.TrySetCanceled(cancellationToken);
+            });
+            return new ValueTask<ThumbnailProviderResult>(completion.Task);
+        }
+
+        public bool Started(string name)
+        {
+            return _started.Contains(name);
+        }
+
+        public bool Cancelled(string name)
+        {
+            return _cancelled.Contains(name);
+        }
+
+        public void Complete(string name, ThumbnailProviderResult result)
+        {
+            if (_pending.TryGetValue(name, out var completion))
+            {
+                completion.TrySetResult(result);
+            }
+        }
+    }
 }
 
 internal static class ScratchRootGuard

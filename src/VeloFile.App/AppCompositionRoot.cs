@@ -94,13 +94,17 @@ public static class AppCompositionRoot
             new PreviewMetadataProvider(),
             diagnostics: diagnostics,
             pathRedactor: CreatePathRedactor(appDataRoot));
+        var thumbnailController = new ThumbnailController(
+            new WindowsThumbnailProvider(),
+            PreviewTimeoutPolicy.Default);
         return new AppShellViewModel(
             startupState,
             new WindowsClipboardTextWriter(),
             listingCoordinator,
             searchService,
             fileOperationService,
-            previewController);
+            previewController,
+            thumbnailController);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

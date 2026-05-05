@@ -233,7 +233,22 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "ViewModel.RequestNextPdfPage()");
         StringAssert.Contains(codeBehind, "SetPreviewArtifactAsync");
         StringAssert.Contains(codeBehind, "ViewModel.PreviewDisplayContent");
-        StringAssert.Contains(codeBehind, "ViewModel.PreviewMetadataFields");
+        StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
+    }
+
+    [TestMethod]
+    [TestCategory("PreviewUi")]
+    public void PreviewUi_main_window_binds_file_rows_and_accessibility_preview_state()
+    {
+        var repoRoot = FindRepoRoot();
+        var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+
+        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
+        StringAssert.Contains(xaml, "Text=\"{Binding ThumbnailDisplayText}\"");
+        StringAssert.Contains(xaml, "Opacity=\"{Binding RowOpacity}\"");
+        StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
+        StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
     }
 
     [TestMethod]
@@ -259,7 +274,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
         StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
         Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
-        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.VisibleItems");
+        StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems)");
         Assert.IsFalse(codeBehind.Contains("FileListSurface.SelectedItems.OfType<ListedFileItem>()", StringComparison.Ordinal));
     }

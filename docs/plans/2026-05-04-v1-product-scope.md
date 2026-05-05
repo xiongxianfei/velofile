@@ -492,6 +492,15 @@ Architectural boundaries to preserve:
   - milestone committed
 - Risks: Thumbnail work can reintroduce navigation stalls.
 - Rollback/recovery: Disable thumbnail enrichment independently while keeping metadata/details fallback available.
+- Progress notes (2026-05-05):
+  - Implemented Core thumbnail state, provider result contracts, and a thumbnail controller with four-operation concurrency, per-item R67 timeout, stale-generation cancellation, and generic icon fallback.
+  - Implemented the Windows thumbnail provider using Windows Storage thumbnail APIs with cached generic icon fallback by directory/extension class.
+  - Bound the production file list to shell row view models that preserve `ListedFileItem` selection identity while exposing thumbnail state and hidden/protected dimming.
+  - Kept row view models stable across thumbnail state updates so completion events do not replace visible rows and risk clearing selection.
+  - Added preview/details UI state for accessibility names and complete metadata-field exposure.
+  - Added `preview --scope thumbnails` corpus evidence for concurrency, timeout, fallback, and stale-result behavior.
+  - Focused validation passed for Core/Windows/App/Corpus thumbnail and preview UI tests plus the standalone thumbnail corpus script.
+  - Solution-level `Thumbnails` and `PreviewUi` filters passed. Full `scripts\ci.ps1` first caught a stale App contract assertion for preview metadata binding; after updating it to `DetailsMetadataFields`, CI passed with 0 build warnings/errors and 291 tests.
 
 ### M14. Terminal Launch and File Association Open
 

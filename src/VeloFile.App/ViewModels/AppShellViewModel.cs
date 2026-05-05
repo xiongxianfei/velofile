@@ -26,9 +26,12 @@ public sealed class AppShellViewModel
     private readonly IRecursiveSearchService? _recursiveSearchService;
     private readonly FileOperationService? _fileOperationService;
     private readonly PreviewController? _previewController;
+    private readonly ThumbnailController? _thumbnailController;
+    private readonly PreviewMetadataProvider _metadataProvider = new();
     private readonly int _viewportItemCount;
     private IReadOnlyList<ListedFileItem> _activeListingItems = [];
     private IReadOnlyList<ListedFileItem> _fileItems = [];
+    private IReadOnlyList<FileListRowViewModel> _fileListRows = [];
     private FolderListingRequest? _activeListingRequest;
     private CancellationTokenSource? _recursiveSearchCancellation;
     private int _recursiveSearchGeneration;
@@ -53,6 +56,7 @@ public sealed class AppShellViewModel
         IRecursiveSearchService? recursiveSearchService = null,
         FileOperationService? fileOperationService = null,
         PreviewController? previewController = null,
+        ThumbnailController? thumbnailController = null,
         int viewportItemCount = DefaultViewportItemCount)
     {
         CommandSurface = startupState.CommandSurface;
@@ -64,6 +68,7 @@ public sealed class AppShellViewModel
         _recursiveSearchService = recursiveSearchService;
         _fileOperationService = fileOperationService;
         _previewController = previewController;
+        _thumbnailController = thumbnailController;
         _viewportItemCount = viewportItemCount;
         if (_fileOperationService is not null)
         {
@@ -74,6 +79,14 @@ public sealed class AppShellViewModel
             _previewController.StateChanged += (_, _) =>
             {
                 SynchronizePdfPreviewContext();
+                ShellStateChanged?.Invoke(this, EventArgs.Empty);
+            };
+        }
+        if (_thumbnailController is not null)
+        {
+            _thumbnailController.StateChanged += (_, _) =>
+            {
+                RefreshFileListRows();
                 ShellStateChanged?.Invoke(this, EventArgs.Empty);
             };
         }
@@ -119,6 +132,8 @@ public sealed class AppShellViewModel
 
     public IReadOnlyList<ListedFileItem> VisibleItems =>
         IsRecursiveSearchDisplayActive ? RecursiveSearch.Results : _fileItems;
+
+    public IReadOnlyList<FileListRowViewModel> FileListRows => _fileListRows;
 
     public IReadOnlyList<ListedFileItem> SelectedFileItems { get; private set; } = [];
 
@@ -176,6 +191,10 @@ public sealed class AppShellViewModel
 
     public string PreviewContentText => FormatPreviewContentText();
 
+    public string PreviewAccessibilityName => string.IsNullOrWhiteSpace(PreviewStatusText)
+        ? "Preview empty"
+        : PreviewStatusText;
+
     public PreviewContent? PreviewDisplayContent =>
         Preview.Content ?? (_isPdfPreviewActive ? _lastSuccessfulPdfPageContent : null);
 
@@ -206,6 +225,10 @@ public sealed class AppShellViewModel
         && currentPage < pageCount;
 
     public IReadOnlyList<PreviewMetadataField> PreviewMetadataFields => Preview.Metadata?.Fields() ?? [];
+
+    public IReadOnlyList<PreviewMetadataField> DetailsMetadataFields => SelectedFileItems.Count == 1
+        ? _metadataProvider.GetMetadata(SelectedFileItems[0]).Fields()
+        : PreviewMetadataFields;
 
     public PathSubmissionResult SubmitPath(string path)
     {
@@ -393,6 +416,8 @@ public sealed class AppShellViewModel
         var options = new RecursiveSearchOptions(resultLimit, VisibilitySettings);
         RecursiveSearch = RecursiveSearchState.Running(ActivePath, trimmedQuery, resultLimit);
         SelectedFileItems = [];
+        RefreshFileListRows();
+        StartThumbnailWorkForVisibleItems();
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
         _ = CompleteRecursiveSearchAsync(generation, ActivePath, trimmedQuery, options, cancellation.Token);
     }
@@ -425,6 +450,8 @@ public sealed class AppShellViewModel
         RecursiveSearch = RecursiveSearchState.NotStarted;
         SelectedFileItems = [];
         ClearPreviewSelection();
+        RefreshFileListRows();
+        StartThumbnailWorkForVisibleItems();
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -1024,6 +1051,8 @@ public sealed class AppShellViewModel
 
             RecursiveSearch = RecursiveSearch.Apply(update);
             SelectedFileItems = [];
+            RefreshFileListRows();
+            StartThumbnailWorkForVisibleItems();
             ShellStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -1058,6 +1087,57 @@ public sealed class AppShellViewModel
         _fileItems = _filterService.Apply(_activeListingItems, CurrentFolderFilterText);
         SelectedFileItems = [];
         ClearPreviewSelection();
+        RefreshFileListRows();
+        StartThumbnailWorkForVisibleItems();
+    }
+
+    private void StartThumbnailWorkForVisibleItems()
+    {
+        if (_thumbnailController is null)
+        {
+            return;
+        }
+
+        if (VisibleItems.Count == 0)
+        {
+            _thumbnailController.Clear();
+            return;
+        }
+
+        _thumbnailController.Start(VisibleItems);
+    }
+
+    private void RefreshFileListRows()
+    {
+        var visibleItems = VisibleItems;
+        if (_fileListRows.Count == visibleItems.Count
+            && _fileListRows.Zip(visibleItems, (row, item) => string.Equals(row.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase))
+                .All(matches => matches))
+        {
+            for (var index = 0; index < visibleItems.Count; index++)
+            {
+                var item = visibleItems[index];
+                var thumbnail = _thumbnailController?.GetState(item) ?? ThumbnailState.NotLoaded;
+                _fileListRows[index].Update(item, thumbnail);
+            }
+
+            return;
+        }
+
+        var existingRows = _fileListRows.ToDictionary(row => row.FullPath, StringComparer.OrdinalIgnoreCase);
+        _fileListRows = visibleItems
+            .Select(item =>
+            {
+                var thumbnail = _thumbnailController?.GetState(item) ?? ThumbnailState.NotLoaded;
+                if (existingRows.TryGetValue(item.FullPath, out var row))
+                {
+                    row.Update(item, thumbnail);
+                    return row;
+                }
+
+                return new FileListRowViewModel(item, thumbnail);
+            })
+            .ToArray();
     }
 
     private void UpdatePreviewForSelection()
