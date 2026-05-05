@@ -29,6 +29,9 @@ public sealed class AppShellViewModel
     private CancellationTokenSource? _recursiveSearchCancellation;
     private int _recursiveSearchGeneration;
     private ListedFileItem? _pendingRenameItem;
+    private MutationListingTarget? _pendingRenameMutationTarget;
+    private MutationListingTarget? _pendingPermanentDeleteMutationTarget;
+    private string? _fileOperationRefreshWarning;
 
     public AppShellViewModel(
         AppShellStartupState startupState,
@@ -399,19 +402,28 @@ public sealed class AppShellViewModel
             case VeloFileCommandId.Delete:
                 if (_fileOperationService is not null && SelectedFileItems.Count > 0)
                 {
+                    var mutationTarget = CaptureMutationListingTarget();
+                    _fileOperationRefreshWarning = null;
                     await _fileOperationService.DeleteToRecycleBinAsync(SelectedFileItems).ConfigureAwait(false);
+                    _pendingPermanentDeleteMutationTarget = FileOperation.Status is FileOperationStatus.WaitingForConfirmation
+                        ? mutationTarget
+                        : null;
+                    await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
                 }
 
                 break;
             case VeloFileCommandId.PermanentDelete:
                 if (_fileOperationService is not null && SelectedFileItems.Count > 0)
                 {
+                    _pendingPermanentDeleteMutationTarget = CaptureMutationListingTarget();
+                    _fileOperationRefreshWarning = null;
                     _fileOperationService.RequestPermanentDelete(SelectedFileItems, PermanentDeleteReason.UserGesture);
                 }
 
                 break;
             case VeloFileCommandId.Rename:
                 _pendingRenameItem = SelectedFileItems.Count == 1 ? SelectedFileItems[0] : null;
+                _pendingRenameMutationTarget = _pendingRenameItem is null ? null : CaptureMutationListingTarget();
                 PendingRenameText = _pendingRenameItem?.Name ?? "";
                 RenameError = null;
                 ShellStateChanged?.Invoke(this, EventArgs.Empty);
@@ -452,16 +464,21 @@ public sealed class AppShellViewModel
         }
 
         var item = _pendingRenameItem;
+        var mutationTarget = _pendingRenameMutationTarget ?? CaptureMutationListingTarget();
         _pendingRenameItem = null;
+        _pendingRenameMutationTarget = null;
         PendingRenameText = "";
         RenameError = null;
+        _fileOperationRefreshWarning = null;
         await _fileOperationService.RenameAsync(item, targetName).ConfigureAwait(false);
+        await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void CancelPendingRename()
     {
         _pendingRenameItem = null;
+        _pendingRenameMutationTarget = null;
         PendingRenameText = "";
         RenameError = null;
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
@@ -480,7 +497,11 @@ public sealed class AppShellViewModel
             return;
         }
 
+        var mutationTarget = _pendingPermanentDeleteMutationTarget ?? CaptureMutationListingTarget();
+        _pendingPermanentDeleteMutationTarget = null;
+        _fileOperationRefreshWarning = null;
         await _fileOperationService.ConfirmPermanentDeleteAsync(confirm).ConfigureAwait(false);
+        await RefreshActiveListingAfterCompletedMutationAsync(mutationTarget).ConfigureAwait(false);
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -560,6 +581,52 @@ public sealed class AppShellViewModel
     {
         SetFileItems(state?.Status is FolderListingStatus.Ready ? state.FirstViewport : []);
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task RefreshActiveListingAfterCompletedMutationAsync(MutationListingTarget mutationTarget)
+    {
+        if (_listingCoordinator is null || FileOperation.Status is not FileOperationStatus.Completed)
+        {
+            return;
+        }
+
+        var operation = _listingCoordinator.StartLoad(
+            mutationTarget.TabId,
+            mutationTarget.Path,
+            new FolderListingOptions(_viewportItemCount, VisibilitySettings));
+        var result = await operation.Completion.ConfigureAwait(false);
+        if (!result.Applied)
+        {
+            return;
+        }
+
+        if (result.State.Status is FolderListingStatus.Ready or FolderListingStatus.Empty)
+        {
+            _fileOperationRefreshWarning = null;
+            if (IsActiveMutationTarget(mutationTarget))
+            {
+                ApplyListingState(result.State);
+            }
+
+            return;
+        }
+
+        _fileOperationRefreshWarning = "Could not refresh the folder";
+        if (IsActiveMutationTarget(mutationTarget))
+        {
+            ShellStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private MutationListingTarget CaptureMutationListingTarget()
+    {
+        return new MutationListingTarget(ActiveTab.Id, ActivePath);
+    }
+
+    private bool IsActiveMutationTarget(MutationListingTarget mutationTarget)
+    {
+        return string.Equals(ActiveTab.Id, mutationTarget.TabId, StringComparison.Ordinal)
+            && string.Equals(ActivePath, mutationTarget.Path, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task CompleteRecursiveSearchAsync(
@@ -657,7 +724,7 @@ public sealed class AppShellViewModel
             _ => "File operation"
         };
 
-        return state.Status switch
+        var statusText = state.Status switch
         {
             FileOperationStatus.Running => $"{operation} running",
             FileOperationStatus.Cancelling => $"{operation} cancelling",
@@ -669,6 +736,10 @@ public sealed class AppShellViewModel
             FileOperationStatus.Failed => $"{operation} failed",
             _ => ""
         };
+
+        return string.IsNullOrWhiteSpace(_fileOperationRefreshWarning)
+            ? statusText
+            : $"{statusText}. {_fileOperationRefreshWarning}.";
     }
 
     private static bool IsValidRenameText(string? targetName)
@@ -692,4 +763,6 @@ public sealed class AppShellViewModel
         {
         }
     }
+
+    private sealed record MutationListingTarget(string TabId, string Path);
 }

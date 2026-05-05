@@ -349,6 +349,170 @@ public sealed class AppShellCommandRouteTests
 
     [TestMethod]
     [TestCategory("Operations")]
+    public async Task Operations_rename_success_refreshes_visible_file_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var oldItem = Item(@"D:\projects\old.txt", "old.txt");
+        var renamedItem = Item(@"D:\projects\new.txt", "new.txt");
+        source.SetEntries(@"D:\projects", oldItem);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "old.txt");
+
+        source.SetEntries(@"D:\projects", renamedItem);
+        viewModel.SetSelectedFileItems([oldItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText("new.txt");
+        await viewModel.CommitPendingRenameAsync();
+
+        CollectionAssert.AreEqual(new[] { "new.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        CollectionAssert.DoesNotContain(viewModel.FileItems.Select(item => item.Name).ToArray(), "old.txt");
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_recycle_bin_delete_success_refreshes_visible_file_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var deleteMe = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        var keep = Item(@"D:\projects\keep.txt", "keep.txt");
+        source.SetEntries(@"D:\projects", deleteMe, keep);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+
+        source.SetEntries(@"D:\projects", keep);
+        viewModel.SetSelectedFileItems([deleteMe]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        CollectionAssert.AreEqual(new[] { "keep.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_confirmed_permanent_delete_success_refreshes_visible_file_rows_after_confirmation_only()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.RecycleBinUnavailable("recycle-bin-unavailable")
+        };
+        var deleteMe = Item(@"\\server\share\delete-me.txt", "delete-me.txt");
+        var keep = Item(@"\\server\share\keep.txt", "keep.txt");
+        source.SetEntries(@"D:\projects", deleteMe, keep);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+
+        viewModel.SetSelectedFileItems([deleteMe]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+
+        Assert.AreEqual(FileOperationStatus.WaitingForConfirmation, viewModel.FileOperation.Status);
+        CollectionAssert.AreEqual(
+            new[] { "delete-me.txt", "keep.txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+
+        source.SetEntries(@"D:\projects", keep);
+        operationAdapter.NextResult = FileOperationAdapterResult.Completed(undoSupported: true);
+        await viewModel.ConfirmPermanentDeleteAsync(confirm: true);
+
+        CollectionAssert.AreEqual(new[] { "keep.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_failed_rename_preserves_visible_file_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new RecordingFileOperationAdapter
+        {
+            NextResult = FileOperationAdapterResult.Failed("access-denied")
+        };
+        var oldItem = Item(@"D:\projects\old.txt", "old.txt");
+        var renamedItem = Item(@"D:\projects\new.txt", "new.txt");
+        source.SetEntries(@"D:\projects", oldItem);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "old.txt");
+
+        source.SetEntries(@"D:\projects", renamedItem);
+        viewModel.SetSelectedFileItems([oldItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText("new.txt");
+        await viewModel.CommitPendingRenameAsync();
+
+        CollectionAssert.AreEqual(new[] { "old.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(FileOperationStatus.Failed, viewModel.FileOperation.Status);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_cancelled_delete_preserves_visible_file_rows()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var operationAdapter = new CancellablePendingFileOperationAdapter(supportsCancellation: true);
+        var deleteMe = Item(@"D:\projects\delete-me.txt", "delete-me.txt");
+        var keep = Item(@"D:\projects\keep.txt", "keep.txt");
+        source.SetEntries(@"D:\projects", deleteMe, keep);
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 2);
+
+        source.SetEntries(@"D:\projects", keep);
+        viewModel.SetSelectedFileItems([deleteMe]);
+        var delete = viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Delete);
+        viewModel.CancelFileOperation();
+        await delete;
+
+        CollectionAssert.AreEqual(
+            new[] { "delete-me.txt", "keep.txt" },
+            viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(FileOperationStatus.Cancelled, viewModel.FileOperation.Status);
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
+    public async Task Operations_late_post_mutation_refresh_cannot_overwrite_newer_navigation()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new DelayedSecondListingFolderEntrySource(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var oldItem = Item(@"D:\projects\old.txt", "old.txt");
+        var renamedItem = Item(@"D:\projects\new.txt", "new.txt");
+        var otherItem = Item(@"D:\other\other.txt", "other.txt");
+        source.SetEntries(@"D:\projects", oldItem);
+        source.SetEntries(@"D:\other", otherItem);
+        var viewModel = CreateViewModel(
+            clipboard,
+            listingSource: source,
+            operationAdapter: operationAdapter,
+            existingPaths: [@"D:\projects", @"D:\other"]);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "old.txt");
+
+        source.SetEntries(@"D:\projects", renamedItem);
+        viewModel.SetSelectedFileItems([oldItem]);
+        await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.Rename);
+        viewModel.SetPendingRenameText("new.txt");
+        var rename = viewModel.CommitPendingRenameAsync();
+        await WaitUntilAsync(() => viewModel.FileOperation.Status is FileOperationStatus.Completed);
+
+        var navigation = viewModel.SubmitPath(@"D:\other");
+        Assert.IsTrue(navigation.Accepted);
+        await WaitUntilAsync(() => viewModel.FileItems.Count == 1 && viewModel.FileItems[0].Name == "other.txt");
+
+        source.Release();
+        await rename;
+
+        Assert.AreEqual(@"D:\other", viewModel.ActivePath);
+        CollectionAssert.AreEqual(new[] { "other.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Operations")]
     public async Task Operations_rename_cancel_clears_pending_rename_without_adapter_call()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -984,6 +1148,42 @@ public sealed class AppShellCommandRouteTests
                 }
 
                 _yieldedFirst = true;
+                yield return entry;
+            }
+        }
+    }
+
+    private sealed class DelayedSecondListingFolderEntrySource : FakeFolderEntrySource
+    {
+        private readonly string _delayedPath;
+        private readonly TaskCompletionSource _gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _enumerationCount;
+
+        public DelayedSecondListingFolderEntrySource(string delayedPath)
+        {
+            _delayedPath = delayedPath;
+        }
+
+        public void Release()
+        {
+            _gate.TrySetResult();
+        }
+
+        public override async IAsyncEnumerable<FileSystemEntrySnapshot> EnumerateAsync(
+            string path,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var enumeration = string.Equals(path, _delayedPath, StringComparison.OrdinalIgnoreCase)
+                ? Interlocked.Increment(ref _enumerationCount)
+                : 0;
+
+            if (enumeration > 1)
+            {
+                await _gate.Task.ConfigureAwait(false);
+            }
+
+            await foreach (var entry in base.EnumerateAsync(path, cancellationToken))
+            {
                 yield return entry;
             }
         }

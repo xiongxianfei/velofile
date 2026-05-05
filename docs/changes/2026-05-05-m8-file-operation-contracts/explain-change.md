@@ -22,6 +22,8 @@ The app shell now retains a `FileOperationService`, wires Delete, Shift+Delete, 
 
 Running operations now carry cancellable state when the adapter supports cancellation. The shell exposes a Cancel operation button for those operations and routes it to the retained in-flight cancellation token.
 
+Completed mutating operations now refresh the originating tab's listing through the existing `FolderListingCoordinator`. Rename, Recycle Bin delete, and confirmed permanent delete update visible rows only after the operation completes. Failed, cancelled, and confirmation-waiting states preserve the current rows. The refresh is scoped to the tab/path where the operation started, so a late refresh cannot overwrite a newer navigation.
+
 The corpus tool now supports `run-compat-corpus.ps1 -Scope safe-delete` by generating the operations profile and verifying scratch-only safe-delete fixtures.
 
 ## What Stayed Out
@@ -43,6 +45,9 @@ New tests cover:
 - app shell command route and visible status/confirmation/cancel/rename surfaces;
 - rename commit, cancel, and invalid-name recovery through the view-model shell route;
 - in-flight operation cancellation through the retained token;
+- visible row refresh after completed rename, Recycle Bin delete, and confirmed permanent delete;
+- preservation of visible rows for failed, cancelled, and confirmation-waiting operation states;
+- stale post-mutation refresh suppression after navigation;
 - safe-delete corpus runner support.
 
 ## Validation
