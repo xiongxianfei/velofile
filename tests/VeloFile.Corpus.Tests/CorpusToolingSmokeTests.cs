@@ -93,9 +93,35 @@ public sealed class CorpusToolingSmokeTests
         Assert.IsTrue(File.Exists(pathsResultPath), "Path compatibility runner must write a result document.");
         var pathsResult = JsonNode.Parse(File.ReadAllText(pathsResultPath))!.AsObject();
         Assert.AreEqual("paths", (string?)pathsResult["scope"]);
-        CollectionAssert.AreEquivalent(
-            new[] { "long-path", "junction-placeholder", "symlink-placeholder", "reparse-loop-placeholder", "access-denied-placeholder" },
-            pathsResult["compatibilityCases"]!.AsArray().Select(value => (string)value!).ToArray());
+        var pathCases = pathsResult["caseResults"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+        Assert.IsTrue(pathCases.Length >= 6, "Path compatibility must report individual case outcomes.");
+        Assert.IsFalse(pathCases.Any(result => ((string?)result["caseId"])?.Contains("placeholder", StringComparison.OrdinalIgnoreCase) == true));
+        Assert.IsFalse(pathCases.Any(result => string.Equals((string?)result["status"], "passed", StringComparison.OrdinalIgnoreCase)));
+        Assert.IsTrue(pathCases.Any(result => string.Equals((string?)result["status"], "verified", StringComparison.Ordinal)));
+        Assert.IsTrue(pathCases.Any(result => string.Equals((string?)result["status"], "skipped", StringComparison.Ordinal)
+            || string.Equals((string?)result["status"], "unavailable", StringComparison.Ordinal)));
+
+        foreach (var pathCase in pathCases)
+        {
+            var status = (string?)pathCase["status"];
+            Assert.IsTrue(
+                status is "verified" or "skipped" or "unavailable" or "not-applicable" or "failed",
+                $"Unexpected path compatibility status '{status}'.");
+
+            if (status is "verified")
+            {
+                Assert.IsTrue((bool?)pathCase["createdFixture"], "Verified cases must create a fixture.");
+                Assert.IsTrue((bool?)pathCase["verifiedBehavior"], "Verified cases must check behavior.");
+            }
+            else
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace((string?)pathCase["reasonCode"]), "Non-verified cases must include a reason code.");
+            }
+
+            StringAssert.Contains((string?)pathCase["fixturePathKind"] ?? "", "scratch-relative");
+        }
 
         var unimplemented = RunScript("run-compat-corpus.ps1", "-Scope", "future-scope", "-ScratchRoot", scratch.Root);
 

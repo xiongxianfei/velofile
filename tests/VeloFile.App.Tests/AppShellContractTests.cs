@@ -137,10 +137,15 @@ public sealed class AppShellContractTests
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
+        var dragDropRouteCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Input", "AppDragDropRoute.cs").FullName);
         var compositionCode = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileOperationStatusText\"");
         StringAssert.Contains(xaml, "x:Name=\"DropActionIndicatorText\"");
+        StringAssert.Contains(xaml, "AllowDrop=\"True\"");
+        StringAssert.Contains(xaml, "DragOver=\"FileListSurface_DragOver\"");
+        StringAssert.Contains(xaml, "DragLeave=\"FileListSurface_DragLeave\"");
+        StringAssert.Contains(xaml, "Drop=\"FileListSurface_Drop\"");
         StringAssert.Contains(xaml, "x:Name=\"CancelFileOperationButton\"");
         StringAssert.Contains(xaml, "Click=\"CancelFileOperationButton_Click\"");
         StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
@@ -151,6 +156,9 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"ReplaceConflictButton\"");
         StringAssert.Contains(xaml, "x:Name=\"KeepBothConflictButton\"");
         StringAssert.Contains(codeBehind, "ViewModel.FileOperationStatusText");
+        StringAssert.Contains(codeBehind, "AppDragDropRoute");
+        StringAssert.Contains(codeBehind, "WinUiFileDropPayloadExtractor");
+        StringAssert.Contains(dragDropRouteCode, "CommitDropAsync");
         StringAssert.Contains(codeBehind, "ViewModel.DropActionIndicatorText");
         StringAssert.Contains(codeBehind, "ViewModel.DropActionIndicatorVisible");
         StringAssert.Contains(codeBehind, "ViewModel.CanCancelFileOperation");

@@ -74,6 +74,22 @@ public sealed class FileOperationServiceTests
     }
 
     [TestMethod]
+    public async Task Create_shortcuts_uses_adapter_with_target_directory_and_does_not_offer_undo()
+    {
+        var adapter = new RecordingFileOperationAdapter();
+        var service = new FileOperationService(adapter);
+        var item = Item(@"D:\scratch\source\report.txt", "report.txt");
+
+        await service.CreateShortcutsAsync([item], @"D:\scratch\target");
+
+        Assert.AreEqual(FileOperationStatus.Completed, service.State.Status);
+        Assert.AreEqual(FileOperationKind.CreateShortcut, adapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\scratch\target", adapter.LastRequest?.TargetDirectory);
+        Assert.AreEqual(item.FullPath, adapter.LastRequest?.Items.Single().Path);
+        Assert.IsFalse(service.State.UndoEligibility.CanUndo);
+    }
+
+    [TestMethod]
     public async Task Copy_conflict_pauses_for_resolution_and_replace_resumes_operation()
     {
         var item = Item(@"D:\scratch\source\copy-me.txt", "copy-me.txt");

@@ -7,7 +7,7 @@ Use this checklist for Windows behaviors that are brittle or unsafe to automate 
 - Explorer to VeloFile: no modifier resolves to same-volume move and cross-volume copy.
 - Explorer to VeloFile: Ctrl resolves to copy.
 - Explorer to VeloFile: Shift resolves to move.
-- Explorer to VeloFile: Ctrl+Shift resolves to shortcut intent before drop.
+- Explorer to VeloFile: Ctrl+Shift resolves to shortcut intent before drop and creates a non-colliding `.lnk` file after drop.
 - Browser download/link drag to VeloFile: unsupported payloads are rejected visibly or file payloads are accepted through the file-drop boundary.
 - IDE/project file drag to VeloFile: file payloads resolve to the same modifier actions.
 - Office or representative document app drag to VeloFile: file payloads resolve to the same modifier actions, and unsupported embedded-object payloads are rejected visibly.

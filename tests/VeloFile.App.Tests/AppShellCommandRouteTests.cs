@@ -574,6 +574,102 @@ public sealed class AppShellCommandRouteTests
     }
 
     [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_drag_over_invokes_payload_extractor_and_updates_indicator_without_commit()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var extractor = new StaticDragDropPayloadExtractor(AppDragDropPayload.Supported(
+            [new DropItem(@"E:\external\dropped.txt", "dropped.txt", FileSystemEntryKind.File)]));
+        var route = new AppDragDropRoute(viewModel, extractor);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var result = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.AreEqual(1, extractor.ExtractCount);
+        Assert.AreEqual(AppDropAcceptedOperation.Copy, result.AcceptedOperation);
+        Assert.AreEqual("Copy to D:\\projects", viewModel.DropActionIndicatorText);
+        Assert.IsTrue(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_modifier_changes_update_resolved_indicator()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var extractor = new StaticDragDropPayloadExtractor(AppDragDropPayload.Supported(
+            [new DropItem(@"D:\external\dropped.txt", "dropped.txt", FileSystemEntryKind.File)]));
+        var route = new AppDragDropRoute(viewModel, extractor);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var move = await route.DragOverAsync(new object(), DragDropKeyModifiers.None);
+        var copy = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control);
+        var shortcut = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control | DragDropKeyModifiers.Shift);
+
+        Assert.AreEqual(AppDropAcceptedOperation.Move, move.AcceptedOperation);
+        Assert.AreEqual(AppDropAcceptedOperation.Copy, copy.AcceptedOperation);
+        Assert.AreEqual(AppDropAcceptedOperation.Link, shortcut.AcceptedOperation);
+        Assert.AreEqual("Create shortcut in D:\\projects", viewModel.DropActionIndicatorText);
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_drop_commits_shortcut_operation_and_refreshes_destination()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var shortcut = Item(@"D:\projects\dropped.lnk", "dropped.lnk");
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var extractor = new StaticDragDropPayloadExtractor(AppDragDropPayload.Supported(
+            [new DropItem(@"D:\external\dropped.txt", "dropped.txt", FileSystemEntryKind.File)]));
+        var route = new AppDragDropRoute(viewModel, extractor);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        source.SetEntries(@"D:\projects", shortcut);
+        var result = await route.DropAsync(new object(), DragDropKeyModifiers.Control | DragDropKeyModifiers.Shift);
+
+        Assert.AreEqual(AppDropAcceptedOperation.Link, result.AcceptedOperation);
+        Assert.AreEqual(FileOperationKind.CreateShortcut, operationAdapter.LastRequest?.Kind);
+        Assert.AreEqual(@"D:\projects", operationAdapter.LastRequest?.TargetDirectory);
+        Assert.AreEqual(FileOperationStatus.Completed, viewModel.FileOperation.Status);
+        Assert.IsFalse(viewModel.FileOperationStatusText.Contains("drop-shortcut-not-supported", StringComparison.Ordinal));
+        CollectionAssert.AreEqual(new[] { "dropped.lnk" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("DragDrop")]
+    public async Task DragDrop_shell_route_unsupported_payload_cannot_drop_or_commit()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        source.SetEntries(@"D:\projects");
+        var operationAdapter = new RecordingFileOperationAdapter();
+        var viewModel = CreateViewModel(clipboard, listingSource: source, operationAdapter: operationAdapter);
+        var extractor = new StaticDragDropPayloadExtractor(AppDragDropPayload.Unsupported("unsupported-payload"));
+        var route = new AppDragDropRoute(viewModel, extractor);
+        await WaitUntilAsync(() => source.EnumerationCount(@"D:\projects") == 1);
+
+        var dragOver = await route.DragOverAsync(new object(), DragDropKeyModifiers.Control);
+        var drop = await route.DropAsync(new object(), DragDropKeyModifiers.Control);
+
+        Assert.AreEqual(AppDropAcceptedOperation.None, dragOver.AcceptedOperation);
+        Assert.AreEqual("unsupported-payload", dragOver.ReasonCode);
+        Assert.AreEqual(AppDropAcceptedOperation.None, drop.AcceptedOperation);
+        Assert.IsFalse(viewModel.DropActionIndicatorVisible);
+        Assert.AreEqual(0, operationAdapter.Requests.Count);
+    }
+
+    [TestMethod]
     [TestCategory("Operations")]
     public async Task Operations_conflict_resolution_refreshes_original_target_when_user_navigates_elsewhere()
     {
@@ -1478,6 +1574,24 @@ public sealed class AppShellCommandRouteTests
         }
 
         public object DataContext { get; }
+    }
+
+    private sealed class StaticDragDropPayloadExtractor : IAppDragDropPayloadExtractor
+    {
+        private readonly AppDragDropPayload _payload;
+
+        public StaticDragDropPayloadExtractor(AppDragDropPayload payload)
+        {
+            _payload = payload;
+        }
+
+        public int ExtractCount { get; private set; }
+
+        public ValueTask<AppDragDropPayload> ExtractAsync(object? data, CancellationToken cancellationToken = default)
+        {
+            ExtractCount++;
+            return ValueTask.FromResult(_payload);
+        }
     }
 
     private class FakeFolderEntrySource : IFolderEntrySource

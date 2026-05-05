@@ -16,13 +16,17 @@ architecture:
 files:
   - src/VeloFile.Core/DragDrop/
   - src/VeloFile.Windows/DragDrop/
+  - src/VeloFile.Windows/Shell/WindowsShellFileOperationAdapter.cs
+  - src/VeloFile.App/Input/AppDragDropRoute.cs
   - src/VeloFile.App/ViewModels/AppShellViewModel.cs
   - src/VeloFile.App/MainWindow.xaml
   - src/VeloFile.App/MainWindow.xaml.cs
   - tools/VeloFile.Corpus/Program.cs
   - docs/qa/m10-dragdrop-compatibility-checklist.md
   - tests/VeloFile.Core.Tests/DragDrop/
+  - tests/VeloFile.Core.Tests/Operations/FileOperationServiceTests.cs
   - tests/VeloFile.Windows.Tests/OleDragDrop/
+  - tests/VeloFile.Windows.Tests/ShellOperations/WindowsShellFileOperationAdapterTests.cs
   - tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
 validation:
@@ -48,10 +52,32 @@ validation:
     result: passed with 0 warnings and 0 errors
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
     result: passed restore, build with 0 warnings and 0 errors, and 222 tests across Windows, App, Core, and Corpus test assemblies
+  - command: dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter "DragDrop|Create_shortcuts"
+    result: review-resolution first failed for missing shortcut/drop APIs; final run passed 6 Core drag/drop and shortcut tests
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter DragDrop
+    result: review-resolution first failed for missing app drag/drop route types; final run passed 7 App drag/drop route tests
+  - command: dotnet test tests/VeloFile.Windows.Tests/VeloFile.Windows.Tests.csproj -c Debug --filter "Create_shortcut|DragDrop"
+    result: review-resolution first failed for missing shortcut operation mapping and Shell link support; final run passed 5 Windows drag/drop/shortcut tests
+  - command: dotnet test tests/VeloFile.Corpus.Tests/VeloFile.Corpus.Tests.csproj -c Debug --filter Compatibility_and_preview_runners_validate_scope
+    result: review-resolution first failed against the old placeholder paths result schema; final run passed with per-case path compatibility outcomes
+  - command: dotnet build VeloFile.sln -c Debug
+    result: review-resolution build passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter DragDrop
+    result: review-resolution run passed 5 Core, 7 App, and 2 Windows drag/drop tests; Corpus tests had no matching DragDrop filter
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope dragdrop -ScratchRoot <scratch-root>
+    result: review-resolution run passed with a compliant scratch root
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-compat-corpus.ps1 -Scope paths -ScratchRoot <scratch-root>
+    result: review-resolution run passed with a compliant scratch root and per-case path outcomes
+  - command: dotnet test tests/VeloFile.App.Tests/VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+    result: review-resolution run passed 11 App shell contract tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+    result: review-resolution run passed restore, build with 0 warnings and 0 errors, and 232 tests across Windows, App, Core, and Corpus test assemblies
 notes:
   - Core resolves Windows drag/drop defaults: same-volume no-modifier move, cross-volume no-modifier copy, Ctrl copy, Shift move, and Ctrl+Shift/Alt shortcut intent.
-  - The app shell exposes a drop-action indicator before commit and routes copy/move drops through the existing file operation service and post-mutation listing refresh path.
+  - The app shell exposes a drop-action indicator before commit and routes copy/move/shortcut drops through the existing file operation service and post-mutation listing refresh path.
+  - The WinUI file list is wired as the production drop target through a thin event bridge into `AppDragDropRoute`.
+  - Shortcut drops create `.lnk` files through the Windows Shell boundary with non-colliding destination names.
   - Windows drag/drop data projection is isolated in `VeloFile.Windows` and converts file-drop paths into Core `DropItem` values without exposing OLE details to Core.
-  - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles.
+  - The compatibility corpus now has automated `dragdrop` and `paths` scopes plus deterministic `dragdrop` and `pathological` profiles. Path results use per-case verified/skipped/unavailable/failed status instead of placeholder pass labels.
   - Cross-app drag/drop with Explorer, browser, IDE, and Office remains a manual checklist because those sources are brittle to automate reliably.
   - R81, R82, and I8 file-association Open/Open With behavior remains assigned to M14; M10 covers R79-R80 drag/drop behavior plus path compatibility corpus expansion.

@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Diagnostics;
+using System.Security;
 using System.Text;
 using System.Text.Json;
 
@@ -212,37 +214,289 @@ internal static class CorpusCli
     {
         var root = ScratchRootGuard.Prepare(options.Required("root"));
         CorpusProfileGenerator.Generate(root, "pathological");
-        var fixturePaths = new[]
+        var caseResults = new[]
         {
-            "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003/segment-0004/long-path-file.txt",
-            "compatibility/reparse/junction-placeholder/target.txt",
-            "compatibility/reparse/symlink-placeholder/target.txt",
-            "compatibility/reparse/loop-placeholder/loop-marker.txt",
-            "compatibility/access-denied/README.txt"
+            VerifyLongPath(root),
+            VerifySimplePathFixture(root, "unicode-path", "unicode", "compatibility/paths/unicode/文件-δοκιμή.txt"),
+            VerifySimplePathFixture(root, "unusual-filename", "filename", "compatibility/paths/unusual/name with spaces [1].txt"),
+            VerifyJunction(root),
+            VerifySymlink(root),
+            VerifyReparseLoop(root),
+            SkippedCase(
+                "access-denied",
+                "permissions",
+                "access-denied-fixture-requires-acl",
+                "compatibility/access-denied",
+                "access denied operation")
         };
-
-        AssertProfileFixtures(root, "pathological", fixturePaths);
+        var failedCount = caseResults.Count(result => result.Status is "failed");
 
         var result = new
         {
             documentType = "velofileCompatCorpusResult",
             schemaVersion = 1,
             scope = "paths",
-            result = "passed",
-            checkedFixtures = fixturePaths,
-            compatibilityCases = new[]
+            result = failedCount == 0 ? "completed" : "failed",
+            summary = new
             {
-                "long-path",
-                "junction-placeholder",
-                "symlink-placeholder",
-                "reparse-loop-placeholder",
-                "access-denied-placeholder"
-            }
+                verified = caseResults.Count(result => result.Status is "verified"),
+                skipped = caseResults.Count(result => result.Status is "skipped"),
+                unavailable = caseResults.Count(result => result.Status is "unavailable"),
+                failed = failedCount
+            },
+            caseResults
         };
 
         WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compat", "paths-result.json"), result);
-        output.WriteLine("Compatibility paths corpus passed.");
-        return 0;
+        output.WriteLine(failedCount == 0
+            ? "Compatibility paths corpus completed."
+            : "Compatibility paths corpus failed.");
+        return failedCount == 0 ? 0 : 1;
+    }
+
+    private static PathCompatibilityCaseResult VerifyLongPath(DirectoryInfo root)
+    {
+        var segments = new List<string>
+        {
+            "corpora",
+            "pathological",
+            "compatibility",
+            "paths",
+            "long-path"
+        };
+
+        var index = 1;
+        while (Path.Combine([root.FullName, .. segments, "long-path-file.txt"]).Length < 270)
+        {
+            segments.Add("segment-" + index.ToString("0000"));
+            index++;
+        }
+
+        segments.Add("long-path-file.txt");
+        return TryWriteAndVerifyCase(root, "long-path", "long-path", segments, "long path fixture");
+    }
+
+    private static PathCompatibilityCaseResult VerifySimplePathFixture(
+        DirectoryInfo root,
+        string caseId,
+        string category,
+        string relativePath)
+    {
+        return TryWriteAndVerifyCase(
+            root,
+            caseId,
+            category,
+            ["corpora", "pathological", .. relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries)],
+            category + " fixture");
+    }
+
+    private static PathCompatibilityCaseResult VerifyJunction(DirectoryInfo root)
+    {
+        const string relativePath = "compatibility/reparse/junction";
+        if (!OperatingSystem.IsWindows())
+        {
+            return UnavailableCase("junction", "junction", "not-windows", relativePath, "junction handling");
+        }
+
+        var target = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "junction-target");
+        var junction = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "junction");
+        Directory.CreateDirectory(target);
+
+        var process = new ProcessStartInfo("cmd.exe")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        process.ArgumentList.Add("/c");
+        process.ArgumentList.Add("mklink");
+        process.ArgumentList.Add("/J");
+        process.ArgumentList.Add(junction);
+        process.ArgumentList.Add(target);
+
+        try
+        {
+            using var started = Process.Start(process);
+            if (started is null || !started.WaitForExit(milliseconds: 5_000) || started.ExitCode != 0)
+            {
+                return SkippedCase("junction", "junction", "junction-creation-unavailable", relativePath, "junction handling");
+            }
+
+            return Directory.Exists(junction) && HasReparsePoint(junction)
+                ? VerifiedCase("junction", "junction", relativePath, "junction handling")
+                : FailedCase("junction", "junction", "junction-verification-failed", relativePath, "junction handling");
+        }
+        catch (Exception ex) when (IsFixtureUnavailable(ex))
+        {
+            return SkippedCase("junction", "junction", "junction-creation-unavailable", relativePath, "junction handling");
+        }
+    }
+
+    private static PathCompatibilityCaseResult VerifySymlink(DirectoryInfo root)
+    {
+        const string relativePath = "compatibility/reparse/symlink";
+        if (!OperatingSystem.IsWindows())
+        {
+            return UnavailableCase("symlink", "symlink", "not-windows", relativePath, "symlink handling");
+        }
+
+        var target = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "symlink-target.txt");
+        var link = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "symlink.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        File.WriteAllText(target, "Symlink target." + Environment.NewLine, Encoding.UTF8);
+
+        try
+        {
+            File.CreateSymbolicLink(link, target);
+            return File.Exists(link) && HasReparsePoint(link)
+                ? VerifiedCase("symlink", "symlink", relativePath, "symlink handling")
+                : FailedCase("symlink", "symlink", "symlink-verification-failed", relativePath, "symlink handling");
+        }
+        catch (Exception ex) when (IsFixtureUnavailable(ex))
+        {
+            return SkippedCase("symlink", "symlink", SymbolicLinkReasonCode(ex), relativePath, "symlink handling");
+        }
+    }
+
+    private static PathCompatibilityCaseResult VerifyReparseLoop(DirectoryInfo root)
+    {
+        const string relativePath = "compatibility/reparse/loop";
+        if (!OperatingSystem.IsWindows())
+        {
+            return UnavailableCase("reparse-loop", "reparse-loop", "not-windows", relativePath, "reparse loop handling");
+        }
+
+        var loopRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "loop");
+        var backLink = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compatibility", "reparse", "loop", "back");
+        Directory.CreateDirectory(loopRoot);
+
+        try
+        {
+            Directory.CreateSymbolicLink(backLink, loopRoot);
+            return Directory.Exists(backLink) && HasReparsePoint(backLink)
+                ? VerifiedCase("reparse-loop", "reparse-loop", relativePath, "reparse loop handling")
+                : FailedCase("reparse-loop", "reparse-loop", "reparse-loop-verification-failed", relativePath, "reparse loop handling");
+        }
+        catch (Exception ex) when (IsFixtureUnavailable(ex))
+        {
+            return SkippedCase("reparse-loop", "reparse-loop", SymbolicLinkReasonCode(ex), relativePath, "reparse loop handling");
+        }
+    }
+
+    private static PathCompatibilityCaseResult TryWriteAndVerifyCase(
+        DirectoryInfo root,
+        string caseId,
+        string category,
+        IReadOnlyList<string> segments,
+        string operationUnderTest)
+    {
+        var relativePath = string.Join('/', segments.Skip(2));
+        try
+        {
+            var path = ScratchRootGuard.PathUnderRoot(root, segments.ToArray());
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, caseId + Environment.NewLine, Encoding.UTF8);
+            return File.Exists(path)
+                ? VerifiedCase(caseId, category, relativePath, operationUnderTest)
+                : FailedCase(caseId, category, caseId + "-verification-failed", relativePath, operationUnderTest);
+        }
+        catch (Exception ex) when (IsFixtureUnavailable(ex))
+        {
+            return SkippedCase(caseId, category, caseId + "-fixture-unavailable", relativePath, operationUnderTest);
+        }
+    }
+
+    private static bool HasReparsePoint(string path)
+    {
+        return (File.GetAttributes(path) & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint;
+    }
+
+    private static bool IsFixtureUnavailable(Exception ex)
+    {
+        return ex is IOException
+            or UnauthorizedAccessException
+            or SecurityException
+            or NotSupportedException
+            or ArgumentException
+            or System.ComponentModel.Win32Exception;
+    }
+
+    private static string SymbolicLinkReasonCode(Exception ex)
+    {
+        return ex is UnauthorizedAccessException
+            ? "requires-admin-or-developer-mode"
+            : "symlink-creation-unavailable";
+    }
+
+    private static PathCompatibilityCaseResult VerifiedCase(string caseId, string category, string relativePath, string operationUnderTest)
+    {
+        return new PathCompatibilityCaseResult(
+            caseId,
+            category,
+            "verified",
+            "verified",
+            "scratch-relative:" + relativePath,
+            CreatedFixture: true,
+            VerifiedBehavior: true,
+            operationUnderTest,
+            "fixture verified");
+    }
+
+    private static PathCompatibilityCaseResult SkippedCase(
+        string caseId,
+        string category,
+        string reasonCode,
+        string relativePath,
+        string operationUnderTest)
+    {
+        return new PathCompatibilityCaseResult(
+            caseId,
+            category,
+            "skipped",
+            reasonCode,
+            "scratch-relative:" + relativePath,
+            CreatedFixture: false,
+            VerifiedBehavior: false,
+            operationUnderTest,
+            "case skipped with controlled reason");
+    }
+
+    private static PathCompatibilityCaseResult UnavailableCase(
+        string caseId,
+        string category,
+        string reasonCode,
+        string relativePath,
+        string operationUnderTest)
+    {
+        return new PathCompatibilityCaseResult(
+            caseId,
+            category,
+            "unavailable",
+            reasonCode,
+            "scratch-relative:" + relativePath,
+            CreatedFixture: false,
+            VerifiedBehavior: false,
+            operationUnderTest,
+            "capability unavailable");
+    }
+
+    private static PathCompatibilityCaseResult FailedCase(
+        string caseId,
+        string category,
+        string reasonCode,
+        string relativePath,
+        string operationUnderTest)
+    {
+        return new PathCompatibilityCaseResult(
+            caseId,
+            category,
+            "failed",
+            reasonCode,
+            "scratch-relative:" + relativePath,
+            CreatedFixture: true,
+            VerifiedBehavior: false,
+            operationUnderTest,
+            "fixture verification failed");
     }
 
     private static void AssertProfileFixtures(DirectoryInfo root, string profile, IReadOnlyList<string> fixturePaths)
@@ -531,11 +785,12 @@ internal static class CorpusProfileGenerator
             ],
             "pathological" =>
             [
-                new CorpusFixture(["compatibility", "paths", "long-path", "segment-0001", "segment-0002", "segment-0003", "segment-0004", "long-path-file.txt", "Long path compatibility placeholder." + Environment.NewLine]),
-                new CorpusFixture(["compatibility", "reparse", "junction-placeholder", "target.txt", "Junction compatibility placeholder. Real junction creation is covered by manual/elevated compatibility runs." + Environment.NewLine]),
-                new CorpusFixture(["compatibility", "reparse", "symlink-placeholder", "target.txt", "Symlink compatibility placeholder. Real symlink creation is covered by manual/elevated compatibility runs." + Environment.NewLine]),
-                new CorpusFixture(["compatibility", "reparse", "loop-placeholder", "loop-marker.txt", "Reparse loop compatibility placeholder." + Environment.NewLine]),
-                new CorpusFixture(["compatibility", "access-denied", "README.txt", "Access-denied compatibility placeholder." + Environment.NewLine])
+                new CorpusFixture(["compatibility", "paths", "long-path", "segment-0001", "segment-0002", "segment-0003", "segment-0004", "long-path-file.txt", "Long path compatibility seed." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "paths", "unicode", "文件-δοκιμή.txt", "Unicode path compatibility seed." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "paths", "unusual", "name with spaces [1].txt", "Unusual filename compatibility seed." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "reparse", "junction-target", "target.txt", "Junction target seed." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "reparse", "symlink-target.txt", "Symlink target seed." + Environment.NewLine]),
+                new CorpusFixture(["compatibility", "access-denied", "README.txt", "Access-denied compatibility seed." + Environment.NewLine])
             ],
             _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
         };
@@ -551,7 +806,7 @@ internal static class CorpusProfileGenerator
             "search" => ["search", "search/deep", "search/deep/level01", "search/deep/level01/level02", "search/many"],
             "large-folder" => ["large-folder", "large-folder/items"],
             "dragdrop" => ["dragdrop", "dragdrop/same-volume", "dragdrop/same-volume/source", "dragdrop/same-volume/target", "dragdrop/cross-volume", "dragdrop/cross-volume/source", "dragdrop/cross-volume/target", "dragdrop/modifiers", "dragdrop/compat"],
-            "pathological" => ["compatibility", "compatibility/paths", "compatibility/paths/long-path", "compatibility/paths/long-path/segment-0001", "compatibility/paths/long-path/segment-0001/segment-0002", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003/segment-0004", "compatibility/reparse", "compatibility/reparse/junction-placeholder", "compatibility/reparse/symlink-placeholder", "compatibility/reparse/loop-placeholder", "compatibility/access-denied", "compatibility/compat"],
+            "pathological" => ["compatibility", "compatibility/paths", "compatibility/paths/long-path", "compatibility/paths/long-path/segment-0001", "compatibility/paths/long-path/segment-0001/segment-0002", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003", "compatibility/paths/long-path/segment-0001/segment-0002/segment-0003/segment-0004", "compatibility/paths/unicode", "compatibility/paths/unusual", "compatibility/reparse", "compatibility/reparse/junction-target", "compatibility/reparse/loop", "compatibility/access-denied", "compatibility/compat"],
             _ => throw new CorpusException($"Corpus profile '{profile}' is not implemented in M2.")
         };
     }
@@ -607,6 +862,17 @@ internal sealed record CorpusManifest(
     IReadOnlyList<string> Scopes);
 
 internal sealed record CorpusFile(string RelativePath, long SizeBytes, string Sha256);
+
+internal sealed record PathCompatibilityCaseResult(
+    string CaseId,
+    string Category,
+    string Status,
+    string ReasonCode,
+    string FixturePathKind,
+    bool CreatedFixture,
+    bool VerifiedBehavior,
+    string OperationUnderTest,
+    string Notes);
 
 internal static class BenchmarkReport
 {

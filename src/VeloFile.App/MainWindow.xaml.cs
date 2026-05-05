@@ -1,3 +1,4 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -5,11 +6,15 @@ using VeloFile.App.Input;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Commands;
+using VeloFile.Core.DragDrop;
 using VeloFile.Core.Navigation;
 using VeloFile.Core.Operations;
 using VeloFile.Core.Session;
 using VeloFile.Core.Shell;
+using VeloFile.Windows.DragDrop;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
+using Windows.UI.Core;
 
 namespace VeloFile.App;
 
@@ -17,6 +22,7 @@ public sealed partial class MainWindow : Window
 {
     private readonly IKeyboardFocusContextProvider _keyboardFocusContextProvider;
     private readonly AppFileCommandAcceleratorRouter _fileCommandAcceleratorRouter;
+    private readonly AppDragDropRoute _dragDropRoute;
     private bool _isRefreshingShellBindings;
 
     public MainWindow(AppShellViewModel viewModel)
@@ -30,6 +36,7 @@ public sealed partial class MainWindow : Window
         ViewModel = viewModel;
         _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
         _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
+        _dragDropRoute = new AppDragDropRoute(ViewModel, new WinUiFileDropPayloadExtractor());
         ViewModel.ShellStateChanged += ViewModel_ShellStateChanged;
         Title = ViewModel.WindowTitle;
         RootShell.DataContext = ViewModel;
@@ -531,6 +538,80 @@ public sealed partial class MainWindow : Window
         return true;
     }
 
+    private async void FileListSurface_DragOver(object sender, DragEventArgs e)
+    {
+        var deferral = e.GetDeferral();
+        try
+        {
+            var result = await _dragDropRoute.DragOverAsync(e.DataView, CurrentDragDropModifiers());
+            e.AcceptedOperation = ToDataPackageOperation(result.AcceptedOperation);
+            RefreshShellBindings();
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private void FileListSurface_DragLeave(object sender, DragEventArgs e)
+    {
+        _dragDropRoute.DragLeave();
+        e.AcceptedOperation = DataPackageOperation.None;
+        RefreshShellBindings();
+    }
+
+    private async void FileListSurface_Drop(object sender, DragEventArgs e)
+    {
+        var deferral = e.GetDeferral();
+        try
+        {
+            var result = await _dragDropRoute.DropAsync(e.DataView, CurrentDragDropModifiers());
+            e.AcceptedOperation = ToDataPackageOperation(result.AcceptedOperation);
+            RefreshShellBindings();
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private static DataPackageOperation ToDataPackageOperation(AppDropAcceptedOperation operation)
+    {
+        return operation switch
+        {
+            AppDropAcceptedOperation.Copy => DataPackageOperation.Copy,
+            AppDropAcceptedOperation.Move => DataPackageOperation.Move,
+            AppDropAcceptedOperation.Link => DataPackageOperation.Link,
+            _ => DataPackageOperation.None
+        };
+    }
+
+    private static DragDropKeyModifiers CurrentDragDropModifiers()
+    {
+        var modifiers = DragDropKeyModifiers.None;
+        if (IsKeyDown(VirtualKey.Control))
+        {
+            modifiers |= DragDropKeyModifiers.Control;
+        }
+
+        if (IsKeyDown(VirtualKey.Shift))
+        {
+            modifiers |= DragDropKeyModifiers.Shift;
+        }
+
+        if (IsKeyDown(VirtualKey.Menu))
+        {
+            modifiers |= DragDropKeyModifiers.Alt;
+        }
+
+        return modifiers;
+    }
+
+    private static bool IsKeyDown(VirtualKey key)
+    {
+        return (InputKeyboardSource.GetKeyStateForCurrentThread(key) & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down;
+    }
+
     private void ExecuteAvailableBuiltInCommand(VeloFileCommandId commandId)
     {
         if (ViewModel.IsBuiltInCommandAvailable(commandId, CanPasteFromClipboard()))
@@ -624,6 +705,35 @@ public sealed partial class MainWindow : Window
     private static string FileOperationConflictMessage(FileOperationConflict conflict)
     {
         return $"Name conflict for {conflict.ExistingName}. Choose how to continue.";
+    }
+
+    private sealed class WinUiFileDropPayloadExtractor : IAppDragDropPayloadExtractor
+    {
+        private readonly WindowsOleDragDropDataAdapter _adapter = new();
+
+        public async ValueTask<AppDragDropPayload> ExtractAsync(object? data, CancellationToken cancellationToken = default)
+        {
+            if (data is not DataPackageView dataView)
+            {
+                return AppDragDropPayload.Unsupported("ole-drop-unsupported-payload");
+            }
+
+            if (!dataView.Contains(StandardDataFormats.StorageItems))
+            {
+                return AppDragDropPayload.Unsupported("ole-drop-unsupported-payload");
+            }
+
+            var storageItems = await dataView.GetStorageItemsAsync();
+            var fileDropPaths = storageItems
+                .Select(item => item.Path)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToArray();
+            var result = _adapter.ExtractFileDrop(fileDropPaths);
+
+            return result.CanDrop
+                ? AppDragDropPayload.Supported(result.Items)
+                : AppDragDropPayload.Unsupported(result.ReasonCode ?? "ole-drop-no-supported-files");
+        }
     }
 
 }

@@ -2,7 +2,7 @@ using VeloFile.Core.Listing;
 using VeloFile.Core.Operations;
 using VeloFile.Windows.Shell;
 
-#pragma warning disable MSTEST0037
+#pragma warning disable CA1416, MSTEST0037
 
 namespace VeloFile.Windows.Tests.ShellOperations;
 
@@ -78,6 +78,20 @@ public sealed class WindowsShellFileOperationAdapterTests
         Assert.AreEqual(WindowsShellFileOperationKind.Move, intent.Kind);
         Assert.AreEqual(@"D:\scratch\target", intent.TargetDirectory);
         Assert.AreEqual(WindowsShellConflictChoice.KeepBoth, intent.ConflictChoice);
+    }
+
+    [TestMethod]
+    public void Create_shortcut_maps_to_shell_shortcut_intent_with_target_directory()
+    {
+        var request = FileOperationRequest.CreateShortcuts(
+            [Item(@"D:\scratch\source\report.txt", "report.txt")],
+            @"D:\scratch\target");
+
+        var intent = WindowsShellFileOperationRequestMapper.Map(request);
+
+        Assert.AreEqual(WindowsShellFileOperationKind.CreateShortcut, intent.Kind);
+        Assert.AreEqual(@"D:\scratch\target", intent.TargetDirectory);
+        Assert.AreEqual(@"D:\scratch\source\report.txt", intent.Targets.Single().Path);
     }
 
     [TestMethod]
@@ -194,6 +208,55 @@ public sealed class WindowsShellFileOperationAdapterTests
         var incomingDestination = destinationFiles.Single(path => !string.Equals(path, existingTarget, StringComparison.OrdinalIgnoreCase));
         Assert.AreNotEqual(existingTarget, incomingDestination);
         Assert.AreEqual("incoming", File.ReadAllText(incomingDestination));
+    }
+
+    [TestMethod]
+    public void Create_shortcut_preserves_source_and_writes_lnk_targeting_source()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var source = scratch.CreateDirectory("source");
+        var target = scratch.CreateDirectory("target");
+        var sourceFile = scratch.WriteFile(Path.Combine("source", "report.txt"), "source");
+        var intent = new WindowsShellFileOperationIntent(
+            WindowsShellFileOperationKind.CreateShortcut,
+            [FileOperationTarget.FromListedItem(Item(sourceFile, "report.txt"))],
+            TargetName: null,
+            target,
+            WindowsShellConflictChoice.None,
+            WindowsShellDeleteDisposition.None,
+            AllowUndoBypassingDelete: false);
+
+        VisualBasicShellFileOperationExecutor.Instance.Execute(intent, progress: null, CancellationToken.None);
+
+        Assert.IsTrue(File.Exists(sourceFile));
+        var shortcutPath = Directory.GetFiles(target, "*.lnk").Single();
+        Assert.AreEqual(sourceFile, WindowsShortcutFile.ReadTarget(shortcutPath));
+    }
+
+    [TestMethod]
+    public void Create_shortcut_uses_non_colliding_lnk_name()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var source = scratch.CreateDirectory("source");
+        var target = scratch.CreateDirectory("target");
+        var sourceFile = scratch.WriteFile(Path.Combine("source", "report.txt"), "source");
+        var existingShortcut = scratch.WriteFile(Path.Combine("target", "report.lnk"), "existing");
+        var intent = new WindowsShellFileOperationIntent(
+            WindowsShellFileOperationKind.CreateShortcut,
+            [FileOperationTarget.FromListedItem(Item(sourceFile, "report.txt"))],
+            TargetName: null,
+            target,
+            WindowsShellConflictChoice.None,
+            WindowsShellDeleteDisposition.None,
+            AllowUndoBypassingDelete: false);
+
+        VisualBasicShellFileOperationExecutor.Instance.Execute(intent, progress: null, CancellationToken.None);
+
+        Assert.AreEqual("existing", File.ReadAllText(existingShortcut));
+        var shortcuts = Directory.GetFiles(target, "*.lnk");
+        Assert.AreEqual(2, shortcuts.Length);
+        var createdShortcut = shortcuts.Single(path => !string.Equals(path, existingShortcut, StringComparison.OrdinalIgnoreCase));
+        Assert.AreEqual(sourceFile, WindowsShortcutFile.ReadTarget(createdShortcut));
     }
 
     [TestMethod]

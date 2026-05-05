@@ -45,6 +45,17 @@ public sealed class FileOperationService
         await ExecuteAdapterRequestAsync(FileOperationRequest.Move(items, targetDirectory.Trim()), cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task CreateShortcutsAsync(
+        IReadOnlyList<ListedFileItem> items,
+        string targetDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSelection(items);
+        EnsureTargetDirectory(targetDirectory);
+
+        await ExecuteAdapterRequestAsync(FileOperationRequest.CreateShortcuts(items, targetDirectory.Trim()), cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task RenameAsync(ListedFileItem item, string targetName, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);

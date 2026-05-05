@@ -1,4 +1,6 @@
 using Microsoft.VisualBasic.FileIO;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using VeloFile.Core;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Operations;
@@ -10,6 +12,7 @@ public enum WindowsShellFileOperationKind
 {
     Copy,
     Move,
+    CreateShortcut,
     Rename,
     Delete
 }
@@ -80,6 +83,7 @@ public static class WindowsShellFileOperationRequestMapper
         {
             FileOperationKind.Copy => MapCopyMove(request, WindowsShellFileOperationKind.Copy),
             FileOperationKind.Move => MapCopyMove(request, WindowsShellFileOperationKind.Move),
+            FileOperationKind.CreateShortcut => MapCopyMove(request, WindowsShellFileOperationKind.CreateShortcut),
             FileOperationKind.Rename => MapRename(request),
             FileOperationKind.RecycleBinDelete => new WindowsShellFileOperationIntent(
                 WindowsShellFileOperationKind.Delete,
@@ -351,6 +355,9 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
                 case WindowsShellFileOperationKind.Move:
                     Move(target, intent.TargetDirectory!, intent.ConflictChoice);
                     break;
+                case WindowsShellFileOperationKind.CreateShortcut:
+                    CreateShortcut(target, intent.TargetDirectory!);
+                    break;
                 case WindowsShellFileOperationKind.Rename:
                     Rename(target, intent.TargetName!);
                     break;
@@ -421,6 +428,17 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
         }
     }
 
+    private static void CreateShortcut(FileOperationTarget target, string targetDirectory)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("Windows shortcut creation requires Windows Shell COM.");
+        }
+
+        var shortcutPath = ShortcutDestinationPath(target, targetDirectory);
+        WindowsShortcutFile.Create(shortcutPath, target.Path);
+    }
+
     private static void Delete(FileOperationTarget target, WindowsShellDeleteDisposition disposition)
     {
         var recycleOption = disposition is WindowsShellDeleteDisposition.RecycleBin
@@ -446,6 +464,29 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
         return conflictChoice is WindowsShellConflictChoice.KeepBoth
             ? KeepBothDestination(destination, target.Kind)
             : destination;
+    }
+
+    private static string ShortcutDestinationPath(FileOperationTarget target, string targetDirectory)
+    {
+        var baseName = target.Kind is FileSystemEntryKind.Directory
+            ? target.Name
+            : Path.GetFileNameWithoutExtension(target.Name);
+        var initial = Path.Combine(targetDirectory, baseName + ".lnk");
+        if (!File.Exists(initial) && !Directory.Exists(initial))
+        {
+            return initial;
+        }
+
+        for (var index = 2; index < 10_000; index++)
+        {
+            var candidate = Path.Combine(targetDirectory, $"{baseName} ({index}).lnk");
+            if (!File.Exists(candidate) && !Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new IOException("Could not find an available shortcut destination name.");
     }
 
     private static string KeepBothDestination(string destination, FileSystemEntryKind kind)
@@ -484,10 +525,112 @@ public sealed class VisualBasicShellFileOperationExecutor : IWindowsShellFileOpe
         {
             WindowsShellFileOperationKind.Copy => FileOperationKind.Copy,
             WindowsShellFileOperationKind.Move => FileOperationKind.Move,
+            WindowsShellFileOperationKind.CreateShortcut => FileOperationKind.CreateShortcut,
             WindowsShellFileOperationKind.Rename => FileOperationKind.Rename,
             WindowsShellFileOperationKind.Delete when intent.DeleteDisposition is WindowsShellDeleteDisposition.Permanent => FileOperationKind.PermanentDelete,
             WindowsShellFileOperationKind.Delete => FileOperationKind.RecycleBinDelete,
             _ => FileOperationKind.RecycleBinDelete
         };
+    }
+}
+
+[SupportedOSPlatform("windows")]
+public static class WindowsShortcutFile
+{
+    public static void Create(string shortcutPath, string targetPath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(shortcutPath)!);
+        var shellLink = CreateShellLink();
+        shellLink.SetPath(targetPath);
+        ((IPersistFile)shellLink).Save(shortcutPath, remember: true);
+    }
+
+    public static string ReadTarget(string shortcutPath)
+    {
+        var shellLink = CreateShellLink();
+        ((IPersistFile)shellLink).Load(shortcutPath, 0);
+        var pathBuilder = new System.Text.StringBuilder(32_768);
+        shellLink.GetPath(pathBuilder, pathBuilder.Capacity, IntPtr.Zero, 0);
+        return pathBuilder.ToString();
+    }
+
+    private static IShellLinkW CreateShellLink()
+    {
+        var shellLinkType = Type.GetTypeFromCLSID(new Guid("00021401-0000-0000-C000-000000000046"))
+            ?? throw new PlatformNotSupportedException("Shell link COM class is unavailable.");
+        return (IShellLinkW)Activator.CreateInstance(shellLinkType)!;
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("000214F9-0000-0000-C000-000000000046")]
+    private interface IShellLinkW
+    {
+        void GetPath(
+            [Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszFile,
+            int cchMaxPath,
+            IntPtr pfd,
+            uint fFlags);
+
+        void GetIDList(out IntPtr ppidl);
+
+        void SetIDList(IntPtr pidl);
+
+        void GetDescription(
+            [Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszName,
+            int cchMaxName);
+
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+
+        void GetWorkingDirectory(
+            [Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszDir,
+            int cchMaxPath);
+
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
+
+        void GetArguments(
+            [Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszArgs,
+            int cchMaxPath);
+
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
+
+        void GetHotkey(out short pwHotkey);
+
+        void SetHotkey(short wHotkey);
+
+        void GetShowCmd(out int piShowCmd);
+
+        void SetShowCmd(int iShowCmd);
+
+        void GetIconLocation(
+            [Out, MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder pszIconPath,
+            int cchIconPath,
+            out int piIcon);
+
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
+
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, uint dwReserved);
+
+        void Resolve(IntPtr hwnd, uint fFlags);
+
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("0000010b-0000-0000-C000-000000000046")]
+    private interface IPersistFile
+    {
+        void GetClassID(out Guid pClassID);
+
+        void IsDirty();
+
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, uint dwMode);
+
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, bool remember);
+
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string pszFileName);
+
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string ppszFileName);
     }
 }

@@ -6,6 +6,7 @@ public enum FileOperationKind
 {
     Copy,
     Move,
+    CreateShortcut,
     Rename,
     RecycleBinDelete,
     PermanentDelete
@@ -90,6 +91,19 @@ public sealed record FileOperationRequest(
             ConfirmedPermanentDelete: false,
             targetDirectory,
             conflictChoice);
+    }
+
+    public static FileOperationRequest CreateShortcuts(
+        IReadOnlyList<ListedFileItem> items,
+        string targetDirectory)
+    {
+        return new FileOperationRequest(
+            FileOperationKind.CreateShortcut,
+            items.Select(FileOperationTarget.FromListedItem).ToArray(),
+            TargetName: null,
+            ConfirmedPermanentDelete: false,
+            targetDirectory,
+            ConflictChoice: null);
     }
 
     public static FileOperationRequest Rename(ListedFileItem item, string targetName)

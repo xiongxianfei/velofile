@@ -41,7 +41,8 @@ public sealed record DragDropRequest(
     IReadOnlyList<DropItem> Items,
     string TargetDirectory,
     DropVolumeRelationship VolumeRelationship,
-    DragDropKeyModifiers Modifiers);
+    DragDropKeyModifiers Modifiers,
+    bool SupportsShortcut = true);
 
 public sealed record DropActionResolution(
     DropAction Action,
@@ -71,6 +72,11 @@ public sealed class DragDropActionResolver
 
         var targetDirectory = request.TargetDirectory.Trim();
         var action = ResolveAction(request);
+        if (action is DropAction.Shortcut && !request.SupportsShortcut)
+        {
+            return DropActionResolution.None("drop-shortcut-unsupported");
+        }
+
         var verb = action switch
         {
             DropAction.Copy => "Copy to",
@@ -113,5 +119,56 @@ public sealed class DragDropActionResolver
         return request.VolumeRelationship is DropVolumeRelationship.SameVolume
             ? DropAction.Move
             : DropAction.Copy;
+    }
+}
+
+public static class DropVolumeRelationshipClassifier
+{
+    public static DropVolumeRelationship Classify(IReadOnlyList<DropItem> items, string targetDirectory)
+    {
+        if (items.Count == 0 || string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            return DropVolumeRelationship.Unknown;
+        }
+
+        var targetRoot = SafeRoot(targetDirectory);
+        if (string.IsNullOrWhiteSpace(targetRoot))
+        {
+            return DropVolumeRelationship.Unknown;
+        }
+
+        var sawUnknown = false;
+        foreach (var item in items)
+        {
+            var itemRoot = SafeRoot(item.FullPath);
+            if (string.IsNullOrWhiteSpace(itemRoot))
+            {
+                sawUnknown = true;
+                continue;
+            }
+
+            if (!string.Equals(itemRoot, targetRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                return DropVolumeRelationship.CrossVolume;
+            }
+        }
+
+        return sawUnknown ? DropVolumeRelationship.Unknown : DropVolumeRelationship.SameVolume;
+    }
+
+    private static string? SafeRoot(string path)
+    {
+        try
+        {
+            return Path.GetPathRoot(path);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
 }

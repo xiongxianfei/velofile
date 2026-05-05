@@ -484,9 +484,10 @@ public sealed class AppShellViewModel
     public void UpdateDropAction(
         IReadOnlyList<DropItem> items,
         DragDropKeyModifiers modifiers,
-        DropVolumeRelationship volumeRelationship)
+        DropVolumeRelationship volumeRelationship,
+        bool supportsShortcut = true)
     {
-        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship);
+        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship, supportsShortcut);
         ShellStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -499,9 +500,10 @@ public sealed class AppShellViewModel
     public async Task CommitDropAsync(
         IReadOnlyList<DropItem> items,
         DragDropKeyModifiers modifiers,
-        DropVolumeRelationship volumeRelationship)
+        DropVolumeRelationship volumeRelationship,
+        bool supportsShortcut = true)
     {
-        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship);
+        CurrentDropAction = ResolveDropAction(items, modifiers, volumeRelationship, supportsShortcut);
         if (!CurrentDropAction.CanDrop || _fileOperationService is null)
         {
             ShellStateChanged?.Invoke(this, EventArgs.Empty);
@@ -520,11 +522,9 @@ public sealed class AppShellViewModel
         {
             await _fileOperationService.CopyAsync(operationItems, ActivePath).ConfigureAwait(false);
         }
-        else
+        else if (CurrentDropAction.Action is DropAction.Shortcut)
         {
-            CurrentDropAction = DropActionResolution.None("drop-shortcut-not-supported");
-            ShellStateChanged?.Invoke(this, EventArgs.Empty);
-            return;
+            await _fileOperationService.CreateShortcutsAsync(operationItems, ActivePath).ConfigureAwait(false);
         }
 
         CurrentDropAction = DropActionResolution.None("drop-completed");
@@ -547,9 +547,10 @@ public sealed class AppShellViewModel
     private DropActionResolution ResolveDropAction(
         IReadOnlyList<DropItem> items,
         DragDropKeyModifiers modifiers,
-        DropVolumeRelationship volumeRelationship)
+        DropVolumeRelationship volumeRelationship,
+        bool supportsShortcut = true)
     {
-        return _dragDropActionResolver.Resolve(new DragDropRequest(items, ActivePath, volumeRelationship, modifiers));
+        return _dragDropActionResolver.Resolve(new DragDropRequest(items, ActivePath, volumeRelationship, modifiers, supportsShortcut));
     }
 
     private static ListedFileItem ToListedFileItem(DropItem item)
@@ -887,6 +888,7 @@ public sealed class AppShellViewModel
         {
             FileOperationKind.Copy => "Copy",
             FileOperationKind.Move => "Move",
+            FileOperationKind.CreateShortcut => "Create shortcut",
             FileOperationKind.Rename => "Rename",
             FileOperationKind.RecycleBinDelete => "Recycle Bin delete",
             FileOperationKind.PermanentDelete => "Permanent delete",

@@ -316,6 +316,10 @@
                 x:Name="FileListSurface"
                 Grid.Row="4"
                 Margin="0,8,0,0"
+                AllowDrop="True"
+                DragOver="FileListSurface_DragOver"
+                DragLeave="FileListSurface_DragLeave"
+                Drop="FileListSurface_Drop"
                 SelectionMode="Extended"
                 SelectionChanged="FileListSurface_SelectionChanged"
                 AutomationProperties.Name="Files">

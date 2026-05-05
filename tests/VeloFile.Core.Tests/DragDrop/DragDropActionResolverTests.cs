@@ -74,6 +74,38 @@ public sealed class DragDropActionResolverTests
         Assert.AreEqual("drop-no-target", noTarget.ReasonCode);
     }
 
+    [TestMethod]
+    public void Shortcut_modifier_is_rejected_when_payload_cannot_create_shortcuts()
+    {
+        var resolver = new DragDropActionResolver();
+        var item = Item(@"D:\source\report.txt");
+
+        var resolution = resolver.Resolve(new DragDropRequest(
+            [item],
+            @"D:\target",
+            DropVolumeRelationship.SameVolume,
+            DragDropKeyModifiers.Control | DragDropKeyModifiers.Shift,
+            SupportsShortcut: false));
+
+        Assert.IsFalse(resolution.CanDrop);
+        Assert.AreEqual(DropAction.None, resolution.Action);
+        Assert.AreEqual("drop-shortcut-unsupported", resolution.ReasonCode);
+    }
+
+    [TestMethod]
+    public void Volume_relationship_classifier_uses_source_and_target_roots()
+    {
+        var sameVolume = DropVolumeRelationshipClassifier.Classify(
+            [Item(@"D:\source\report.txt")],
+            @"D:\target");
+        var crossVolume = DropVolumeRelationshipClassifier.Classify(
+            [Item(@"E:\source\report.txt")],
+            @"D:\target");
+
+        Assert.AreEqual(DropVolumeRelationship.SameVolume, sameVolume);
+        Assert.AreEqual(DropVolumeRelationship.CrossVolume, crossVolume);
+    }
+
     private static DragDropRequest Request(DropItem item, DragDropKeyModifiers modifiers)
     {
         return new DragDropRequest(
