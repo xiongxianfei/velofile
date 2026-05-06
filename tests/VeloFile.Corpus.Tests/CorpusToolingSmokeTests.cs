@@ -49,6 +49,38 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory("Benchmarks")]
+    public void M15_reference_profiles_are_scaled_and_release_scoped()
+    {
+        var expectedMinimumFiles = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["small"] = 10,
+            ["medium"] = 120,
+            ["large"] = 1_000,
+            ["deep"] = 1_050,
+            ["preview"] = 8,
+            ["pathological"] = 6
+        };
+
+        using var scratch = ScratchWorkspace.Create();
+
+        foreach (var profile in expectedMinimumFiles.Keys)
+        {
+            AssertCommandSucceeded(RunScript("generate-corpus.ps1", "-Profile", profile, "-ScratchRoot", scratch.Root));
+
+            var manifestPath = Path.Combine(scratch.Root, "corpora", profile, "manifest.json");
+            var manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
+            var files = manifest["files"]!.AsArray();
+            var scopes = manifest["scopes"]!.AsArray().Select(value => (string)value!).ToArray();
+
+            Assert.AreEqual(profile, (string?)manifest["profile"]);
+            Assert.IsGreaterThanOrEqualTo(expectedMinimumFiles[profile], files.Count, $"{profile} corpus must have M15-scale fixtures.");
+            Assert.IsTrue(scopes.Any(scope => scope.StartsWith("benchmark:", StringComparison.Ordinal)), $"{profile} corpus must advertise benchmark scope.");
+            Assert.IsTrue(scopes.Any(scope => scope.StartsWith("compat:", StringComparison.Ordinal) || scope.StartsWith("preview:", StringComparison.Ordinal)), $"{profile} corpus must advertise validation scope.");
+        }
+    }
+
+    [TestMethod]
     public void Compatibility_and_preview_runners_validate_scope()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -134,6 +166,35 @@ public sealed class CorpusToolingSmokeTests
 
         Assert.AreNotEqual(0, unimplemented.ExitCode);
         StringAssert.Contains(unimplemented.AllOutput, "not implemented");
+    }
+
+    [TestMethod]
+    [TestCategory("Compatibility")]
+    public void Compatibility_release_scope_aggregates_required_m15_scopes()
+    {
+        using var scratch = ScratchWorkspace.Create();
+
+        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "release", "-ScratchRoot", scratch.Root));
+
+        var resultPath = Path.Combine(scratch.Root, "corpora", "compatibility", "compat", "release-compat-result.json");
+        Assert.IsTrue(File.Exists(resultPath), "Release compatibility aggregation must write a durable result document.");
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        var scopes = result["scopeResults"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+
+        Assert.AreEqual("release", (string?)result["scope"]);
+        Assert.AreEqual("completed", (string?)result["status"]);
+        CollectionAssert.AreEquivalent(
+            new[] { "operations", "dragdrop", "paths", "associations", "dpi" },
+            scopes.Select(value => (string)value["scope"]!).ToArray());
+        Assert.IsFalse((bool?)result["blocksReleaseEvidence"], "Completed release compatibility aggregation must not block release evidence.");
+
+        foreach (var scope in scopes)
+        {
+            Assert.IsFalse(string.IsNullOrWhiteSpace((string?)scope["evidenceKind"]), "Each aggregated compatibility scope must name evidence kind.");
+            Assert.IsTrue((bool?)scope["behaviorVerifierInvoked"], "Each aggregated compatibility scope must invoke or represent a verifier.");
+        }
     }
 
     [TestMethod]
@@ -224,35 +285,114 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    public void Benchmark_stub_emits_non_gating_report_shape()
+    public void Benchmark_harness_emits_measured_report_environment_and_release_status()
     {
         using var scratch = ScratchWorkspace.Create();
+        var appExecutable = OperatingSystem.IsWindows() ? "cmd.exe" : "pwsh";
+        var appArguments = OperatingSystem.IsWindows() ? "/c exit 0" : "-NoProfile -Command exit 0";
 
-        var result = RunScript("run-benchmarks.ps1", "-NonGating", "-ScratchRoot", scratch.Root);
+        var result = RunScript(
+            "run-benchmarks.ps1",
+            "-NonGating",
+            "-ScratchRoot",
+            scratch.Root,
+            "-RunCount",
+            "3",
+            "-AppExecutablePath",
+            appExecutable,
+            "-AppArguments",
+            appArguments);
 
         AssertCommandSucceeded(result);
 
-        var reportPath = Path.Combine(scratch.Root, "benchmarks", "benchmark-smoke-report.json");
-        Assert.IsTrue(File.Exists(reportPath), "Benchmark stub must write its report inside the scratch root.");
+        var reportPath = Path.Combine(scratch.Root, "benchmarks", "benchmark-report.json");
+        Assert.IsTrue(File.Exists(reportPath), "Benchmark harness must write its report inside the scratch root.");
 
         var report = JsonNode.Parse(File.ReadAllText(reportPath))!.AsObject();
         var environment = report["environment"]!.AsObject();
-        var measurement = report["measurements"]!.AsArray()[0]!.AsObject();
+        var measurements = report["measurements"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
 
         Assert.AreEqual("velofileBenchmarkReport", (string?)report["documentType"]);
         Assert.IsTrue((bool?)report["nonGating"]);
+        Assert.AreEqual("non-gating", (string?)report["releaseSummary"]!["status"]);
         Assert.IsTrue(environment.ContainsKey("osBuild"));
         Assert.IsTrue(environment.ContainsKey("hardwareClass"));
         Assert.IsTrue(environment.ContainsKey("cpu"));
-        Assert.IsTrue(environment.ContainsKey("ram"));
+        Assert.IsTrue(environment.ContainsKey("ramBytes"));
         Assert.IsTrue(environment.ContainsKey("storageType"));
         Assert.IsTrue(environment.ContainsKey("windowsSearchState"));
         Assert.IsTrue(environment.ContainsKey("antivirusState"));
         Assert.IsTrue(environment.ContainsKey("dpiConfiguration"));
-        Assert.IsTrue(measurement.ContainsKey("runCount"));
-        Assert.IsTrue(measurement.ContainsKey("medianMs"));
-        Assert.IsTrue(measurement.ContainsKey("p95Ms"));
-        Assert.IsTrue(measurement.ContainsKey("p99Ms"));
+        Assert.IsTrue(environment.ContainsKey("processorArchitecture"));
+        CollectionAssert.IsSubsetOf(
+            new[]
+            {
+                "app.process.launch",
+                "folder.switch.small",
+                "folder.switch.medium",
+                "folder.switch.large",
+                "filter.medium",
+                "search.deep.firstResult",
+                "search.deep.thousandResults",
+                "contextMenu.open",
+                "tab.switch",
+                "session.restore.10tabs"
+            },
+            measurements.Select(value => (string)value["name"]!).ToArray());
+
+        foreach (var measurement in measurements)
+        {
+            Assert.IsGreaterThan(0, (int?)measurement["runCount"] ?? 0, $"Measurement {measurement["name"]} must run at least once.");
+            Assert.IsNotNull((double?)measurement["medianMs"], $"Measurement {measurement["name"]} must record median.");
+            Assert.IsNotNull((double?)measurement["p95Ms"], $"Measurement {measurement["name"]} must record p95.");
+            Assert.IsNotNull((double?)measurement["p99Ms"], $"Measurement {measurement["name"]} must record p99.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace((string?)measurement["releaseGatingStatus"]));
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Diagnostics")]
+    public void Diagnostics_conformance_runner_writes_redacted_local_report_and_export()
+    {
+        using var scratch = ScratchWorkspace.Create();
+
+        AssertCommandSucceeded(RunScript("run-diagnostics-conformance.ps1", "-ScratchRoot", scratch.Root));
+
+        var reportPath = Path.Combine(scratch.Root, "diagnostics", "diagnostics-conformance-result.json");
+        var exportPath = Path.Combine(scratch.Root, "diagnostics", "export", "diagnostics-redacted.jsonl");
+        Assert.IsTrue(File.Exists(reportPath), "Diagnostics conformance must write a durable result document.");
+        Assert.IsTrue(File.Exists(exportPath), "Diagnostics conformance must write a redacted export artifact.");
+
+        var report = JsonNode.Parse(File.ReadAllText(reportPath))!.AsObject();
+        Assert.AreEqual("velofileDiagnosticsConformanceResult", (string?)report["documentType"]);
+        Assert.AreEqual("verified", (string?)report["status"]);
+        Assert.IsTrue((bool?)report["localOnly"]);
+        Assert.IsTrue((bool?)report["exportRedacted"]);
+        Assert.IsFalse((bool?)report["prohibitedValuesFound"]);
+        Assert.AreEqual(10, (int?)report["retention"]!["maxCrashMarkers"]);
+
+        var diagnosticsOutput = string.Join(Environment.NewLine, Directory.GetFiles(Path.Combine(scratch.Root, "diagnostics"), "*", SearchOption.AllDirectories).Select(File.ReadAllText));
+        foreach (var prohibited in new[] { "alice", "secret-plan", "clipboard-secret", "preview text", "pwsh -NoProfile", "id_rsa" })
+        {
+            Assert.IsFalse(diagnosticsOutput.Contains(prohibited, StringComparison.OrdinalIgnoreCase), $"Diagnostics conformance output leaked '{prohibited}'.");
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Release")]
+    public void Preview_triage_policy_documents_blocking_thresholds_and_exception_path()
+    {
+        var repoRoot = FindRepoRoot();
+        var policy = File.ReadAllText(Path.Combine(repoRoot.FullName, "docs", "release", "preview-triage.md"));
+
+        StringAssert.Contains(policy, "Crash threshold");
+        StringAssert.Contains(policy, "Hang threshold");
+        StringAssert.Contains(policy, "blocks promotion");
+        StringAssert.Contains(policy, "explicit exception");
+        StringAssert.Contains(policy, "p95");
+        StringAssert.Contains(policy, "25%");
     }
 
     [TestMethod]

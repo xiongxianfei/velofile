@@ -571,11 +571,11 @@ Architectural boundaries to preserve:
 - Expected observable result: Release readiness can be judged using generated corpus, benchmark reports, diagnostics thresholds, and compatibility checks.
 - Commit message: `M15: add benchmarks accessibility and release triage gates`
 - Milestone closeout:
-  - validation passed
-  - progress updated
-  - decision log updated if needed
-  - validation notes updated
-  - milestone committed
+  - validation passed: corpus tests, accessibility tests, generated corpus scripts, benchmark runner, compatibility runner, diagnostics conformance runner, and `scripts\ci.ps1`
+  - progress updated: corpus tooling, benchmark report docs, release triage docs, accessibility shell checks, diagnostics conformance command, and change-local docs are updated
+  - decision log updated: M15 benchmark reports stay non-gating for contributor runs; release owners apply ADR 0003 thresholds before public claims
+  - validation notes updated: see M15 implementation notes below
+  - milestone committed: `M15: add benchmarks accessibility and release triage gates`
 - Risks: Benchmarks may be noisy or unsuitable for hosted CI.
 - Rollback/recovery: Keep benchmark gates separate from unit CI until corpus and baseline machine class are documented; preserve non-gating mode for contributor machines.
 
@@ -693,8 +693,8 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M11 complete.
 - [x] M12 complete.
 - [x] M13 complete.
-- [ ] M14 complete.
-- [ ] M15 complete.
+- [x] M14 complete.
+- [x] M15 complete.
 - [ ] M16 complete.
 - [ ] V1 verified.
 
@@ -713,6 +713,7 @@ Each milestone must update validation notes with the commands actually run and a
 | 2026-05-04 | Use PowerShell 7 (`pwsh`) as the default CI script host, with Windows PowerShell as a local fallback. | `pwsh` matches GitHub Actions and current PowerShell best practice; the fallback keeps M1 runnable on contributors' Windows machines before PowerShell 7 is installed. |
 | 2026-05-04 | Put corpus generation and runner dispatch in `tools/VeloFile.Corpus`. | Keeping scratch-root validation and deterministic corpus writes in one testable console tool prevents script-only logic from diverging across runners. |
 | 2026-05-05 | Keep file-association Open/Open With implementation in M14 while M10 covers drag/drop and path compatibility. | The plan text previously mentioned R81-R82/I8 near M10, but the test spec maps those requirements to T026 and M14 explicitly owns ShellExecute/file-association adapters; merging them into M10 would collapse two planned review slices. |
+| 2026-05-06 | Keep M15 benchmark runs non-gating for contributor machines while emitting measured reports and release thresholds. | ADR 0003 allows public claims only after a full harness/corpus and baseline comparison; local contributor hardware is too noisy to act as the release gate by itself. |
 | 2026-05-04 | Make M2 benchmark output non-gating with null timing values. | ADR 0003 and P16 prohibit public performance claims before the benchmark harness and reference corpus exist; M2 only establishes report shape. |
 | 2026-05-04 | Split M3 persistence decisions between Core schema/recovery and Windows file replacement. | Core owns durable document contracts and recovery policy; Windows owns same-directory temp, flush, and atomic replacement behavior. |
 | 2026-05-04 | Split M4 listing between Core state/projection and Windows file-system adapters. | Core owns virtualization-ready listing state, visibility projection, and stale request gating; Windows owns `DirectoryInfo`, `FileSystemInfo`, and `DriveInfo` access. |
@@ -733,6 +734,7 @@ Each milestone must update validation notes with the commands actually run and a
 - M2 corpus tests initially ran in parallel and contended on the generated corpus tool build output. `tests/VeloFile.Corpus.Tests` disables parallelism so script smoke tests execute like normal command-line validation.
 - M2 scratch-root safety uses a marker file plus path-leaf requirements: the root must be absolute, dedicated to VeloFile corpus work, and either empty/new or already marked with `.velofile-corpus-root`.
 - M2 scratch-owned `DOTNET_CLI_HOME` caused current .NET SDK first-run behavior to append per-run scratch `.dotnet\tools` paths to the persistent User PATH. `Invoke-CorpusTool.ps1` now sets `DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=0` for corpus tool invocations.
+- M15 scaled profile tests reuse one scratch root across profile generation checks because the corpus wrapper intentionally republishes the isolated tool for each scratch root; separate scratch roots made the test spend most of its time bootstrapping the tool instead of proving profile contracts.
 - M3 implementation found that UI session restore and numeric preview-release thresholds are later milestone concerns. M3 supplies durable schema/recovery and local diagnostic primitives that M5 and M15 consume.
 - M4 implementation found that `scripts/select-validation.py` is still absent, so M4 used the plan-specified `dotnet test` filters and `scripts/ci.ps1` directly rather than selector-selected checks.
 - M4 keeps WinUI folder-open entry points, breadcrumb/sidebar rendering, view-mode controls, protected-system-file confirmation UI, thumbnails, icons, and nonessential metadata enrichment out of the listing hot path for later milestones.
@@ -1118,11 +1120,30 @@ Each milestone must update validation notes with the commands actually run and a
   - Second-pass validation reran the focused M13 gates after the controller-wide throttle fix.
   - `dotnet test VeloFile.sln -c Debug --no-build` passed 297 tests across App, Core, Windows, and Corpus assemblies.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 297 tests across 4 test assemblies.
+- M15 test-first implementation evidence:
+  - Added corpus tests for scaled small/medium/large/deep/preview/pathological profiles before those profiles existed; the first focused run failed because profile `small` was still reported as unimplemented.
+  - Replaced the benchmark stub test with a measured report contract before the benchmark runner accepted `-RunCount`, app launch inputs, environment metadata, reference corpus summaries, and release thresholds.
+  - Added release compatibility aggregation and diagnostics conformance tests before `compat --scope release` and the diagnostics runner existed.
+  - Added App accessibility contract tests for keyboard routes, accessible names, state surfaces, and destructive confirmation visibility.
+  - Added `docs/release/preview-triage.md` and updated `docs/release/benchmark-baseline.md` so crash/hang/p95 thresholds and non-gating report behavior are durable release artifacts.
+  - Extended `tools\VeloFile.Corpus` with M15 reference profiles, measured non-gating benchmark reports, release compatibility aggregation, and local diagnostics conformance evidence with redacted export output.
+- M15 validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "M15_reference_profiles_are_scaled_and_release_scoped"` first failed for the missing `small` profile, then passed after adding M15 profiles and release scopes.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Benchmark_harness_emits_measured_report_environment_and_release_status"` passed after replacing the M2 null-timing stub.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Compatibility_release_scope_aggregates_required_m15_scopes"` passed.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Diagnostics_conformance_runner_writes_redacted_local_report_and_export"` passed.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Preview_triage_policy_documents_blocking_thresholds_and_exception_path"` first failed because `docs\release\preview-triage.md` did not exist, then passed.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Accessibility` passed: 2 App accessibility contract tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug` passed: 13 Corpus tests.
+  - Direct script validation passed with a compliant scratch root: `generate-corpus.ps1 -Profile smoke`, `generate-corpus.ps1 -Profile deep`, `run-benchmarks.ps1 -NonGating -RunCount 3`, `run-compat-corpus.ps1 -Scope smoke`, `run-compat-corpus.ps1 -Scope release`, and `run-diagnostics-conformance.ps1`.
+  - First `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` run failed because the new accessibility test proved missing `AutomationProperties.Name` values on search, rename, operation, conflict, and PDF navigation buttons.
+  - After adding the XAML automation names, `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug` passed 96 App tests.
+  - Final `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 329 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
-M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, and M14 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, a non-gating benchmark report stub, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, provider corpus evidence, thumbnail/icon/details UI with bounded non-blocking thumbnail execution and UI-dispatched row updates, safe explicit terminal launch with lazy target discovery, terminal selection persistence, and Windows file association Open/Open With integration. Later V1 benchmark, accessibility, release-triage, packaging, update, and release-readiness behavior remains assigned to M15-M16.
+M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, and M15 complete. The repository now has a buildable WinUI app shell, core and Windows boundary projects, smoke tests, Windows CI entry point, generated corpus tooling, safe scratch-root checks, smoke corpus runners, measured non-gating benchmark reports over scaled reference profiles, durable local state contracts, Windows safe-write storage, local redacted diagnostics foundations and conformance evidence, non-UI folder listing/visibility services with direct slow-tab isolation and bounded drive-hint enrichment proofs, core navigation/sidebar/session restore state, a Core shell navigation command surface, app launch restore composition, a compiled shell surface wired to those commands, Explorer-style selection state, a built-in command registry, command keyboard routing, clipboard copy path/name boundaries, current-folder filtering, explicit bounded recursive search, reviewed file-operation safety contracts for rename, Recycle Bin delete, permanent-delete confirmation, visible operation state, post-mutation visible-list refresh, in-flight cancellation, production unsupported-Recycle-Bin classification, safe-delete corpus validation, copy/move/conflict behavior with operations corpus validation, Core drag/drop action resolution, production WinUI drag/drop routing with extraction failure and all-or-nothing storage-item projection boundaries, App drop-action indicators, Windows file-drop projection, shortcut drop creation, drag/drop/path compatibility corpus scopes with behavior-verifier evidence for verified path cases, a preview contract with metadata fallback, timeout/cancellation orchestration, redacted diagnostics, shell preview toggle, preview corpus contract evidence, bounded Windows image/text/PDF preview providers with render artifacts, PDF page navigation, provider corpus evidence, thumbnail/icon/details UI with bounded non-blocking thumbnail execution and UI-dispatched row updates, safe explicit terminal launch with lazy target discovery, terminal selection persistence, Windows file association Open/Open With integration, accessibility contract checks, and preview-release triage thresholds. Later V1 packaging, update, and release-readiness behavior remains assigned to M16.
 
 ## Readiness
 
-M14 terminal launch and file association integration is implemented, validation is passing, and the slice is ready for `code-review`.
+M15 benchmark, accessibility, diagnostics conformance, compatibility aggregation, and release triage gates are implemented, validation is passing, and the slice is ready for `code-review`.

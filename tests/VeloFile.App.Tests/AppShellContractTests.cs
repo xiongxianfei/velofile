@@ -342,6 +342,75 @@ public sealed class AppShellContractTests
         Assert.IsFalse(codeBehind.Contains("ViewModel.HandleFileListShortcut(gesture);", StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    [TestCategory("Accessibility")]
+    public void M15_shell_interactive_surfaces_have_keyboard_routes_and_accessible_names()
+    {
+        var xaml = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+
+        foreach (var accelerator in new[]
+        {
+            "Key=\"L\" Modifiers=\"Control\"",
+            "Key=\"P\" Modifiers=\"Control\"",
+            "Key=\"A\" Modifiers=\"Control\"",
+            "Key=\"Enter\"",
+            "Key=\"F2\"",
+            "Key=\"Delete\"",
+            "Key=\"C\" Modifiers=\"Control,Shift\"",
+            "Key=\"N\" Modifiers=\"Control,Shift\""
+        })
+        {
+            StringAssert.Contains(xaml, accelerator);
+        }
+
+        foreach (var automationName in new[]
+        {
+            "AutomationProperties.Name=\"Run recursive search\"",
+            "AutomationProperties.Name=\"Cancel recursive search\"",
+            "AutomationProperties.Name=\"Clear recursive search\"",
+            "AutomationProperties.Name=\"Commit rename\"",
+            "AutomationProperties.Name=\"Cancel rename\"",
+            "AutomationProperties.Name=\"Confirm permanent delete\"",
+            "AutomationProperties.Name=\"Cancel permanent delete\"",
+            "AutomationProperties.Name=\"Skip conflict\"",
+            "AutomationProperties.Name=\"Replace conflict\"",
+            "AutomationProperties.Name=\"Keep both conflict\"",
+            "AutomationProperties.Name=\"Cancel file operation\"",
+            "AutomationProperties.Name=\"Previous PDF page\"",
+            "AutomationProperties.Name=\"Next PDF page\""
+        })
+        {
+            StringAssert.Contains(xaml, automationName);
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Accessibility")]
+    public void M15_shell_exposes_distinct_visible_states_for_empty_loading_failure_and_destructive_confirmation()
+    {
+        var xaml = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+
+        foreach (var stateName in new[]
+        {
+            "x:Name=\"LoadingState\"",
+            "x:Name=\"EmptyFolderState\"",
+            "x:Name=\"FailedState\"",
+            "x:Name=\"RecursiveSearchStatusText\"",
+            "x:Name=\"DropActionIndicatorText\"",
+            "x:Name=\"RenameErrorText\"",
+            "x:Name=\"FileOperationStatusText\"",
+            "x:Name=\"PreviewStatusText\"",
+            "x:Name=\"PreviewMetadataList\""
+        })
+        {
+            StringAssert.Contains(xaml, stateName);
+        }
+
+        StringAssert.Contains(xaml, "Permanently delete selected items?");
+        StringAssert.Contains(xaml, "Delete permanently");
+        StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
+    }
+
     private static DirectoryInfo FindRepoRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

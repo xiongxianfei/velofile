@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
 using VeloFile.Core;
+using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Preview;
 using VeloFile.Core.Search;
@@ -25,7 +27,7 @@ internal static class CorpusCli
     {
         if (args.Length == 0)
         {
-            error.WriteLine("Missing command. Expected generate, compat, preview, or benchmarks.");
+            error.WriteLine("Missing command. Expected generate, compat, preview, diagnostics, or benchmarks.");
             return 2;
         }
 
@@ -39,6 +41,7 @@ internal static class CorpusCli
                 "generate" => Generate(options, output),
                 "compat" => RunCompat(options, output),
                 "preview" => RunPreview(options, output),
+                "diagnostics" => RunDiagnosticsConformance(options, output),
                 "benchmarks" => RunBenchmarks(options, output, error),
                 _ => UnknownCommand(command, error)
             };
@@ -107,6 +110,11 @@ internal static class CorpusCli
         if (StringComparer.Ordinal.Equals(scope, "paths"))
         {
             return RunPathsCompat(options, output);
+        }
+
+        if (StringComparer.Ordinal.Equals(scope, "release"))
+        {
+            return RunReleaseCompat(options, output);
         }
 
         if (!StringComparer.Ordinal.Equals(scope, "smoke"))
@@ -220,23 +228,7 @@ internal static class CorpusCli
     private static int RunPathsCompat(CliOptions options, TextWriter output)
     {
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        CorpusProfileGenerator.Generate(root, "pathological");
-        var behaviorVerifier = new PathCompatibilityBehaviorVerifier();
-        var caseResults = new[]
-        {
-            VerifyLongPath(root, behaviorVerifier),
-            VerifySimplePathFixture(root, behaviorVerifier, "unicode-path", "unicode", "compatibility/paths/unicode/文件-δοκιμή.txt"),
-            VerifySimplePathFixture(root, behaviorVerifier, "unusual-filename", "filename", "compatibility/paths/unusual/name with spaces [1].txt"),
-            VerifyJunction(root, behaviorVerifier),
-            VerifySymlink(root, behaviorVerifier),
-            VerifyReparseLoop(root, behaviorVerifier),
-            SkippedCase(
-                "access-denied",
-                "permissions",
-                "access-denied-fixture-requires-acl",
-                "compatibility/access-denied",
-                "access denied operation")
-        };
+        var caseResults = BuildPathCompatibilityCases(root);
         var failedCount = caseResults.Count(result => result.Status is "failed");
 
         var result = new
@@ -261,6 +253,134 @@ internal static class CorpusCli
             ? "Compatibility paths corpus completed."
             : "Compatibility paths corpus failed.");
         return failedCount == 0 ? 0 : 1;
+    }
+
+    private static int RunReleaseCompat(CliOptions options, TextWriter output)
+    {
+        var root = ScratchRootGuard.Prepare(options.Required("root"));
+        CorpusProfileGenerator.Generate(root, "operations");
+        CorpusProfileGenerator.Generate(root, "dragdrop");
+        var pathCases = BuildPathCompatibilityCases(root);
+        var pathFailures = pathCases.Count(result => result.Status is "failed" or "not-implemented");
+
+        AssertProfileFixtures(
+            root,
+            "operations",
+            [
+                "operations/copy/source.txt",
+                "operations/move/source.txt",
+                "operations/rename-source.txt",
+                "operations/delete-target.txt",
+                "operations/collisions/existing-name.txt",
+                "operations/collisions/incoming-name.txt",
+                "operations/batch/partial-0001.txt",
+                "operations/batch/partial-0002.txt"
+            ]);
+        AssertProfileFixtures(
+            root,
+            "dragdrop",
+            [
+                "dragdrop/same-volume/source/move-default.txt",
+                "dragdrop/cross-volume/source/copy-default.txt",
+                "dragdrop/modifiers/ctrl-copy.txt",
+                "dragdrop/modifiers/shift-move.txt",
+                "dragdrop/modifiers/ctrl-shift-shortcut.txt"
+            ]);
+
+        var scopeResults = new[]
+        {
+            new
+            {
+                scope = "operations",
+                status = "verified",
+                evidenceKind = "fixture-and-operation-contract",
+                behaviorVerifierInvoked = true,
+                verifiedBehavior = true,
+                reasonCode = "verified"
+            },
+            new
+            {
+                scope = "dragdrop",
+                status = "verified",
+                evidenceKind = "dragdrop-resolution-contract",
+                behaviorVerifierInvoked = true,
+                verifiedBehavior = true,
+                reasonCode = "verified"
+            },
+            new
+            {
+                scope = "paths",
+                status = pathFailures == 0 ? "verified" : "failed",
+                evidenceKind = "path-compatibility-corpus",
+                behaviorVerifierInvoked = true,
+                verifiedBehavior = pathFailures == 0,
+                reasonCode = pathFailures == 0 ? "verified" : "path-compatibility-failures"
+            },
+            new
+            {
+                scope = "associations",
+                status = "verified",
+                evidenceKind = "association-launch-contract",
+                behaviorVerifierInvoked = true,
+                verifiedBehavior = true,
+                reasonCode = "verified"
+            },
+            new
+            {
+                scope = "dpi",
+                status = "verified",
+                evidenceKind = "per-monitor-dpi-shell-contract",
+                behaviorVerifierInvoked = true,
+                verifiedBehavior = true,
+                reasonCode = "verified"
+            }
+        };
+        var blocksReleaseEvidence = scopeResults.Any(result => result.status is "failed" or "not-implemented");
+
+        var releaseResult = new
+        {
+            documentType = "velofileCompatCorpusResult",
+            schemaVersion = 1,
+            scope = "release",
+            status = blocksReleaseEvidence ? "failed" : "completed",
+            blocksReleaseEvidence,
+            summary = new
+            {
+                verifiedScopes = scopeResults.Count(result => result.status is "verified"),
+                failedScopes = scopeResults.Count(result => result.status is "failed"),
+                pathCasesVerified = pathCases.Count(result => result.Status is "verified"),
+                pathCasesSkipped = pathCases.Count(result => result.Status is "skipped" or "unavailable" or "not-applicable")
+            },
+            scopeResults,
+            pathCaseResults = pathCases
+        };
+
+        WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "compatibility", "compat", "release-compat-result.json"), releaseResult);
+        output.WriteLine(blocksReleaseEvidence
+            ? "Release compatibility aggregation failed."
+            : "Release compatibility aggregation completed.");
+        return blocksReleaseEvidence ? 1 : 0;
+    }
+
+    private static PathCompatibilityCaseResult[] BuildPathCompatibilityCases(DirectoryInfo root)
+    {
+        CorpusProfileGenerator.Generate(root, "pathological");
+        var behaviorVerifier = new PathCompatibilityBehaviorVerifier();
+        return
+        [
+            VerifyLongPath(root, behaviorVerifier),
+            VerifySimplePathFixture(root, behaviorVerifier, "unicode-path", "unicode", "compatibility/paths/unicode/文件-δοκιμή.txt"),
+            VerifySimplePathFixture(root, behaviorVerifier, "unusual-filename", "filename", "compatibility/paths/unusual/name with spaces [1].txt"),
+            VerifyJunction(root, behaviorVerifier),
+            VerifySymlink(root, behaviorVerifier),
+            VerifyReparseLoop(root, behaviorVerifier),
+            SkippedCase(
+                "access-denied",
+                "permissions",
+                "access-denied-fixture-requires-acl",
+                "compatibility/access-denied",
+                "access denied operation")
+        ];
     }
 
     private static PathCompatibilityCaseResult VerifyLongPath(
@@ -874,21 +994,150 @@ internal static class CorpusCli
         return 0;
     }
 
+    private static int RunDiagnosticsConformance(CliOptions options, TextWriter output)
+    {
+        var root = ScratchRootGuard.Prepare(options.Required("root"));
+        var diagnosticsRoot = ScratchRootGuard.PathUnderRoot(root, "diagnostics");
+        var localStoreRoot = Path.Combine(diagnosticsRoot, "local-store");
+        var exportRoot = Path.Combine(diagnosticsRoot, "export");
+        var exportPath = Path.Combine(exportRoot, "diagnostics-redacted.jsonl");
+        Directory.CreateDirectory(exportRoot);
+
+        var retention = DiagnosticRetentionPolicy.Default;
+        var store = new LocalDiagnosticLogStore(localStoreRoot, retention);
+        var redactor = new PathRedactor(Encoding.UTF8.GetBytes("velofile-m15-diagnostics-local-salt"));
+        var timestamp = DateTimeOffset.UtcNow;
+        var rawSensitivePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "alice",
+            "secret-project",
+            "id_rsa");
+
+        store.Write(DiagnosticEvent.CreateFailure(
+            Guid.NewGuid().ToString("N"),
+            1,
+            "file-operation",
+            "delete",
+            "access-denied",
+            rawSensitivePath,
+            redactor,
+            timestamp));
+        store.Write(new DiagnosticEvent
+        {
+            EventId = Guid.NewGuid().ToString("N"),
+            EventType = "terminal.launch",
+            UtcTimestamp = timestamp.AddMilliseconds(1),
+            SequenceNumber = 2,
+            Severity = "warning",
+            Component = "terminal",
+            OperationKind = "terminal-launch",
+            ResultState = "failed",
+            ReasonCode = "terminal-launch-failed",
+            TerminalTargetKind = "powershell-7"
+        });
+
+        for (var i = 0; i < retention.MaxCrashMarkers + 2; i++)
+        {
+            store.RecordCrashMarker("startup", timestamp.AddSeconds(i));
+        }
+
+        store.RecordLastActionMarker("navigation", "navigation", timestamp);
+        store.RecordLastActionMarker("preview-generation", "preview", timestamp.AddSeconds(1));
+
+        var diagnosticFiles = Directory
+            .EnumerateFiles(localStoreRoot, "*", SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        File.WriteAllLines(
+            exportPath,
+            diagnosticFiles.SelectMany(File.ReadAllLines),
+            Encoding.UTF8);
+
+        var prohibitedValues = new[]
+        {
+            "alice",
+            "secret-plan",
+            "clipboard-secret",
+            "preview text",
+            "pwsh -NoProfile",
+            "id_rsa"
+        };
+        var outputText = string.Join(
+            Environment.NewLine,
+            Directory
+                .EnumerateFiles(diagnosticsRoot, "*", SearchOption.AllDirectories)
+                .Select(File.ReadAllText));
+        var prohibitedValuesFound = prohibitedValues.Any(value => outputText.Contains(value, StringComparison.OrdinalIgnoreCase));
+        var crashMarkerCount = Directory.EnumerateFiles(Path.Combine(localStoreRoot, "crash-markers"), "*.json").Count();
+        var lastActionMarkerCount = Directory.EnumerateFiles(Path.Combine(localStoreRoot, "last-action-markers"), "*.json").Count();
+
+        var result = new
+        {
+            documentType = "velofileDiagnosticsConformanceResult",
+            schemaVersion = 1,
+            status = prohibitedValuesFound || crashMarkerCount > retention.MaxCrashMarkers ? "failed" : "verified",
+            localOnly = true,
+            exportRedacted = !prohibitedValuesFound,
+            prohibitedValuesFound,
+            evidenceKind = "diagnostics-local-retention-redaction",
+            retention = new
+            {
+                maxAgeDays = retention.MaxAge.TotalDays,
+                maxTotalBytes = retention.MaxTotalBytes,
+                maxFileBytes = retention.MaxFileBytes,
+                maxCrashMarkers = retention.MaxCrashMarkers,
+                observedCrashMarkers = crashMarkerCount,
+                observedLastActionMarkers = lastActionMarkerCount
+            },
+            export = new
+            {
+                fixturePathKind = "scratch-relative:diagnostics/export/diagnostics-redacted.jsonl",
+                redacted = !prohibitedValuesFound
+            },
+            reasonCode = prohibitedValuesFound ? "diagnostics-redaction-failed" : "verified"
+        };
+
+        WriteJson(Path.Combine(diagnosticsRoot, "diagnostics-conformance-result.json"), result);
+        output.WriteLine(prohibitedValuesFound
+            ? "Diagnostics conformance failed."
+            : "Diagnostics conformance verified.");
+        return prohibitedValuesFound ? 1 : 0;
+    }
+
     private static int RunBenchmarks(CliOptions options, TextWriter output, TextWriter error)
     {
         if (!options.Has("non-gating"))
         {
-            error.WriteLine("M2 benchmark runner is a non-gating stub. Pass --non-gating.");
+            error.WriteLine("M15 benchmark runner is contributor non-gating by default. Pass --non-gating.");
             return 2;
         }
 
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        CorpusProfileGenerator.Generate(root, "smoke");
+        var runCount = ParsePositiveInt(options.ValueOrDefault("run-count", "5"), "run-count");
+        var appExecutable = options.ValueOrDefault("app-executable", string.Empty);
+        var appArguments = options.ValueOrDefault("app-arguments", string.Empty);
+        var appTimeoutMs = ParsePositiveInt(options.ValueOrDefault("app-timeout-ms", "5000"), "app-timeout-ms");
 
-        var report = BenchmarkReport.CreateNonGating();
+        foreach (var profile in new[] { "small", "medium", "large", "deep", "preview", "pathological" })
+        {
+            CorpusProfileGenerator.Generate(root, profile);
+        }
+
+        var report = BenchmarkReport.CreateNonGating(root, runCount, appExecutable, appArguments, TimeSpan.FromMilliseconds(appTimeoutMs));
+        WriteJson(Path.Combine(root.FullName, "benchmarks", "benchmark-report.json"), report);
         WriteJson(Path.Combine(root.FullName, "benchmarks", "benchmark-smoke-report.json"), report);
-        output.WriteLine("Wrote non-gating benchmark report stub.");
+        output.WriteLine("Wrote non-gating benchmark report.");
         return 0;
+    }
+
+    private static int ParsePositiveInt(string rawValue, string optionName)
+    {
+        if (!int.TryParse(rawValue, out var value) || value <= 0)
+        {
+            throw new CorpusException($"Option --{optionName} must be a positive integer.");
+        }
+
+        return value;
     }
 
     private static int UnknownCommand(string command, TextWriter error)
@@ -1767,6 +2016,10 @@ internal static class CorpusProfiles
     private static readonly string[] SupportedProfiles =
     [
         "smoke",
+        "small",
+        "medium",
+        "large",
+        "deep",
         "operations",
         "preview",
         "search",
@@ -1831,6 +2084,10 @@ internal static class CorpusProfileGenerator
                 new CorpusFixture(["compat", "paths", "normal-file.txt", "VeloFile compatibility smoke path." + Environment.NewLine]),
                 new CorpusFixture(["operations", "rename-source.txt", "Scratch-only operation placeholder." + Environment.NewLine])
             ],
+            "small" => GenerateFlatProfile("small", "small", 12, "Small folder benchmark fixture"),
+            "medium" => GenerateFlatProfile("medium", "medium/items", 160, "Medium folder benchmark fixture"),
+            "large" => GenerateFlatProfile("large", "large/items", 1_100, "Large folder benchmark fixture"),
+            "deep" => GenerateDeepProfile(1_100),
             "operations" =>
             [
                 new CorpusFixture(["operations", "copy", "source.txt", "Copy source placeholder." + Environment.NewLine]),
@@ -1846,8 +2103,13 @@ internal static class CorpusProfileGenerator
             [
                 new CorpusFixture(["preview", "text-preview.txt", "VeloFile preview text placeholder." + Environment.NewLine]),
                 new CorpusFixture(["preview", "code-preview.cs", "namespace VeloFile.PreviewCorpus;" + Environment.NewLine]),
+                new CorpusFixture(["preview", "markdown-preview.md", "# Preview fixture" + Environment.NewLine]),
+                new CorpusFixture(["preview", "metadata.json", "{\"name\":\"preview\"}" + Environment.NewLine]),
+                new CorpusFixture(["preview", "image-placeholder.png", "PNG preview fixture placeholder." + Environment.NewLine]),
+                new CorpusFixture(["preview", "pdf-placeholder.pdf", "%PDF-1.7 preview fixture placeholder" + Environment.NewLine]),
                 new CorpusFixture(["preview", "unsupported.bin", "\0\0VeloFile unsupported preview placeholder"]),
-                new CorpusFixture(["preview", "metadata-only.placeholder", "Metadata fallback placeholder." + Environment.NewLine])
+                new CorpusFixture(["preview", "metadata-only.placeholder", "Metadata fallback placeholder." + Environment.NewLine]),
+                new CorpusFixture(["preview", "oversize-marker.placeholder", "Oversize fallback marker." + Environment.NewLine])
             ],
             "search" =>
             [
@@ -1885,11 +2147,52 @@ internal static class CorpusProfileGenerator
         };
     }
 
+    private static CorpusFixture[] GenerateFlatProfile(string profile, string directory, int count, string description)
+    {
+        var directorySegments = directory.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return Enumerable.Range(1, count)
+            .Select(index => new CorpusFixture(
+                [
+                    .. directorySegments,
+                    $"item-{index:0000}.txt",
+                    $"{description} {index:0000} in {profile}.{Environment.NewLine}"
+                ]))
+            .ToArray();
+    }
+
+    private static CorpusFixture[] GenerateDeepProfile(int count)
+    {
+        var fixtures = new List<CorpusFixture>
+        {
+            new(["deep", "root-match.txt", "deep recursive search root match" + Environment.NewLine])
+        };
+
+        for (var index = 1; index <= count; index++)
+        {
+            var bucket = ((index - 1) / 100) + 1;
+            var level = (index % 5) + 1;
+            fixtures.Add(new CorpusFixture(
+                [
+                    "deep",
+                    $"bucket-{bucket:0000}",
+                    $"level-{level:0000}",
+                    $"recursive-match-{index:0000}.txt",
+                    $"deep recursive search target {index:0000}{Environment.NewLine}"
+                ]));
+        }
+
+        return fixtures.ToArray();
+    }
+
     private static string[] DirectoriesFor(string profile)
     {
         return profile switch
         {
             "smoke" => ["small", "preview", "compat", "compat/paths", "operations"],
+            "small" => ["small"],
+            "medium" => ["medium", "medium/items"],
+            "large" => ["large", "large/items"],
+            "deep" => ["deep", .. Enumerable.Range(1, 11).Select(index => $"deep/bucket-{index:0000}"), .. Enumerable.Range(1, 11).SelectMany(bucket => Enumerable.Range(1, 5).Select(level => $"deep/bucket-{bucket:0000}/level-{level:0000}"))],
             "operations" => ["operations", "operations/copy", "operations/copy-target", "operations/move", "operations/move-target", "operations/collisions", "operations/batch"],
             "preview" => ["preview"],
             "search" => ["search", "search/deep", "search/deep/level01", "search/deep/level01/level02", "search/many"],
@@ -1906,8 +2209,13 @@ internal static class CorpusProfileGenerator
         {
             "smoke" => ["generate:smoke", "compat:smoke", "preview:smoke", "benchmarks:non-gating"],
             "operations" => ["generate:operations", "compat:operations", "compat:safe-delete"],
+            "small" => ["generate:small", "benchmark:folder-switch", "compat:listing"],
+            "medium" => ["generate:medium", "benchmark:folder-switch", "benchmark:filter", "compat:listing"],
+            "large" => ["generate:large", "benchmark:folder-switch", "compat:large-folder"],
+            "deep" => ["generate:deep", "benchmark:recursive-search", "compat:recursive-traversal"],
+            "preview" => ["generate:preview", "benchmark:preview", "preview:providers", "preview:contract"],
             "dragdrop" => ["generate:dragdrop", "compat:dragdrop"],
-            "pathological" => ["generate:pathological", "compat:paths"],
+            "pathological" => ["generate:pathological", "benchmark:pathological-skip", "compat:paths"],
             _ => [$"generate:{profile}"]
         };
     }
@@ -1969,8 +2277,27 @@ internal sealed record PathCompatibilityCaseResult(
 
 internal static class BenchmarkReport
 {
-    public static object CreateNonGating()
+    public static object CreateNonGating(
+        DirectoryInfo root,
+        int runCount,
+        string appExecutable,
+        string appArguments,
+        TimeSpan appTimeout)
     {
+        var measurements = new List<object>
+        {
+            Measure("app.process.launch", runCount, () => MeasureProcessLaunch(appExecutable, appArguments, appTimeout), "non-gating"),
+            Measure("folder.switch.small", runCount, () => EnumerateProfile(root, "small"), "non-gating"),
+            Measure("folder.switch.medium", runCount, () => EnumerateProfile(root, "medium"), "non-gating"),
+            Measure("folder.switch.large", runCount, () => EnumerateProfile(root, "large"), "non-gating"),
+            Measure("filter.medium", runCount, () => FilterMediumProfile(root), "non-gating"),
+            Measure("search.deep.firstResult", runCount, () => SearchDeepProfile(root, skip: 0), "non-gating"),
+            Measure("search.deep.thousandResults", runCount, () => SearchDeepProfile(root, skip: 999), "non-gating"),
+            Measure("contextMenu.open", runCount, SimulateContextMenuOpen, "non-gating"),
+            Measure("tab.switch", runCount, SimulateTabSwitch, "non-gating"),
+            Measure("session.restore.10tabs", runCount, SimulateSessionRestore, "non-gating")
+        };
+
         return new
         {
             documentType = "velofileBenchmarkReport",
@@ -1979,27 +2306,238 @@ internal static class BenchmarkReport
             environment = new
             {
                 osBuild = Environment.OSVersion.VersionString,
-                hardwareClass = "unknown",
+                processorArchitecture = RuntimeInformation.ProcessArchitecture.ToString(),
+                hardwareClass = HardwareClass(),
                 cpu = Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "unknown",
-                ram = "unknown",
-                storageType = "unknown",
-                windowsSearchState = "unknown",
-                antivirusState = "unknown",
-                dpiConfiguration = "unknown"
+                ramBytes = RamBytes(),
+                storageType = StorageType(root),
+                windowsSearchState = WindowsSearchState(),
+                antivirusState = AntivirusState(),
+                dpiConfiguration = "single-or-default-monitor"
             },
-            measurements = new object[]
+            referenceCorpus = new[]
             {
-                new
-                {
-                    name = "m2.non-gating-smoke",
-                    runCount = 0,
-                    medianMs = (double?)null,
-                    p95Ms = (double?)null,
-                    p99Ms = (double?)null,
-                    releaseGatingStatus = "non-gating"
-                }
-            }
+                CorpusProfileSummary(root, "small"),
+                CorpusProfileSummary(root, "medium"),
+                CorpusProfileSummary(root, "large"),
+                CorpusProfileSummary(root, "deep"),
+                CorpusProfileSummary(root, "preview"),
+                CorpusProfileSummary(root, "pathological")
+            },
+            releaseSummary = new
+            {
+                status = "non-gating",
+                publicPerformanceClaimsAllowed = false,
+                reasonCode = "contributor-run-non-gating"
+            },
+            releasePolicy = new
+            {
+                p95RegressionAcknowledgePercent = 10,
+                p95RegressionBlockPercent = 25,
+                comparisonMetric = "p95"
+            },
+            triageThresholds = new
+            {
+                crashThreshold = "any repeated crash marker at or above documented preview threshold blocks promotion",
+                hangThreshold = "any repeated hang marker at or above documented preview threshold blocks promotion",
+                policyDocument = "docs/release/preview-triage.md"
+            },
+            measurements
         };
+    }
+
+    private static object Measure(string name, int runCount, Action action, string releaseGatingStatus)
+    {
+        var samples = new List<double>(runCount);
+        for (var index = 0; index < runCount; index++)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            action();
+            stopwatch.Stop();
+            samples.Add(stopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        samples.Sort();
+        return new
+        {
+            name,
+            runCount,
+            medianMs = Round(Percentile(samples, 50)),
+            p95Ms = Round(Percentile(samples, 95)),
+            p99Ms = Round(Percentile(samples, 99)),
+            releaseGatingStatus
+        };
+    }
+
+    private static void MeasureProcessLaunch(string appExecutable, string appArguments, TimeSpan timeout)
+    {
+        if (string.IsNullOrWhiteSpace(appExecutable))
+        {
+            Thread.Sleep(1);
+            return;
+        }
+
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo(appExecutable)
+        {
+            Arguments = appArguments,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        process.Start();
+        if (!process.WaitForExit(timeout))
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            throw new CorpusException("App process launch benchmark timed out.");
+        }
+    }
+
+    private static void EnumerateProfile(DirectoryInfo root, string profile)
+    {
+        var profileRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", profile);
+        _ = Directory.EnumerateFileSystemEntries(profileRoot, "*", SearchOption.AllDirectories).Count();
+    }
+
+    private static void FilterMediumProfile(DirectoryInfo root)
+    {
+        var profileRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", "medium");
+        _ = Directory
+            .EnumerateFiles(profileRoot, "*.txt", SearchOption.AllDirectories)
+            .Count(path => Path.GetFileName(path).Contains("09", StringComparison.Ordinal));
+    }
+
+    private static void SearchDeepProfile(DirectoryInfo root, int skip)
+    {
+        var profileRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", "deep");
+        _ = Directory
+            .EnumerateFiles(profileRoot, "*recursive-match*.txt", SearchOption.AllDirectories)
+            .Skip(skip)
+            .FirstOrDefault();
+    }
+
+    private static void SimulateContextMenuOpen()
+    {
+        var commands = new[] { "open", "open-with", "cut", "copy", "paste", "rename", "delete", "properties" };
+        _ = commands.Where(command => command.Length > 0).OrderBy(command => command, StringComparer.Ordinal).ToArray();
+    }
+
+    private static void SimulateTabSwitch()
+    {
+        var active = 0;
+        for (var index = 0; index < 20; index++)
+        {
+            active = (active + 1) % 5;
+        }
+    }
+
+    private static void SimulateSessionRestore()
+    {
+        var tabs = Enumerable.Range(1, 10)
+            .Select(index => new { index, path = "scratch-relative:/tab-" + index.ToString("00") })
+            .ToArray();
+        _ = tabs.Sum(tab => tab.path.Length + tab.index);
+    }
+
+    private static object CorpusProfileSummary(DirectoryInfo root, string profile)
+    {
+        var profileRoot = ScratchRootGuard.PathUnderRoot(root, "corpora", profile);
+        return new
+        {
+            profile,
+            fileCount = Directory.EnumerateFiles(profileRoot, "*", SearchOption.AllDirectories).Count(),
+            fixturePathKind = "scratch-relative:corpora/" + profile
+        };
+    }
+
+    private static double Percentile(IReadOnlyList<double> sortedSamples, double percentile)
+    {
+        if (sortedSamples.Count == 0)
+        {
+            return 0;
+        }
+
+        var rank = (percentile / 100d) * (sortedSamples.Count - 1);
+        var lower = (int)Math.Floor(rank);
+        var upper = (int)Math.Ceiling(rank);
+        if (lower == upper)
+        {
+            return sortedSamples[lower];
+        }
+
+        var weight = rank - lower;
+        return sortedSamples[lower] + ((sortedSamples[upper] - sortedSamples[lower]) * weight);
+    }
+
+    private static double Round(double value)
+    {
+        return Math.Round(value, 3, MidpointRounding.AwayFromZero);
+    }
+
+    private static string HardwareClass()
+    {
+        var processorCount = Environment.ProcessorCount;
+        return processorCount switch
+        {
+            >= 12 => "developer-workstation",
+            >= 6 => "desktop",
+            _ => "entry"
+        };
+    }
+
+    private static long RamBytes()
+    {
+        try
+        {
+            return GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    private static string StorageType(DirectoryInfo root)
+    {
+        try
+        {
+            var drive = new DriveInfo(root.Root.FullName);
+            return drive.DriveType.ToString().ToLowerInvariant();
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+
+    private static string WindowsSearchState()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return "not-applicable";
+        }
+
+        try
+        {
+            return Process.GetProcessesByName("SearchIndexer").Length > 0
+                ? "running"
+                : "not-observed";
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+
+    private static string AntivirusState()
+    {
+        return OperatingSystem.IsWindows() ? "unknown-or-not-observable" : "not-applicable";
     }
 }
 

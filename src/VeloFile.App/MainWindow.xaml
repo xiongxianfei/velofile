@@ -438,17 +438,20 @@
                     x:Name="RecursiveSearchButton"
                     Grid.Column="2"
                     Content="Search"
-                    Click="RecursiveSearchButton_Click" />
+                    Click="RecursiveSearchButton_Click"
+                    AutomationProperties.Name="Run recursive search" />
                 <Button
                     x:Name="CancelSearchButton"
                     Grid.Column="3"
                     Content="Cancel"
-                    Click="CancelSearchButton_Click" />
+                    Click="CancelSearchButton_Click"
+                    AutomationProperties.Name="Cancel recursive search" />
                 <Button
                     x:Name="ClearSearchButton"
                     Grid.Column="4"
                     Content="Clear"
-                    Click="ClearSearchButton_Click" />
+                    Click="ClearSearchButton_Click"
+                    AutomationProperties.Name="Clear recursive search" />
                 <TextBlock
                     x:Name="RecursiveSearchStatusText"
                     Grid.Column="5"
@@ -495,11 +498,13 @@
                     <Button
                         x:Name="CommitRenameButton"
                         Content="Rename"
-                        Click="CommitRenameButton_Click" />
+                        Click="CommitRenameButton_Click"
+                        AutomationProperties.Name="Commit rename" />
                     <Button
                         x:Name="CancelRenameButton"
                         Content="Cancel"
-                        Click="CancelRenameButton_Click" />
+                        Click="CancelRenameButton_Click"
+                        AutomationProperties.Name="Cancel rename" />
                     <TextBlock
                         x:Name="RenameErrorText"
                         VerticalAlignment="Center"
@@ -520,11 +525,13 @@
                     <Button
                         x:Name="ConfirmPermanentDeleteButton"
                         Content="Delete permanently"
-                        Click="ConfirmPermanentDeleteButton_Click" />
+                        Click="ConfirmPermanentDeleteButton_Click"
+                        AutomationProperties.Name="Confirm permanent delete" />
                     <Button
                         x:Name="CancelPermanentDeleteButton"
                         Content="Cancel"
-                        Click="CancelPermanentDeleteButton_Click" />
+                        Click="CancelPermanentDeleteButton_Click"
+                        AutomationProperties.Name="Cancel permanent delete" />
                 </StackPanel>
                 <StackPanel
                     x:Name="FileOperationConflictPanel"
@@ -541,15 +548,18 @@
                     <Button
                         x:Name="SkipConflictButton"
                         Content="Skip"
-                        Click="SkipConflictButton_Click" />
+                        Click="SkipConflictButton_Click"
+                        AutomationProperties.Name="Skip conflict" />
                     <Button
                         x:Name="ReplaceConflictButton"
                         Content="Replace"
-                        Click="ReplaceConflictButton_Click" />
+                        Click="ReplaceConflictButton_Click"
+                        AutomationProperties.Name="Replace conflict" />
                     <Button
                         x:Name="KeepBothConflictButton"
                         Content="Keep both"
-                        Click="KeepBothConflictButton_Click" />
+                        Click="KeepBothConflictButton_Click"
+                        AutomationProperties.Name="Keep both conflict" />
                 </StackPanel>
             </Grid>
 
@@ -600,7 +610,8 @@
                         x:Name="CancelFileOperationButton"
                         Content="Cancel operation"
                         Click="CancelFileOperationButton_Click"
-                        Visibility="Collapsed" />
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Cancel file operation" />
                 </StackPanel>
             </Grid>
         </Grid>
@@ -655,7 +666,8 @@
                         <Button
                             x:Name="PdfPreviousPageButton"
                             Content="Previous"
-                            Click="PdfPreviousPageButton_Click" />
+                            Click="PdfPreviousPageButton_Click"
+                            AutomationProperties.Name="Previous PDF page" />
                         <TextBlock
                             x:Name="PdfPageIndicatorText"
                             VerticalAlignment="Center"
@@ -663,7 +675,8 @@
                         <Button
                             x:Name="PdfNextPageButton"
                             Content="Next"
-                            Click="PdfNextPageButton_Click" />
+                            Click="PdfNextPageButton_Click"
+                            AutomationProperties.Name="Next PDF page" />
                     </StackPanel>
                     <Image
                         x:Name="PreviewImageSurface"
