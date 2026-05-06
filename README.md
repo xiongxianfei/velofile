@@ -10,7 +10,14 @@ It serves everyday Windows users who want reliable browsing, developers who live
 See [VISION.md](VISION.md) for goals, non-goals, and falsifiability.
 <!-- vision:end -->
 
-VeloFile V1 is currently in foundation work. The repository now contains the initial WinUI 3 / Windows App SDK app shell, core and Windows boundary projects, MSTest smoke tests, and Windows CI entry point.
+VeloFile V1 is implemented behind a Windows App SDK app shell with Core and Windows boundary projects, MSTest contract coverage, compatibility tooling, CI, and release packaging checks. Release builds are distributed as side-by-side MSIX packages and do not replace Windows File Explorer.
+
+## User And Release Documentation
+
+- [Differences from File Explorer](docs/user/differences-from-file-explorer.md)
+- [Install, rollback, and uninstall](docs/release/install-rollback.md)
+- [Stable update channel](docs/release/stable-update-channel.md)
+- [V1 release notes](docs/release/v1-release-notes.md)
 
 ## Requirements
 
@@ -28,6 +35,16 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
 The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script as a fallback when PowerShell 7 is unavailable.
+
+## Release Verification
+
+```powershell
+dotnet publish src/VeloFile.App/VeloFile.App.csproj -c Release
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/package-msix.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/release-verify.ps1
+```
+
+Unsigned local packaging creates an unsigned MSIX under `artifacts/msix/`. Signed release packaging runs through the Windows release workflow with a release-owner signing certificate thumbprint.
 
 ## Project Layout
 

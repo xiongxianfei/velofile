@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 20
 
     steps:
@@ -23,12 +23,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
       - name: Verify release readiness
-        run: bash scripts/release-verify.sh
+        shell: pwsh
+        run: ./scripts/release-verify.ps1 -SkipPublish
+
+      - name: Build signed release package
+        shell: pwsh
+        run: ./scripts/package-msix.ps1 -Mode SignedRelease -SigningThumbprint "${{ secrets.VELOFILE_SIGNING_THUMBPRINT }}"
 
       - name: Create GitHub release
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag="${GITHUB_REF_NAME}"
-          gh release create "$tag" --verify-tag --generate-notes --latest
+          $tag = $env:GITHUB_REF_NAME
+          gh release create $tag artifacts/msix/*.msix artifacts/msix/package-metadata.json --verify-tag --generate-notes --latest

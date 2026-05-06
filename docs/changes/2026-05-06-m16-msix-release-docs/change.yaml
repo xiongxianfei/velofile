@@ -1,0 +1,58 @@
+id: 2026-05-06-m16-msix-release-docs
+title: M16 MSIX packaging, release verification, and V1 user docs
+status: implemented
+milestone: M16
+requirements:
+  - R3
+  - R90
+  - R91
+  - R92
+  - R93
+  - C2
+  - C9
+  - S6
+  - AC1
+  - AC16
+  - AC18
+  - AC19
+  - QS-MSIX-ROLLBACK-01
+architecture:
+  - docs/architecture.md#Deployment
+  - docs/plans/2026-05-04-v1-product-scope.md#M16
+files:
+  - src/VeloFile.App/VeloFile.App.csproj
+  - src/VeloFile.App/Package.appxmanifest
+  - scripts/package-msix.ps1
+  - scripts/release-verify.ps1
+  - scripts/release-verify.sh
+  - .github/workflows/release.yml
+  - docs/release/stable-update-channel.md
+  - docs/release/install-rollback.md
+  - docs/release/v1-release-notes.md
+  - docs/release/release-checklist.md
+  - docs/user/differences-from-file-explorer.md
+  - docs/user/index.md
+  - README.md
+  - SECURITY.md
+  - tests/VeloFile.App.Tests/ReleasePackagingContractTests.cs
+  - .gitignore
+validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests
+    result: passed 4 App release packaging contract tests
+  - command: dotnet publish src\VeloFile.App\VeloFile.App.csproj -c Release
+    result: passed and produced the Release publish layout
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\package-msix.ps1
+    result: passed and produced an unsigned local MSIX plus package metadata under ignored artifacts
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1
+    result: passed and exercised publish, MSIX package creation, manifest checks, and release documentation checks
+  - command: dotnet test VeloFile.sln -c Debug
+    result: passed 334 tests across App, Core, Windows, and Corpus assemblies
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 334 tests across 4 test assemblies
+manual_validation:
+  - check: Signed MSIX install/update/rollback/uninstall checklist
+    result: not run locally; docs/release/release-checklist.md records required manual release evidence fields for release owners
+notes:
+  - Unsigned local packaging and signed release packaging are intentionally separate. Contributor runs produce an unsigned MSIX; release workflow runs signed packaging with a certificate thumbprint.
+  - The package manifest avoids file associations, app execution aliases, and Explorer context menu extensions so VeloFile remains side by side with File Explorer.
+  - V1 release/user docs explicitly document extension display, invoice.pdf.exe clarity, built-in context menu scope, stable update channel, rollback by uninstall, and Explorer/file-association non-ownership.
