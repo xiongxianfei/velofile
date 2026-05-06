@@ -170,11 +170,12 @@ public sealed class CorpusToolingSmokeTests
 
     [TestMethod]
     [TestCategory("Compatibility")]
-    public void Compatibility_release_scope_aggregates_required_m15_scopes()
+    public void Compatibility_release_scope_consumes_real_scope_results_without_upgrading_missing_evidence()
     {
         using var scratch = ScratchWorkspace.Create();
 
-        AssertCommandSucceeded(RunScript("run-compat-corpus.ps1", "-Scope", "release", "-ScratchRoot", scratch.Root));
+        var command = RunScript("run-compat-corpus.ps1", "-Scope", "release", "-ScratchRoot", scratch.Root);
+        Assert.AreNotEqual(0, command.ExitCode, "Release compatibility must block when required verifier evidence is missing.");
 
         var resultPath = Path.Combine(scratch.Root, "corpora", "compatibility", "compat", "release-compat-result.json");
         Assert.IsTrue(File.Exists(resultPath), "Release compatibility aggregation must write a durable result document.");
@@ -184,17 +185,42 @@ public sealed class CorpusToolingSmokeTests
             .ToArray();
 
         Assert.AreEqual("release", (string?)result["scope"]);
-        Assert.AreEqual("completed", (string?)result["status"]);
+        Assert.AreEqual("incomplete", (string?)result["status"]);
         CollectionAssert.AreEquivalent(
             new[] { "operations", "dragdrop", "paths", "associations", "dpi" },
             scopes.Select(value => (string)value["scope"]!).ToArray());
-        Assert.IsFalse((bool?)result["blocksReleaseEvidence"], "Completed release compatibility aggregation must not block release evidence.");
+        Assert.IsTrue((bool?)result["blocksReleaseEvidence"], "Missing required verifier evidence must block release evidence.");
+        Assert.AreEqual(0, (int?)result["summary"]!["verifiedScopes"] ?? -1, "Fixture-only and missing verifier scopes must not be counted as verified.");
 
         foreach (var scope in scopes)
         {
             Assert.IsFalse(string.IsNullOrWhiteSpace((string?)scope["evidenceKind"]), "Each aggregated compatibility scope must name evidence kind.");
-            Assert.IsTrue((bool?)scope["behaviorVerifierInvoked"], "Each aggregated compatibility scope must invoke or represent a verifier.");
+            var status = (string?)scope["status"];
+            Assert.IsTrue(
+                status is "verified" or "skipped" or "unavailable" or "not-implemented" or "failed" or "fixture-only",
+                $"Unexpected release compatibility status '{status}'.");
+
+            if (status is "verified")
+            {
+                Assert.IsTrue((bool?)scope["behaviorVerifierInvoked"], "Verified release scopes must preserve source verifier proof.");
+                Assert.IsTrue((bool?)scope["verifiedBehavior"], "Verified release scopes must preserve source behavior proof.");
+                Assert.IsTrue((bool?)scope["releaseEvidence"], "Verified release scopes must count as release evidence.");
+            }
+            else
+            {
+                Assert.IsFalse((bool?)scope["verifiedBehavior"], $"Non-verified scope {scope["scope"]} must not claim verified behavior.");
+                Assert.IsFalse((bool?)scope["releaseEvidence"], $"Non-verified scope {scope["scope"]} must not count as release evidence.");
+                Assert.IsFalse(string.IsNullOrWhiteSpace((string?)scope["reasonCode"]), $"Non-verified scope {scope["scope"]} must explain why.");
+            }
         }
+
+        var association = scopes.Single(scope => (string?)scope["scope"] == "associations");
+        Assert.AreEqual("not-implemented", (string?)association["status"]);
+        Assert.IsFalse((bool?)association["behaviorVerifierInvoked"], "Association release evidence requires an actual verifier input.");
+
+        var dpi = scopes.Single(scope => (string?)scope["scope"] == "dpi");
+        Assert.AreEqual("not-implemented", (string?)dpi["status"]);
+        Assert.IsFalse((bool?)dpi["behaviorVerifierInvoked"], "DPI release evidence requires an actual verifier or checklist input.");
     }
 
     [TestMethod]
@@ -313,6 +339,9 @@ public sealed class CorpusToolingSmokeTests
         var measurements = report["measurements"]!.AsArray()
             .Select(value => value!.AsObject())
             .ToArray();
+        var scenarioCoverage = report["scenarioCoverage"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
 
         Assert.AreEqual("velofileBenchmarkReport", (string?)report["documentType"]);
         Assert.IsTrue((bool?)report["nonGating"]);
@@ -349,7 +378,39 @@ public sealed class CorpusToolingSmokeTests
             Assert.IsNotNull((double?)measurement["p95Ms"], $"Measurement {measurement["name"]} must record p95.");
             Assert.IsNotNull((double?)measurement["p99Ms"], $"Measurement {measurement["name"]} must record p99.");
             Assert.IsFalse(string.IsNullOrWhiteSpace((string?)measurement["releaseGatingStatus"]));
+            Assert.AreEqual("infrastructure-only", (string?)measurement["measurementKind"], $"Measurement {measurement["name"]} must not be mislabeled as app-level release evidence.");
+            Assert.IsFalse((bool?)measurement["releaseEvidence"], $"Measurement {measurement["name"]} must not count as P1-P13/AC15 release evidence without an app boundary driver.");
+            Assert.IsFalse((bool?)measurement["appBoundaryDriven"], $"Measurement {measurement["name"]} must state that no app boundary was driven.");
+            Assert.IsTrue((bool?)measurement["substituteMeasurement"], $"Measurement {measurement["name"]} must disclose that it is a substitute measurement.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace((string?)measurement["scenarioId"]), $"Measurement {measurement["name"]} must map to a scenario ID.");
+            Assert.AreEqual("app-level-driver-not-implemented", (string?)measurement["reasonCode"], $"Measurement {measurement["name"]} must explain why it is not release evidence.");
         }
+
+        CollectionAssert.AreEquivalent(
+            new[]
+            {
+                "T039.launch",
+                "T039.folder-switch",
+                "T039.current-folder-filter",
+                "T039.recursive-search",
+                "T039.context-menu-open",
+                "T039.tab-switch",
+                "T039.session-restore",
+                "T039.sustained-scroll",
+                "T039.slow-tab-isolation",
+                "T039.terminal-discovery-impact"
+            },
+            scenarioCoverage.Select(value => (string)value["scenarioId"]!).ToArray());
+        foreach (var scenario in scenarioCoverage)
+        {
+            Assert.AreEqual("app-level", (string?)scenario["requiredMeasurementKind"]);
+            Assert.IsFalse((bool?)scenario["appBoundaryDriven"], $"Scenario {scenario["scenarioId"]} must disclose that no app-level driver ran.");
+            Assert.IsFalse((bool?)scenario["releaseEvidence"], $"Scenario {scenario["scenarioId"]} must not count as release evidence.");
+            Assert.AreEqual("app-level-driver-not-implemented", (string?)scenario["reasonCode"]);
+        }
+
+        Assert.IsFalse((bool?)report["releaseSummary"]!["satisfiesAc15ReleaseEvidence"], "Infrastructure-only measurements must not satisfy AC15 release evidence.");
+        Assert.IsFalse(measurements.Any(measurement => (bool?)measurement["releaseEvidence"] == true && (bool?)measurement["appBoundaryDriven"] != true));
     }
 
     [TestMethod]
@@ -372,6 +433,31 @@ public sealed class CorpusToolingSmokeTests
         Assert.IsTrue((bool?)report["exportRedacted"]);
         Assert.IsFalse((bool?)report["prohibitedValuesFound"]);
         Assert.AreEqual(10, (int?)report["retention"]!["maxCrashMarkers"]);
+
+        var workflows = report["workflowCoverage"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+        CollectionAssert.AreEquivalent(
+            new[] { "navigation", "preview", "file-operation", "search", "terminal", "session-restore" },
+            workflows.Select(value => (string)value["workflow"]!).ToArray());
+        foreach (var workflow in workflows)
+        {
+            Assert.IsTrue((bool?)workflow["covered"], $"Workflow {workflow["workflow"]} must be emitted.");
+            Assert.IsTrue((bool?)workflow["serialized"], $"Workflow {workflow["workflow"]} must survive serialization.");
+            Assert.IsTrue((bool?)workflow["redacted"], $"Workflow {workflow["workflow"]} must pass redaction.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace((string?)workflow["reasonCode"]), $"Workflow {workflow["workflow"]} must preserve a controlled reason code.");
+        }
+
+        var decisions = report["triageDecisions"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToDictionary(value => (string)value["caseId"]!, StringComparer.Ordinal);
+        Assert.AreEqual("promotion-allowed", (string?)decisions["below-threshold"]["decision"]);
+        Assert.AreEqual("promotion-blocked", (string?)decisions["at-crash-threshold"]["decision"]);
+        Assert.AreEqual("promotion-blocked", (string?)decisions["above-crash-threshold"]["decision"]);
+        Assert.AreEqual("promotion-blocked", (string?)decisions["hang-threshold"]["decision"]);
+        Assert.AreEqual("insufficient-evidence", (string?)decisions["missing-data"]["decision"]);
+        Assert.AreEqual("promotion-blocked", (string?)decisions["redaction-failure"]["decision"]);
+        Assert.AreEqual("promotion-blocked", (string?)decisions["retention-violation"]["decision"]);
 
         var diagnosticsOutput = string.Join(Environment.NewLine, Directory.GetFiles(Path.Combine(scratch.Root, "diagnostics"), "*", SearchOption.AllDirectories).Select(File.ReadAllText));
         foreach (var prohibited in new[] { "alice", "secret-plan", "clipboard-secret", "preview text", "pwsh -NoProfile", "id_rsa" })

@@ -30,33 +30,30 @@ files:
   - scripts/run-diagnostics-conformance.ps1
   - tests/VeloFile.Corpus.Tests/CorpusToolingSmokeTests.cs
   - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  - docs/release/accessibility-checklist.md
   - docs/release/benchmark-baseline.md
   - docs/release/preview-triage.md
   - docs/plan.md
   - docs/plans/2026-05-04-v1-product-scope.md
 validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Compatibility_release_scope_consumes_real_scope_results_without_upgrading_missing_evidence|Benchmark_harness_emits_measured_report_environment_and_release_status|Diagnostics_conformance_runner_writes_redacted_local_report_and_export"
+    result: passed 3 Corpus review-resolution tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter M15_accessibility_release_evidence_requires_manual_checklist_for_focus_keyboard_and_mixed_dpi
+    result: passed 1 App accessibility checklist contract test
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Accessibility
+    result: passed 3 App accessibility contract tests
+  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root> -RunCount 2
+    result: passed and wrote infrastructure-only benchmark evidence with releaseEvidence=false
+  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-diagnostics-conformance.ps1 -ScratchRoot <scratch-root>
+    result: passed and wrote diagnostics workflow plus triage-decision evidence
+  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-compat-corpus.ps1 -Scope release -ScratchRoot <scratch-root>
+    result: intentionally returned 1 and wrote status=incomplete because required release verifier evidence is missing
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug
     result: passed 13 Corpus tests
-  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Accessibility
-    result: passed 2 App accessibility contract tests
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\generate-corpus.ps1 -Profile smoke -ScratchRoot <scratch-root>
-    result: passed with a compliant scratch root
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\generate-corpus.ps1 -Profile deep -ScratchRoot <scratch-root>
-    result: passed with a compliant scratch root
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-benchmarks.ps1 -NonGating -ScratchRoot <scratch-root> -RunCount 3
-    result: passed and wrote benchmark-report.json
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-compat-corpus.ps1 -Scope smoke -ScratchRoot <scratch-root>
-    result: passed
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-compat-corpus.ps1 -Scope release -ScratchRoot <scratch-root>
-    result: passed and wrote release-compat-result.json
-  - command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run-diagnostics-conformance.ps1 -ScratchRoot <scratch-root>
-    result: passed and wrote redacted diagnostics conformance evidence
-  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug
-    result: passed 96 App tests after adding missing automation names
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-    result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 329 tests across 4 test assemblies
+    result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 330 tests across 4 test assemblies
 notes:
-  - Benchmark reports remain non-gating for contributor runs while carrying measured median, p95, p99, environment, corpus, and release-threshold metadata.
-  - Release compatibility aggregation covers operations, drag/drop, path compatibility, association contracts, and DPI contracts.
-  - Diagnostics conformance writes local-only evidence and scans generated diagnostics artifacts for prohibited raw sensitive values.
-  - Preview triage policy documents crash, hang, diagnostics, and p95 regression blockers plus the explicit exception path.
+  - Benchmark reports remain non-gating and infrastructure-only for contributor runs; current measurements do not satisfy P1-P13 or AC15 release evidence.
+  - Release compatibility aggregation consumes scope result documents and reports fixture-only, skipped, or missing verifier evidence without upgrading it to verified.
+  - Diagnostics conformance writes local-only workflow evidence for navigation, preview, file operations, search, terminal launch, and session restore plus explicit triage decisions.
+  - Preview triage policy documents crash, hang, diagnostics, p95 regression blockers, the explicit exception path, and the required accessibility checklist.

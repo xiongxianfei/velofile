@@ -411,6 +411,55 @@ public sealed class AppShellContractTests
         StringAssert.Contains(xaml, "x:Name=\"PermanentDeleteConfirmationPanel\"");
     }
 
+    [TestMethod]
+    [TestCategory("Accessibility")]
+    public void M15_accessibility_release_evidence_requires_manual_checklist_for_focus_keyboard_and_mixed_dpi()
+    {
+        var repoRoot = FindRepoRoot();
+        var checklistPath = repoRoot.Combine("docs", "release", "accessibility-checklist.md").FullName;
+        Assert.IsTrue(File.Exists(checklistPath), "M15 release evidence must include a tracked accessibility checklist, not only static XAML scans.");
+
+        var checklist = File.ReadAllText(checklistPath);
+        foreach (var requiredText in new[]
+        {
+            "keyboard-only navigation",
+            "focus indicator",
+            "focus order",
+            "destructive delete",
+            "permanent delete",
+            "operation cancel",
+            "recursive search cap",
+            "skipped locations",
+            "preview loading",
+            "preview failed",
+            "unsupported states",
+            "mixed-DPI",
+            "100%",
+            "150%",
+            "200%",
+            "screen-reader",
+            "automation name",
+            "Status",
+            "Tester",
+            "Date",
+            "Build",
+            "Environment",
+            "Pass",
+            "Fail",
+            "Blocked",
+            "Notes",
+            "Linked issue"
+        })
+        {
+            Assert.IsTrue(
+                checklist.Contains(requiredText, StringComparison.OrdinalIgnoreCase),
+                $"Accessibility checklist must mention '{requiredText}'.");
+        }
+
+        var triagePolicy = File.ReadAllText(repoRoot.Combine("docs", "release", "preview-triage.md").FullName);
+        StringAssert.Contains(triagePolicy, "docs/release/accessibility-checklist.md");
+    }
+
     private static DirectoryInfo FindRepoRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

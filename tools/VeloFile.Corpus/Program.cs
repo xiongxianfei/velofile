@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Runtime.CompilerServices;
 using VeloFile.Core;
 using VeloFile.Core.Diagnostics;
@@ -258,13 +259,9 @@ internal static class CorpusCli
     private static int RunReleaseCompat(CliOptions options, TextWriter output)
     {
         var root = ScratchRootGuard.Prepare(options.Required("root"));
-        CorpusProfileGenerator.Generate(root, "operations");
-        CorpusProfileGenerator.Generate(root, "dragdrop");
-        var pathCases = BuildPathCompatibilityCases(root);
-        var pathFailures = pathCases.Count(result => result.Status is "failed" or "not-implemented");
-
-        AssertProfileFixtures(
-            root,
+        _ = RunOperationsCompat(
+            options,
+            TextWriter.Null,
             "operations",
             [
                 "operations/copy/source.txt",
@@ -275,79 +272,41 @@ internal static class CorpusCli
                 "operations/collisions/incoming-name.txt",
                 "operations/batch/partial-0001.txt",
                 "operations/batch/partial-0002.txt"
-            ]);
-        AssertProfileFixtures(
-            root,
-            "dragdrop",
-            [
-                "dragdrop/same-volume/source/move-default.txt",
-                "dragdrop/cross-volume/source/copy-default.txt",
-                "dragdrop/modifiers/ctrl-copy.txt",
-                "dragdrop/modifiers/shift-move.txt",
-                "dragdrop/modifiers/ctrl-shift-shortcut.txt"
-            ]);
+            ],
+            "operations-result.json",
+            "Compatibility operations corpus passed.");
+        _ = RunDragDropCompat(options, TextWriter.Null);
+        _ = RunPathsCompat(options, TextWriter.Null);
+
+        var operationsResultPath = ScratchRootGuard.PathUnderRoot(root, "corpora", "operations", "compat", "operations-result.json");
+        var dragDropResultPath = ScratchRootGuard.PathUnderRoot(root, "corpora", "dragdrop", "compat", "dragdrop-result.json");
+        var pathsResultPath = ScratchRootGuard.PathUnderRoot(root, "corpora", "pathological", "compat", "paths-result.json");
+        var pathCases = ReadPathCaseResults(pathsResultPath);
 
         var scopeResults = new[]
         {
-            new
-            {
-                scope = "operations",
-                status = "verified",
-                evidenceKind = "fixture-and-operation-contract",
-                behaviorVerifierInvoked = true,
-                verifiedBehavior = true,
-                reasonCode = "verified"
-            },
-            new
-            {
-                scope = "dragdrop",
-                status = "verified",
-                evidenceKind = "dragdrop-resolution-contract",
-                behaviorVerifierInvoked = true,
-                verifiedBehavior = true,
-                reasonCode = "verified"
-            },
-            new
-            {
-                scope = "paths",
-                status = pathFailures == 0 ? "verified" : "failed",
-                evidenceKind = "path-compatibility-corpus",
-                behaviorVerifierInvoked = true,
-                verifiedBehavior = pathFailures == 0,
-                reasonCode = pathFailures == 0 ? "verified" : "path-compatibility-failures"
-            },
-            new
-            {
-                scope = "associations",
-                status = "verified",
-                evidenceKind = "association-launch-contract",
-                behaviorVerifierInvoked = true,
-                verifiedBehavior = true,
-                reasonCode = "verified"
-            },
-            new
-            {
-                scope = "dpi",
-                status = "verified",
-                evidenceKind = "per-monitor-dpi-shell-contract",
-                behaviorVerifierInvoked = true,
-                verifiedBehavior = true,
-                reasonCode = "verified"
-            }
+            AggregateFixtureScope("operations", operationsResultPath, root, "operation-corpus-result"),
+            AggregateFixtureScope("dragdrop", dragDropResultPath, root, "dragdrop-route-result"),
+            AggregatePathScope(pathsResultPath, root, pathCases),
+            MissingReleaseScope("associations", "association-verifier-not-implemented", "association-launch-verifier"),
+            MissingReleaseScope("dpi", "dpi-verifier-not-implemented", "mixed-dpi-verifier-or-checklist")
         };
-        var blocksReleaseEvidence = scopeResults.Any(result => result.status is "failed" or "not-implemented");
+        var blocksReleaseEvidence = scopeResults.Any(result => !result.ReleaseEvidence);
 
         var releaseResult = new
         {
             documentType = "velofileCompatCorpusResult",
             schemaVersion = 1,
             scope = "release",
-            status = blocksReleaseEvidence ? "failed" : "completed",
+            status = blocksReleaseEvidence ? "incomplete" : "completed",
             blocksReleaseEvidence,
             summary = new
             {
-                verifiedScopes = scopeResults.Count(result => result.status is "verified"),
-                failedScopes = scopeResults.Count(result => result.status is "failed"),
+                verifiedScopes = scopeResults.Count(result => result.Status is "verified"),
+                fixtureOnlyScopes = scopeResults.Count(result => result.Status is "fixture-only"),
+                skippedScopes = scopeResults.Count(result => result.Status is "skipped" or "unavailable"),
+                notImplementedScopes = scopeResults.Count(result => result.Status is "not-implemented"),
+                failedScopes = scopeResults.Count(result => result.Status is "failed"),
                 pathCasesVerified = pathCases.Count(result => result.Status is "verified"),
                 pathCasesSkipped = pathCases.Count(result => result.Status is "skipped" or "unavailable" or "not-applicable")
             },
@@ -357,9 +316,144 @@ internal static class CorpusCli
 
         WriteJson(ScratchRootGuard.PathUnderRoot(root, "corpora", "compatibility", "compat", "release-compat-result.json"), releaseResult);
         output.WriteLine(blocksReleaseEvidence
-            ? "Release compatibility aggregation failed."
+            ? "Release compatibility aggregation incomplete."
             : "Release compatibility aggregation completed.");
         return blocksReleaseEvidence ? 1 : 0;
+    }
+
+    private static ReleaseCompatScopeResult AggregateFixtureScope(
+        string scope,
+        string resultPath,
+        DirectoryInfo root,
+        string evidenceKind)
+    {
+        if (!File.Exists(resultPath))
+        {
+            return new ReleaseCompatScopeResult(
+                scope,
+                "not-implemented",
+                scope + "-result-missing",
+                evidenceKind,
+                BehaviorVerifierInvoked: false,
+                VerifiedBehavior: false,
+                ReleaseEvidence: false,
+                SourceResultPath: ScratchRelativePath(root, resultPath));
+        }
+
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        var sourceStatus = (string?)result["status"] ?? (string?)result["result"] ?? "unknown";
+        var behaviorVerifierInvoked = (bool?)result["behaviorVerifierInvoked"] == true;
+        var verifiedBehavior = (bool?)result["verifiedBehavior"] == true;
+        var status = sourceStatus switch
+        {
+            "failed" => "failed",
+            "skipped" => "skipped",
+            "unavailable" => "unavailable",
+            "not-implemented" => "not-implemented",
+            _ => behaviorVerifierInvoked && verifiedBehavior ? "verified" : "fixture-only"
+        };
+
+        return new ReleaseCompatScopeResult(
+            scope,
+            status,
+            status switch
+            {
+                "verified" => "verified",
+                "failed" => scope + "-result-failed",
+                "skipped" => scope + "-result-skipped",
+                "unavailable" => scope + "-result-unavailable",
+                "not-implemented" => scope + "-result-not-implemented",
+                _ => "behavior-verifier-not-invoked"
+            },
+            evidenceKind,
+            behaviorVerifierInvoked,
+            VerifiedBehavior: status is "verified",
+            ReleaseEvidence: status is "verified",
+            SourceResultPath: ScratchRelativePath(root, resultPath));
+    }
+
+    private static ReleaseCompatScopeResult AggregatePathScope(
+        string resultPath,
+        DirectoryInfo root,
+        IReadOnlyList<PathCompatibilityCaseResult> pathCases)
+    {
+        if (!File.Exists(resultPath))
+        {
+            return new ReleaseCompatScopeResult(
+                "paths",
+                "not-implemented",
+                "paths-result-missing",
+                "path-compatibility-corpus",
+                BehaviorVerifierInvoked: false,
+                VerifiedBehavior: false,
+                ReleaseEvidence: false,
+                SourceResultPath: ScratchRelativePath(root, resultPath));
+        }
+
+        var failed = pathCases.Any(result => result.Status is "failed");
+        var notImplemented = pathCases.Any(result => result.Status is "not-implemented");
+        var skippedOrUnavailable = pathCases.Any(result => result.Status is "skipped" or "unavailable" or "not-applicable");
+        var allVerified = pathCases.Count > 0 && pathCases.All(result => result.Status is "verified" && result.VerifiedBehavior);
+        var status = failed
+            ? "failed"
+            : notImplemented
+                ? "not-implemented"
+                : skippedOrUnavailable
+                    ? "skipped"
+                    : allVerified
+                        ? "verified"
+                        : "fixture-only";
+
+        return new ReleaseCompatScopeResult(
+            "paths",
+            status,
+            status switch
+            {
+                "verified" => "verified",
+                "failed" => "path-compatibility-failed",
+                "not-implemented" => "path-compatibility-not-implemented",
+                "skipped" => "path-compatibility-has-skipped-cases",
+                _ => "behavior-verifier-not-invoked"
+            },
+            "path-compatibility-corpus",
+            BehaviorVerifierInvoked: pathCases.Any(result => result.BehaviorVerifierInvoked),
+            VerifiedBehavior: allVerified,
+            ReleaseEvidence: status is "verified",
+            SourceResultPath: ScratchRelativePath(root, resultPath));
+    }
+
+    private static ReleaseCompatScopeResult MissingReleaseScope(
+        string scope,
+        string reasonCode,
+        string evidenceKind)
+    {
+        return new ReleaseCompatScopeResult(
+            scope,
+            "not-implemented",
+            reasonCode,
+            evidenceKind,
+            BehaviorVerifierInvoked: false,
+            VerifiedBehavior: false,
+            ReleaseEvidence: false,
+            SourceResultPath: "not-available");
+    }
+
+    private static IReadOnlyList<PathCompatibilityCaseResult> ReadPathCaseResults(string resultPath)
+    {
+        if (!File.Exists(resultPath))
+        {
+            return [];
+        }
+
+        var result = JsonNode.Parse(File.ReadAllText(resultPath))!.AsObject();
+        return result["caseResults"]!.AsArray()
+            .Select(value => JsonSerializer.Deserialize<PathCompatibilityCaseResult>(value, JsonOptions)!)
+            .ToArray();
+    }
+
+    private static string ScratchRelativePath(DirectoryInfo root, string path)
+    {
+        return "scratch-relative:" + Path.GetRelativePath(root.FullName, path).Replace(Path.DirectorySeparatorChar, '/');
     }
 
     private static PathCompatibilityCaseResult[] BuildPathCompatibilityCases(DirectoryInfo root)
@@ -1013,21 +1107,104 @@ internal static class CorpusCli
             "secret-project",
             "id_rsa");
 
-        store.Write(DiagnosticEvent.CreateFailure(
-            Guid.NewGuid().ToString("N"),
-            1,
-            "file-operation",
-            "delete",
-            "access-denied",
-            rawSensitivePath,
-            redactor,
-            timestamp));
+        var workflowEvents = new[]
+        {
+            new DiagnosticWorkflowEvent(
+                "navigation",
+                DiagnosticEvent.CreateFailure(
+                    Guid.NewGuid().ToString("N"),
+                    1,
+                    "navigation",
+                    "navigation",
+                    "access-denied",
+                    rawSensitivePath,
+                    redactor,
+                    timestamp)),
+            new DiagnosticWorkflowEvent(
+                "preview",
+                new DiagnosticEvent
+                {
+                    EventId = Guid.NewGuid().ToString("N"),
+                    EventType = "operation.failure",
+                    UtcTimestamp = timestamp.AddMilliseconds(1),
+                    SequenceNumber = 2,
+                    Severity = "warning",
+                    Component = "preview",
+                    OperationKind = "preview",
+                    ResultState = "timed-out",
+                    ReasonCode = "timeout",
+                    TimeoutBudgetMs = 2_000
+                }),
+            new DiagnosticWorkflowEvent(
+                "file-operation",
+                DiagnosticEvent.CreateFailure(
+                    Guid.NewGuid().ToString("N"),
+                    3,
+                    "file-operation",
+                    "delete",
+                    "access-denied",
+                    rawSensitivePath,
+                    redactor,
+                    timestamp.AddMilliseconds(2))),
+            new DiagnosticWorkflowEvent(
+                "search",
+                new DiagnosticEvent
+                {
+                    EventId = Guid.NewGuid().ToString("N"),
+                    EventType = "operation.failure",
+                    UtcTimestamp = timestamp.AddMilliseconds(3),
+                    SequenceNumber = 4,
+                    Severity = "warning",
+                    Component = "search",
+                    OperationKind = "search",
+                    ResultState = "cancelled",
+                    ReasonCode = "cancelled",
+                    CancellationFlag = true
+                }),
+            new DiagnosticWorkflowEvent(
+                "terminal",
+                new DiagnosticEvent
+                {
+                    EventId = Guid.NewGuid().ToString("N"),
+                    EventType = "terminal.launch",
+                    UtcTimestamp = timestamp.AddMilliseconds(4),
+                    SequenceNumber = 5,
+                    Severity = "warning",
+                    Component = "terminal",
+                    OperationKind = "terminal-launch",
+                    ResultState = "failed",
+                    ReasonCode = "terminal-launch-failed",
+                    TerminalTargetKind = "powershell-7"
+                }),
+            new DiagnosticWorkflowEvent(
+                "session-restore",
+                new DiagnosticEvent
+                {
+                    EventId = Guid.NewGuid().ToString("N"),
+                    EventType = "persistence.fallback",
+                    UtcTimestamp = timestamp.AddMilliseconds(5),
+                    SequenceNumber = 6,
+                    Severity = "warning",
+                    Component = "session",
+                    OperationKind = "session-restore",
+                    ResultState = "fallback",
+                    ReasonCode = "safe-defaults-used",
+                    DocumentType = "session",
+                    FallbackSource = "safeDefaults"
+                })
+        };
+
+        foreach (var workflowEvent in workflowEvents)
+        {
+            store.Write(workflowEvent.Event);
+        }
+
         store.Write(new DiagnosticEvent
         {
             EventId = Guid.NewGuid().ToString("N"),
             EventType = "terminal.launch",
-            UtcTimestamp = timestamp.AddMilliseconds(1),
-            SequenceNumber = 2,
+            UtcTimestamp = timestamp.AddMilliseconds(6),
+            SequenceNumber = 7,
             Severity = "warning",
             Component = "terminal",
             OperationKind = "terminal-launch",
@@ -1070,12 +1247,28 @@ internal static class CorpusCli
         var prohibitedValuesFound = prohibitedValues.Any(value => outputText.Contains(value, StringComparison.OrdinalIgnoreCase));
         var crashMarkerCount = Directory.EnumerateFiles(Path.Combine(localStoreRoot, "crash-markers"), "*.json").Count();
         var lastActionMarkerCount = Directory.EnumerateFiles(Path.Combine(localStoreRoot, "last-action-markers"), "*.json").Count();
+        var workflowCoverage = workflowEvents
+            .Select(workflowEvent => DiagnosticWorkflowCoverage(workflowEvent, outputText, prohibitedValuesFound))
+            .ToArray();
+        var triageDecisions = new[]
+        {
+            EvaluateTriage("below-threshold", crashMarkers: 1, hangMarkers: 0, diagnosticsAvailable: true, redactionFailed: false, retentionViolation: false),
+            EvaluateTriage("at-crash-threshold", crashMarkers: 2, hangMarkers: 0, diagnosticsAvailable: true, redactionFailed: false, retentionViolation: false),
+            EvaluateTriage("above-crash-threshold", crashMarkers: 3, hangMarkers: 0, diagnosticsAvailable: true, redactionFailed: false, retentionViolation: false),
+            EvaluateTriage("hang-threshold", crashMarkers: 0, hangMarkers: 1, diagnosticsAvailable: true, redactionFailed: false, retentionViolation: false),
+            EvaluateTriage("missing-data", crashMarkers: 0, hangMarkers: 0, diagnosticsAvailable: false, redactionFailed: false, retentionViolation: false),
+            EvaluateTriage("redaction-failure", crashMarkers: 0, hangMarkers: 0, diagnosticsAvailable: true, redactionFailed: true, retentionViolation: false),
+            EvaluateTriage("retention-violation", crashMarkers: 0, hangMarkers: 0, diagnosticsAvailable: true, redactionFailed: false, retentionViolation: true)
+        };
+        var failed = prohibitedValuesFound
+            || crashMarkerCount > retention.MaxCrashMarkers
+            || workflowCoverage.Any(workflow => !workflow.Covered || !workflow.Serialized || !workflow.Redacted);
 
         var result = new
         {
             documentType = "velofileDiagnosticsConformanceResult",
             schemaVersion = 1,
-            status = prohibitedValuesFound || crashMarkerCount > retention.MaxCrashMarkers ? "failed" : "verified",
+            status = failed ? "failed" : "verified",
             localOnly = true,
             exportRedacted = !prohibitedValuesFound,
             prohibitedValuesFound,
@@ -1094,14 +1287,99 @@ internal static class CorpusCli
                 fixturePathKind = "scratch-relative:diagnostics/export/diagnostics-redacted.jsonl",
                 redacted = !prohibitedValuesFound
             },
-            reasonCode = prohibitedValuesFound ? "diagnostics-redaction-failed" : "verified"
+            workflowCoverage,
+            triagePolicy = new
+            {
+                crashThreshold = 2,
+                hangThreshold = 1,
+                thresholdBoundary = "at-or-above-blocks-promotion",
+                policyDocument = "docs/release/preview-triage.md"
+            },
+            triageDecisions,
+            reasonCode = failed ? "diagnostics-conformance-failed" : "verified"
         };
 
         WriteJson(Path.Combine(diagnosticsRoot, "diagnostics-conformance-result.json"), result);
-        output.WriteLine(prohibitedValuesFound
+        output.WriteLine(failed
             ? "Diagnostics conformance failed."
             : "Diagnostics conformance verified.");
-        return prohibitedValuesFound ? 1 : 0;
+        return failed ? 1 : 0;
+    }
+
+    private static DiagnosticWorkflowCoverageResult DiagnosticWorkflowCoverage(
+        DiagnosticWorkflowEvent workflowEvent,
+        string outputText,
+        bool prohibitedValuesFound)
+    {
+        var component = workflowEvent.Event.Component;
+        var operationKind = workflowEvent.Event.OperationKind ?? "";
+        var reasonCode = workflowEvent.Event.ReasonCode ?? "";
+        var serialized = outputText.Contains($"\"component\":\"{component}\"", StringComparison.Ordinal)
+            && outputText.Contains($"\"operationKind\":\"{operationKind}\"", StringComparison.Ordinal)
+            && outputText.Contains($"\"reasonCode\":\"{reasonCode}\"", StringComparison.Ordinal);
+
+        return new DiagnosticWorkflowCoverageResult(
+            workflowEvent.Workflow,
+            Covered: true,
+            Serialized: serialized,
+            Redacted: !prohibitedValuesFound,
+            Component: component,
+            OperationKind: operationKind,
+            ReasonCode: reasonCode);
+    }
+
+    private static TriageDecisionResult EvaluateTriage(
+        string caseId,
+        int crashMarkers,
+        int hangMarkers,
+        bool diagnosticsAvailable,
+        bool redactionFailed,
+        bool retentionViolation)
+    {
+        const int crashThreshold = 2;
+        const int hangThreshold = 1;
+        string decision;
+        string reasonCode;
+
+        if (!diagnosticsAvailable)
+        {
+            decision = "insufficient-evidence";
+            reasonCode = "diagnostics-missing";
+        }
+        else if (redactionFailed)
+        {
+            decision = "promotion-blocked";
+            reasonCode = "diagnostics-redaction-failed";
+        }
+        else if (retentionViolation)
+        {
+            decision = "promotion-blocked";
+            reasonCode = "diagnostics-retention-violated";
+        }
+        else if (crashMarkers >= crashThreshold)
+        {
+            decision = "promotion-blocked";
+            reasonCode = "crash-threshold-reached";
+        }
+        else if (hangMarkers >= hangThreshold)
+        {
+            decision = "promotion-blocked";
+            reasonCode = "hang-threshold-reached";
+        }
+        else
+        {
+            decision = "promotion-allowed";
+            reasonCode = "below-threshold";
+        }
+
+        return new TriageDecisionResult(
+            caseId,
+            decision,
+            reasonCode,
+            crashMarkers,
+            hangMarkers,
+            crashThreshold,
+            hangThreshold);
     }
 
     private static int RunBenchmarks(CliOptions options, TextWriter output, TextWriter error)
@@ -2275,6 +2553,38 @@ internal sealed record PathCompatibilityCaseResult(
     string OperationUnderTest,
     string Notes);
 
+internal sealed record ReleaseCompatScopeResult(
+    string Scope,
+    string Status,
+    string ReasonCode,
+    string EvidenceKind,
+    bool BehaviorVerifierInvoked,
+    bool VerifiedBehavior,
+    bool ReleaseEvidence,
+    string SourceResultPath);
+
+internal sealed record DiagnosticWorkflowEvent(
+    string Workflow,
+    DiagnosticEvent Event);
+
+internal sealed record DiagnosticWorkflowCoverageResult(
+    string Workflow,
+    bool Covered,
+    bool Serialized,
+    bool Redacted,
+    string Component,
+    string OperationKind,
+    string ReasonCode);
+
+internal sealed record TriageDecisionResult(
+    string CaseId,
+    string Decision,
+    string ReasonCode,
+    int CrashMarkers,
+    int HangMarkers,
+    int CrashThreshold,
+    int HangThreshold);
+
 internal static class BenchmarkReport
 {
     public static object CreateNonGating(
@@ -2286,16 +2596,16 @@ internal static class BenchmarkReport
     {
         var measurements = new List<object>
         {
-            Measure("app.process.launch", runCount, () => MeasureProcessLaunch(appExecutable, appArguments, appTimeout), "non-gating"),
-            Measure("folder.switch.small", runCount, () => EnumerateProfile(root, "small"), "non-gating"),
-            Measure("folder.switch.medium", runCount, () => EnumerateProfile(root, "medium"), "non-gating"),
-            Measure("folder.switch.large", runCount, () => EnumerateProfile(root, "large"), "non-gating"),
-            Measure("filter.medium", runCount, () => FilterMediumProfile(root), "non-gating"),
-            Measure("search.deep.firstResult", runCount, () => SearchDeepProfile(root, skip: 0), "non-gating"),
-            Measure("search.deep.thousandResults", runCount, () => SearchDeepProfile(root, skip: 999), "non-gating"),
-            Measure("contextMenu.open", runCount, SimulateContextMenuOpen, "non-gating"),
-            Measure("tab.switch", runCount, SimulateTabSwitch, "non-gating"),
-            Measure("session.restore.10tabs", runCount, SimulateSessionRestore, "non-gating")
+            Measure("app.process.launch", "T039.launch", runCount, () => MeasureProcessLaunch(appExecutable, appArguments, appTimeout), "non-gating"),
+            Measure("folder.switch.small", "T039.folder-switch", runCount, () => EnumerateProfile(root, "small"), "non-gating"),
+            Measure("folder.switch.medium", "T039.folder-switch", runCount, () => EnumerateProfile(root, "medium"), "non-gating"),
+            Measure("folder.switch.large", "T039.folder-switch", runCount, () => EnumerateProfile(root, "large"), "non-gating"),
+            Measure("filter.medium", "T039.current-folder-filter", runCount, () => FilterMediumProfile(root), "non-gating"),
+            Measure("search.deep.firstResult", "T039.recursive-search.first-result", runCount, () => SearchDeepProfile(root, skip: 0), "non-gating"),
+            Measure("search.deep.thousandResults", "T039.recursive-search.milestone", runCount, () => SearchDeepProfile(root, skip: 999), "non-gating"),
+            Measure("contextMenu.open", "T039.context-menu-open", runCount, SimulateContextMenuOpen, "non-gating"),
+            Measure("tab.switch", "T039.tab-switch", runCount, SimulateTabSwitch, "non-gating"),
+            Measure("session.restore.10tabs", "T039.session-restore", runCount, SimulateSessionRestore, "non-gating")
         };
 
         return new
@@ -2324,11 +2634,14 @@ internal static class BenchmarkReport
                 CorpusProfileSummary(root, "preview"),
                 CorpusProfileSummary(root, "pathological")
             },
+            scenarioCoverage = AppScenarioCoverage(),
             releaseSummary = new
             {
                 status = "non-gating",
                 publicPerformanceClaimsAllowed = false,
-                reasonCode = "contributor-run-non-gating"
+                satisfiesAc15ReleaseEvidence = false,
+                appLevelScenarioCoverage = "not-implemented",
+                reasonCode = "app-level-driver-not-implemented"
             },
             releasePolicy = new
             {
@@ -2346,7 +2659,37 @@ internal static class BenchmarkReport
         };
     }
 
-    private static object Measure(string name, int runCount, Action action, string releaseGatingStatus)
+    private static object[] AppScenarioCoverage()
+    {
+        return
+        [
+            AppScenario("T039.launch", "Launch"),
+            AppScenario("T039.folder-switch", "Folder switch"),
+            AppScenario("T039.current-folder-filter", "Current-folder filter"),
+            AppScenario("T039.recursive-search", "Recursive search"),
+            AppScenario("T039.context-menu-open", "Context menu open"),
+            AppScenario("T039.tab-switch", "Tab switch"),
+            AppScenario("T039.session-restore", "Session restore"),
+            AppScenario("T039.sustained-scroll", "Sustained scroll"),
+            AppScenario("T039.slow-tab-isolation", "Slow-tab isolation"),
+            AppScenario("T039.terminal-discovery-impact", "Terminal discovery impact")
+        ];
+    }
+
+    private static object AppScenario(string scenarioId, string name)
+    {
+        return new
+        {
+            scenarioId,
+            name,
+            requiredMeasurementKind = "app-level",
+            appBoundaryDriven = false,
+            releaseEvidence = false,
+            reasonCode = "app-level-driver-not-implemented"
+        };
+    }
+
+    private static object Measure(string name, string scenarioId, int runCount, Action action, string releaseGatingStatus)
     {
         var samples = new List<double>(runCount);
         for (var index = 0; index < runCount; index++)
@@ -2361,6 +2704,12 @@ internal static class BenchmarkReport
         return new
         {
             name,
+            scenarioId,
+            measurementKind = "infrastructure-only",
+            releaseEvidence = false,
+            appBoundaryDriven = false,
+            substituteMeasurement = true,
+            reasonCode = "app-level-driver-not-implemented",
             runCount,
             medianMs = Round(Percentile(samples, 50)),
             p95Ms = Round(Percentile(samples, 95)),
@@ -2373,7 +2722,6 @@ internal static class BenchmarkReport
     {
         if (string.IsNullOrWhiteSpace(appExecutable))
         {
-            Thread.Sleep(1);
             return;
         }
 

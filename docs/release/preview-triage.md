@@ -15,4 +15,4 @@ An explicit exception must name the affected requirement, the evidence artifact,
 
 ## Evidence Rules
 
-Promotion evidence must come from local-only diagnostic logs, benchmark reports with environment metadata, compatibility corpus reports, and accessibility checks. The release owner must preserve the triage threshold used for the decision with the preview release notes.
+Promotion evidence must come from local-only diagnostic logs, benchmark reports with environment metadata, compatibility corpus reports, and the manual accessibility evidence tracked in `docs/release/accessibility-checklist.md`. The release owner must preserve the triage threshold used for the decision with the preview release notes.
