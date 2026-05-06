@@ -91,18 +91,80 @@ public sealed class ReleasePackagingContractTests
         var repoRoot = FindRepoRoot();
         var stableChannel = File.ReadAllText(repoRoot.Combine("docs", "release", "stable-update-channel.md").FullName);
         var workflow = File.ReadAllText(repoRoot.Combine(".github", "workflows", "release.yml").FullName);
+        var verifyTagScriptPath = repoRoot.Combine("scripts", "verify-release-tag.ps1").FullName;
 
         StringAssert.Contains(stableChannel, "signed Git tag");
-        StringAssert.Contains(workflow, "git verify-tag");
+        Assert.IsTrue(File.Exists(verifyTagScriptPath), "Release workflow must use a dedicated trusted release-tag verifier.");
 
-        var verifyTagIndex = workflow.IndexOf("git verify-tag", StringComparison.OrdinalIgnoreCase);
+        var verifyTagScript = File.ReadAllText(verifyTagScriptPath);
+
+        StringAssert.Contains(workflow, "scripts/verify-release-tag.ps1");
+        Assert.IsFalse(workflow.Contains("VerifyStatusFile", StringComparison.OrdinalIgnoreCase), "Production release workflow must not use the verifier status-file test seam.");
+        StringAssert.Contains(workflow, "VELOFILE_RELEASE_GPG_PUBLIC_KEYS");
+        StringAssert.Contains(workflow, "VELOFILE_RELEASE_GPG_FINGERPRINTS");
+        StringAssert.Contains(verifyTagScript, "GNUPGHOME");
+        StringAssert.Contains(verifyTagScript, "RUNNER_TEMP");
+        StringAssert.Contains(verifyTagScript, "VELOFILE_RELEASE_GPG_PUBLIC_KEYS");
+        StringAssert.Contains(verifyTagScript, "gpg --batch --import");
+        StringAssert.Contains(verifyTagScript, "git verify-tag --raw");
+        StringAssert.Contains(verifyTagScript, "VALIDSIG");
+        StringAssert.Contains(verifyTagScript, "VELOFILE_RELEASE_GPG_FINGERPRINTS");
+        StringAssert.Contains(verifyTagScript, "not in the allowed release-key set");
+        StringAssert.Contains(verifyTagScript, "^[0-9A-F]{40}$");
+
+        var verifyTagIndex = workflow.IndexOf("scripts/verify-release-tag.ps1", StringComparison.OrdinalIgnoreCase);
         var packageIndex = workflow.IndexOf("./scripts/package-msix.ps1", StringComparison.OrdinalIgnoreCase);
         var releaseIndex = workflow.IndexOf("gh release create", StringComparison.OrdinalIgnoreCase);
 
-        Assert.IsTrue(verifyTagIndex >= 0, "Release workflow must cryptographically verify the signed tag.");
-        Assert.IsTrue(packageIndex > verifyTagIndex, "Signed tag verification must run before packaging.");
-        Assert.IsTrue(releaseIndex > verifyTagIndex, "Signed tag verification must run before creating the GitHub release.");
+        Assert.IsTrue(verifyTagIndex >= 0, "Release workflow must cryptographically verify the signed tag with the trusted release-key verifier.");
+        Assert.IsTrue(packageIndex > verifyTagIndex, "Trusted signed tag verification must run before packaging.");
+        Assert.IsTrue(releaseIndex > verifyTagIndex, "Trusted signed tag verification must run before creating the GitHub release.");
         Assert.IsTrue(workflow.Contains("fetch-depth: 0", StringComparison.OrdinalIgnoreCase), "Release workflow must fetch full tag history.");
+    }
+
+    [TestMethod]
+    [DataRow("[GNUPG:] VALIDSIG AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA 2026-05-06 1746547200 0 4 0 1 10 00 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", true)]
+    [DataRow("[GNUPG:] VALIDSIG BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB 2026-05-06 1746547200 0 4 0 1 10 00 BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", false)]
+    [DataRow("[GNUPG:] NEWSIG\n[GNUPG:] GOODSIG AAAAAAAAAAAAAAAA VeloFile Release", false)]
+    [DataRow("[GNUPG:] NO_PUBKEY AAAAAAAAAAAAAAAA\n[GNUPG:] ERRSIG AAAAAAAAAAAAAAAA 1 10 00 1746547200 9 AAAAAAAAAAAAAAAA", false)]
+    [DataRow("", false)]
+    public void M16_release_tag_verifier_accepts_only_validsig_from_allowed_full_fingerprint(
+        string verifyStatus,
+        bool expectedSuccess)
+    {
+        var repoRoot = FindRepoRoot();
+        var scriptPath = repoRoot.Combine("scripts", "verify-release-tag.ps1").FullName;
+        var statusPath = Path.Combine(Path.GetTempPath(), "velofile-tag-status-" + Guid.NewGuid().ToString("N") + ".txt");
+
+        try
+        {
+            File.WriteAllText(statusPath, verifyStatus);
+            var result = RunPowerShellScript(
+                scriptPath,
+                new Dictionary<string, string>
+                {
+                    ["VELOFILE_RELEASE_GPG_FINGERPRINTS"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                },
+                "-VerifyStatusFile",
+                statusPath);
+
+            if (expectedSuccess)
+            {
+                Assert.AreEqual(0, result.ExitCode, result.AllOutput);
+                StringAssert.Contains(result.AllOutput, "Release tag signature verified with trusted fingerprint AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            }
+            else
+            {
+                Assert.AreNotEqual(0, result.ExitCode, "Untrusted, unsigned, lightweight, and unverifiable tag status fixtures must fail.");
+            }
+        }
+        finally
+        {
+            if (File.Exists(statusPath))
+            {
+                File.Delete(statusPath);
+            }
+        }
     }
 
     [TestMethod]
@@ -304,6 +366,14 @@ public sealed class ReleasePackagingContractTests
 
     private static CommandResult RunPowerShellScript(string scriptPath, params string[] arguments)
     {
+        return RunPowerShellScript(scriptPath, null, arguments);
+    }
+
+    private static CommandResult RunPowerShellScript(
+        string scriptPath,
+        IReadOnlyDictionary<string, string>? environment,
+        params string[] arguments)
+    {
         var shell = OperatingSystem.IsWindows() ? "powershell.exe" : "pwsh";
         var startInfo = new ProcessStartInfo(shell)
         {
@@ -311,6 +381,14 @@ public sealed class ReleasePackagingContractTests
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        if (environment is not null)
+        {
+            foreach (var (key, value) in environment)
+            {
+                startInfo.Environment[key] = value;
+            }
+        }
+
         startInfo.ArgumentList.Add("-NoProfile");
         startInfo.ArgumentList.Add("-ExecutionPolicy");
         startInfo.ArgumentList.Add("Bypass");

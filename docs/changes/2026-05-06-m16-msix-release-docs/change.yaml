@@ -23,6 +23,7 @@ files:
   - src/VeloFile.App/VeloFile.App.csproj
   - src/VeloFile.App/Package.appxmanifest
   - scripts/package-msix.ps1
+  - scripts/verify-release-tag.ps1
   - scripts/release-verify.ps1
   - scripts/release-verify.sh
   - .github/workflows/release.yml
@@ -65,6 +66,16 @@ validation:
     result: passed 8 App release tests and 3 Corpus release tests; Core and Windows assemblies had no matching release tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 337 tests across 4 test assemblies
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter M16_release_workflow_verifies_signed_tag_when_stable_channel_requires_signed_git_tag
+    result: first failed because the trusted release-tag verifier did not exist, then passed after adding isolated GNUPGHOME and full-fingerprint allowlist checks
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter M16_release_tag_verifier_accepts_only_validsig_from_allowed_full_fingerprint
+    result: first failed because the verifier lacked the status-file decision seam and exposed a literal VALIDSIG parsing bug, then passed 5 deterministic trust-decision cases
+  - command: pwsh -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw scripts\verify-release-tag.ps1)) | Out-Null; 'Release tag verifier parsed.'"
+    result: passed release-tag verifier syntax parse
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests
+    result: passed 12 App release packaging contract tests after trusted release-key decision-seam remediation
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed release documentation, verifier presence, and change metadata path/anchor checks
 manual_validation:
   - check: Signed MSIX install/update/rollback/uninstall checklist
     result: not run locally; docs/release/release-checklist.md records required manual release evidence fields for release owners
@@ -72,6 +83,8 @@ notes:
   - Unsigned local packaging and signed release packaging are intentionally separate. Contributor runs produce an unsigned MSIX; release workflow runs signed packaging with a certificate thumbprint.
   - The package manifest avoids file associations, app execution aliases, and Explorer context menu extensions so VeloFile remains side by side with File Explorer.
   - V1 release/user docs explicitly document extension display, invoice.pdf.exe clarity, built-in context menu scope, stable update channel, rollback by uninstall, and Explorer/file-association non-ownership.
-  - Review remediation keeps the signed Git tag release-source claim and enforces it with trusted-key import plus git verify-tag before packaging or GitHub Release creation.
+  - Review remediation keeps the signed Git tag release-source claim and enforces it with an isolated GPG keyring, configured release public keys, and a full-fingerprint release-key allowlist before packaging or GitHub Release creation.
   - Review remediation maps package architectures to matching .NET RIDs and adds dry-run proof for x86, x64, and ARM64 packaging.
   - Review remediation added release verification for change metadata path and Markdown-anchor drift.
+  - Follow-up review remediation verifies release tags with an isolated GNUPGHOME and an explicit approved full-fingerprint release-key allowlist, so tags signed by unapproved available keys do not pass the release gate.
+  - Full temp Git/GPG integration is intentionally deferred because the verifier trust decision is covered by deterministic git verify-tag --raw status fixtures; the workflow contract test separately proves production invokes the verifier before packaging with isolated GNUPGHOME and trusted key configuration.

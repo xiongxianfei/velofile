@@ -1171,7 +1171,7 @@ Each milestone must update validation notes with the commands actually run and a
 - M16 review-resolution evidence:
   - First `code-review` found that the signed Git tag release-source claim was not enforced, non-x64 package architectures could still publish a `win-x64` payload, and the M16 architecture link pointed at a missing artifact.
   - Added regression tests for signed-tag workflow enforcement, package architecture-to-RID mapping with dry-run metadata and generated manifest proof, and M16 change metadata path/anchor resolution.
-  - Updated the release workflow to import trusted release signing keys from `VELOFILE_RELEASE_GPG_PUBLIC_KEY` and run `git verify-tag` before release verification, packaging, or GitHub Release creation.
+  - Updated the release workflow to enforce signed tag verification before release verification, packaging, or GitHub Release creation.
   - Updated `scripts\package-msix.ps1` to map `x86` to `win-x86`, `x64` to `win-x64`, and `ARM64` to `win-arm64`, while preserving MSIX manifest architecture values and architecture-specific output paths.
   - Added `-DryRun` package-script mode for command/manifest proof without invoking publish, MakeAppx, or SignTool.
   - Fixed M16 and older path-like change metadata links so `scripts\release-verify.ps1` can verify referenced files/directories and Markdown anchors.
@@ -1183,6 +1183,19 @@ Each milestone must update validation notes with the commands actually run and a
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1` passed and exercised publish, MSIX package creation, manifest checks, release documentation checks, and metadata link checks.
   - `dotnet test VeloFile.sln -c Debug --filter Release` passed 8 App release tests and 3 Corpus release tests; Core and Windows assemblies had no matching Release tests.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 337 tests across 4 test assemblies.
+- M16 trusted release-key follow-up evidence:
+  - Second `code-review` found that the release workflow verified tag signatures broadly through the default GPG keyring, without proving the signer fingerprint belonged to the approved VeloFile release-key set.
+  - Added `scripts\verify-release-tag.ps1`, which creates an isolated temporary `GNUPGHOME`, imports only configured `VELOFILE_RELEASE_GPG_PUBLIC_KEYS`, runs `git verify-tag --raw`, extracts the `VALIDSIG` full fingerprint, and requires it to match configured `VELOFILE_RELEASE_GPG_FINGERPRINTS`.
+  - Updated `.github\workflows\release.yml` to run the trusted release-tag verifier before release readiness, packaging, or GitHub Release creation.
+  - Updated the signed-tag workflow contract test so plain `git verify-tag` is insufficient; the test now requires isolated GPG home usage, configured release public keys, `VALIDSIG` parsing, full-fingerprint allowlist checks, and pre-packaging ordering.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter M16_release_workflow_verifies_signed_tag_when_stable_channel_requires_signed_git_tag` first failed because the trusted verifier did not exist, then passed after the verifier and workflow wiring were added.
+  - Added a `-VerifyStatusFile` test seam to `scripts\verify-release-tag.ps1` so deterministic `git verify-tag --raw` status fixtures exercise the same `VALIDSIG` and full-fingerprint allowlist decision logic without generating real GPG keys.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter M16_release_tag_verifier_accepts_only_validsig_from_allowed_full_fingerprint` first failed because the verifier lacked the status-file seam and exposed a literal `[GNUPG:] VALIDSIG` parsing bug, then passed 5 trust-decision cases: approved key succeeds, unapproved key fails, unsigned/no `VALIDSIG` fails, missing/unverifiable key fails, and empty/lightweight-style status fails.
+  - `pwsh -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw scripts\verify-release-tag.ps1)) | Out-Null; 'Release tag verifier parsed.'"` passed release-tag verifier syntax parsing.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests` passed 12 App release packaging contract tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish` passed release documentation, release-tag verifier presence, and change metadata path/anchor checks.
+  - Full temp Git/GPG integration is intentionally deferred because the verifier's trust decision is covered by deterministic `git verify-tag --raw` status fixtures; the release workflow contract test separately proves production invokes the verifier before packaging with isolated `GNUPGHOME` and trusted key configuration.
+  - `dotnet test VeloFile.sln -c Debug --filter Release` was attempted twice and timed out while waiting on the solution-level Release filter; focused App release contracts and release verification were used as the relevant validation scope for this CI-only remediation.
 
 ## Outcome and Retrospective
 
@@ -1190,4 +1203,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, and M16 implem
 
 ## Readiness
 
-M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation is passing, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice is ready for `code-review`.
+M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Focused automated validation is passing, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice is ready for `code-review`.

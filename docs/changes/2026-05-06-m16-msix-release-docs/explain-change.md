@@ -8,7 +8,9 @@ M16 finishes the V1 packaging and documentation path without turning VeloFile in
 
 `scripts/package-msix.ps1` now publishes the app, normalizes the manifest for the package layout, generates required package logo assets, creates an unsigned local `.msix` with Windows SDK `MakeAppx`, writes package metadata, and signs the package with Windows SDK `SignTool` when `-Mode SignedRelease` and a certificate thumbprint are supplied. The GitHub release workflow runs on Windows, verifies release readiness, builds the signed package, and uploads the MSIX plus metadata.
 
-`scripts/release-verify.ps1` replaces the template release verifier with product-specific checks for the package manifest, no Explorer/file-association ownership, stable update channel docs, rollback/uninstall docs, V1 release notes, user differences docs, and the release checklist. The Bash wrapper now delegates to the PowerShell verifier.
+`scripts/verify-release-tag.ps1` verifies the release tag in a temporary isolated GPG home, imports only configured VeloFile release public keys, extracts the `VALIDSIG` fingerprint, and requires that fingerprint to match the configured approved release-key allowlist before the workflow can package or publish.
+
+`scripts/release-verify.ps1` replaces the template release verifier with product-specific checks for the package manifest, no Explorer/file-association ownership, stable update channel docs, rollback/uninstall docs, V1 release notes, user differences docs, the release checklist, and release-tag verifier presence. The Bash wrapper now delegates to the PowerShell verifier.
 
 The release and user docs now cover the stable update channel, signing identity, versioning policy, update cadence, install/update/rollback/uninstall, default extension display, `invoice.pdf.exe` visibility, per-application extension settings, built-in context menu scope, and the differences from File Explorer. README and SECURITY now point at the release path instead of stale foundation or placeholder security text.
 
@@ -24,7 +26,7 @@ The manual install/update/rollback/uninstall matrix is recorded in `docs/release
 
 `ReleasePackagingContractTests` prove the project declares the MSIX manifest, the manifest avoids Explorer replacement and file-association ownership, release scripts/workflow run Windows package checks, the release verifier executes, and release/user docs cover extension display, File Explorer differences, rollback, and checklist requirements.
 
-Review-resolution tests also prove that the stable-channel signed Git tag claim is enforced by `git verify-tag` before packaging/release, x86/x64/ARM64 package inputs map to matching .NET RIDs and manifest architectures, and M16 change metadata links resolve to tracked files and Markdown anchors.
+Review-resolution tests also prove that the stable-channel signed Git tag claim is enforced through an isolated trusted-key verifier with full fingerprint allowlisting before packaging/release, the verifier accepts only `VALIDSIG` status output from an approved full fingerprint, x86/x64/ARM64 package inputs map to matching .NET RIDs and manifest architectures, and M16 change metadata links resolve to tracked files and Markdown anchors.
 
 ## Validation
 
@@ -35,3 +37,5 @@ Review-resolution tests also prove that the stable-channel signed Git tag claim 
 - `dotnet test VeloFile.sln -c Debug`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Review resolution additionally ran the targeted signed-tag/RID/link tests, signed-release ARM64 dry-run packaging, `dotnet test VeloFile.sln -c Debug --filter Release`, and final CI.
+- Trusted release-key remediation additionally ran the signed-tag workflow contract test, deterministic `git verify-tag --raw` status fixture tests for approved, unapproved, unsigned, missing-key, and empty/lightweight-style status, parsed `scripts\verify-release-tag.ps1`, reran `ReleasePackagingContractTests`, and reran `scripts\release-verify.ps1 -SkipPublish`.
+- Full temp Git/GPG integration is intentionally deferred because the verifier's trust decision is covered by deterministic status fixtures. The release workflow contract test separately proves production invokes the verifier before packaging with isolated `GNUPGHOME` and trusted key configuration.

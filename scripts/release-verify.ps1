@@ -139,6 +139,7 @@ function Assert-ChangeMetadataLinks {
 
 $packageManifest = Assert-File "src/VeloFile.App/Package.appxmanifest"
 Assert-File "scripts/package-msix.ps1" | Out-Null
+Assert-File "scripts/verify-release-tag.ps1" | Out-Null
 Assert-File "docs/release/stable-update-channel.md" | Out-Null
 Assert-File "docs/release/install-rollback.md" | Out-Null
 Assert-File "docs/release/v1-release-notes.md" | Out-Null
