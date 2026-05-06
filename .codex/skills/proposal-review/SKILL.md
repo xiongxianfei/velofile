@@ -38,6 +38,50 @@ Evaluate each dimension with `pass`, `concern`, or `block`:
 9. **Rollout realism**: is compatibility, migration, rollback, and observability considered?
 10. **Readiness for spec**: are open questions small enough to continue?
 
+## Vision fit review
+
+Check the proposal's `Vision fit` section.
+
+If the proposal was created or substantively revised after the vision spec was adopted and lacks `Vision fit`, request revision. Legacy proposals are not invalid solely because they lack `Vision fit`.
+
+Allowed `Vision fit` values are the exact first non-empty line in the section:
+
+- `fits the current vision`
+- `may conflict with the current vision`
+- `proposes a vision revision`
+- `no vision exists yet`
+
+If root `VISION.md` exists, `Vision fit` must not say `no vision exists yet`.
+
+When neither root `VISION.md` nor migration-recognized legacy root `vision.md` exists, proposal-review must request revision if `Vision fit` is missing or replaced with a claim that fits, conflicts with, or revises a nonexistent vision.
+
+During the `vision.md` to `VISION.md` migration, do not treat the repository as visionless solely because uppercase `VISION.md` has not yet replaced migration-recognized legacy root `vision.md`.
+
+If a proposal conflicts with `VISION.md`, classify the required outcome as exactly one of:
+
+- revise proposal
+- revise vision
+- record explicit exception
+
+An explicit exception must include:
+
+- approving owner or owning stage
+- evidence for the conflict
+- why proposal revision is not chosen
+- why vision revision is not chosen
+- where the exception is recorded
+- whether the exception is one-time or establishes a future vision-revision trigger
+
+The exception must be recorded in both the proposal's `Vision fit` section and the proposal-review output. If the proposal is part of a non-trivial change, recommend summarizing the exception in `explain-change.md`.
+
+## Standing artifact gate review
+
+Bootstrap proposals that proceed without an existing required standing artifact must identify the bootstrap exception in `Vision fit`.
+
+When reviewing, request revision if the bootstrap exception is missing, if the proposal silently bypasses a `VISION.md` absence gate for a first substantive proposal, or if it silently bypasses a `CONSTITUTION.md` absence gate for governance adoption, workflow-governance changes, or source-of-truth changes.
+
+This standing artifact gate check is required before proposal-review accepts bootstrap or governance-related direction.
+
 ## Adversarial questions
 
 Ask these when useful:
