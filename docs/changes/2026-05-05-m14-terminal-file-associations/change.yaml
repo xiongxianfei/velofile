@@ -35,6 +35,7 @@ files:
   - src/VeloFile.App/MainWindow.xaml
   - src/VeloFile.App/MainWindow.xaml.cs
   - tests/VeloFile.Core.Tests/Terminal/
+  - tests/VeloFile.Core.Tests/Diagnostics/DiagnosticsTests.cs
   - tests/VeloFile.Core.Tests/FileAssociations/
   - tests/VeloFile.App.Tests/AppShellLaunchCommandRouteTests.cs
   - tests/VeloFile.Windows.Tests/Terminal/
@@ -43,7 +44,7 @@ validation:
   - command: dotnet test VeloFile.sln -c Debug --filter Terminal
     result: passed 9 Core, 7 App, and 3 Windows terminal tests; Corpus had no matching filter
   - command: dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"
-    result: passed 17 Core, 7 App, and 3 Windows tests after adding the terminal launch diagnostic field allowlist; Corpus had no matching filter
+    result: passed 19 Core, 7 App, and 3 Windows tests after adding terminal launch reason-code constants and exact diagnostic allowlist coverage; Corpus had no matching filter
   - command: dotnet test VeloFile.sln -c Debug --filter FileAssociations
     result: passed 3 Core, 7 App, and 3 Windows file-association tests; Corpus had no matching filter
   - command: dotnet build VeloFile.sln -c Debug
@@ -56,5 +57,5 @@ notes:
   - Terminal discovery is lazy; the app shell constructor does not probe terminals during startup.
   - Default terminal ordering is Windows Terminal, PowerShell 7, Windows PowerShell, then Command Prompt; Git Bash and WSL distributions remain selectable when discovered.
   - Terminal launch uses structured process start data and working directories rather than concatenated shell command text.
-  - Terminal launch diagnostics record the selected terminal identity and result state, but not the working directory or command text.
+  - Terminal launch diagnostics record the selected terminal identity, result state, and exact controlled failure reason code, but not the working directory or command text.
   - Open and Open With use a Windows ShellExecute boundary and always request association launches without modifying system associations.

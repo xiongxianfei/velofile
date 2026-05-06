@@ -1,4 +1,5 @@
 using VeloFile.Core.Diagnostics;
+using VeloFile.Core.Terminal;
 
 #pragma warning disable MSTEST0037
 
@@ -122,6 +123,55 @@ public sealed class DiagnosticsTests
         StringAssert.Contains(json, "\"reasonCode\":\"field-fallback\"");
         StringAssert.Contains(json, "\"fallbackFieldCodes\":[\"windowPlacement\",\"activeTabIndex\"]");
         Assert.IsFalse(json.Contains("redacted-string", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public void Terminal_diagnostic_reason_codes_survive_serialization_and_redact_dangerous_values()
+    {
+        var dangerousValues = new[]
+        {
+            @"C:\Users\alice\secret-project",
+            @"pwsh -NoProfile -File C:\Users\alice\run.ps1",
+            "alice",
+            "secret-plan",
+            ".env",
+            "id_rsa"
+        };
+
+        foreach (var reasonCode in TerminalLaunchReasonCodes.All)
+        {
+            var diagnosticEvent = new DiagnosticEvent
+            {
+                EventId = dangerousValues[0],
+                EventType = "terminal.launch",
+                UtcTimestamp = DateTimeOffset.Parse("2026-05-05T00:00:00Z"),
+                SequenceNumber = 1,
+                Severity = "warning",
+                Component = "terminal",
+                OperationId = dangerousValues[1],
+                CorrelationId = dangerousValues[5],
+                OperationKind = "terminal-launch",
+                ResultState = "failed",
+                ReasonCode = reasonCode,
+                DocumentType = dangerousValues[4],
+                MigrationResult = dangerousValues[3],
+                FallbackSource = dangerousValues[3],
+                FallbackFieldCodes = [dangerousValues[3]],
+                LastActionMarkerCategory = dangerousValues[2],
+                PathClassification = dangerousValues[2],
+                ExtensionClass = dangerousValues[4],
+                TerminalTargetKind = "windows-terminal"
+            };
+
+            var json = DiagnosticJsonSerializer.Serialize(diagnosticEvent);
+
+            Assert.AreEqual(reasonCode, ReadStringField(json, "reasonCode"));
+            Assert.AreNotEqual("redacted-string", ReadStringField(json, "reasonCode"));
+            foreach (var dangerousValue in dangerousValues)
+            {
+                Assert.IsFalse(json.Contains(dangerousValue, StringComparison.OrdinalIgnoreCase), $"Dangerous value was serialized unchanged: {dangerousValue}");
+            }
+        }
     }
 
     [TestMethod]
@@ -257,6 +307,12 @@ public sealed class DiagnosticsTests
     {
         var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value));
         return "redacted-" + Convert.ToHexString(bytes)[..16].ToLowerInvariant();
+    }
+
+    private static string? ReadStringField(string json, string fieldName)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        return document.RootElement.GetProperty(fieldName).GetString();
     }
 
     private sealed class TemporaryWorkspace : IDisposable

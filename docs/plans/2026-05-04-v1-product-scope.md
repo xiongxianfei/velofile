@@ -547,6 +547,7 @@ Architectural boundaries to preserve:
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `dotnet test VeloFile.sln -c Debug --no-build` passed 321 tests across App, Core, Windows, and Corpus test assemblies.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 321 tests across 4 test assemblies.
+  - Review-resolution validation for terminal diagnostic reason-code allowlist drift passed `dotnet test tests/VeloFile.Core.Tests/VeloFile.Core.Tests.csproj -c Debug --filter "Terminal|Diagnostics"` with 19 Core tests and `dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"` with 19 Core, 7 App, and 3 Windows tests.
 
 ### M15. Benchmark Harness, Accessibility Checks, and Release Triage
 

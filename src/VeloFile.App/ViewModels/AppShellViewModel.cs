@@ -1339,8 +1339,8 @@ public sealed class AppShellViewModel
         return result.Status switch
         {
             TerminalLaunchStatus.Succeeded => "Terminal launched",
-            TerminalLaunchStatus.TerminalUnavailable => "Terminal launch failed: terminal-unavailable",
-            TerminalLaunchStatus.WorkingDirectoryUnavailable => "Terminal launch failed: working-directory-unavailable",
+            TerminalLaunchStatus.TerminalUnavailable => $"Terminal launch failed: {TerminalLaunchReasonCodes.TerminalUnavailable}",
+            TerminalLaunchStatus.WorkingDirectoryUnavailable => $"Terminal launch failed: {TerminalLaunchReasonCodes.WorkingDirectoryUnavailable}",
             TerminalLaunchStatus.Failed when !string.IsNullOrWhiteSpace(result.ReasonCode) => $"Terminal launch failed: {result.ReasonCode}",
             TerminalLaunchStatus.Failed => "Terminal launch failed",
             _ => ""

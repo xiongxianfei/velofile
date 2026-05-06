@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using VeloFile.Core.Terminal;
 
 namespace VeloFile.Core.Diagnostics;
 
@@ -73,27 +74,7 @@ public static class DiagnosticStringSanitizer
         "timed-out"
     };
 
-    private static readonly HashSet<string> ReasonCodes = new(StringComparer.Ordinal)
-    {
-        "access-denied",
-        "canonical-and-backup-unreadable",
-        "canonical-unreadable",
-        "cancelled",
-        "corrupt",
-        "decode-error",
-        "field-fallback",
-        "invalid-path",
-        "io-error",
-        "last-known-good-used",
-        "migration-fallback",
-        "missing",
-        "primary-read-failed",
-        "safe-defaults-used",
-        "security-denied",
-        "timeout",
-        "unsupported",
-        "unknown"
-    };
+    private static readonly HashSet<string> ReasonCodes = CreateReasonCodes();
 
     private static readonly HashSet<string> DocumentTypes = new(StringComparer.Ordinal)
     {
@@ -236,6 +217,38 @@ public static class DiagnosticStringSanitizer
     private static string Redact(string value)
     {
         return "redacted-string";
+    }
+
+    private static HashSet<string> CreateReasonCodes()
+    {
+        var reasonCodes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "access-denied",
+            "canonical-and-backup-unreadable",
+            "canonical-unreadable",
+            "cancelled",
+            "corrupt",
+            "decode-error",
+            "field-fallback",
+            "invalid-path",
+            "io-error",
+            "last-known-good-used",
+            "migration-fallback",
+            "missing",
+            "primary-read-failed",
+            "safe-defaults-used",
+            "security-denied",
+            "timeout",
+            "unsupported",
+            "unknown"
+        };
+
+        foreach (var reasonCode in TerminalLaunchReasonCodes.All)
+        {
+            reasonCodes.Add(reasonCode);
+        }
+
+        return reasonCodes;
     }
 
     private sealed record DiagnosticFieldPolicy(

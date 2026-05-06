@@ -44,6 +44,20 @@ public enum TerminalLaunchStatus
     Failed
 }
 
+public static class TerminalLaunchReasonCodes
+{
+    public const string TerminalUnavailable = "terminal-unavailable";
+    public const string WorkingDirectoryUnavailable = "working-directory-unavailable";
+    public const string TerminalLaunchFailed = "terminal-launch-failed";
+
+    public static IReadOnlyList<string> All { get; } =
+    [
+        TerminalUnavailable,
+        WorkingDirectoryUnavailable,
+        TerminalLaunchFailed
+    ];
+}
+
 public sealed record TerminalLaunchResult(
     TerminalLaunchStatus Status,
     string? ReasonCode,
@@ -56,15 +70,15 @@ public sealed record TerminalLaunchResult(
 
     public static TerminalLaunchResult TerminalUnavailable()
     {
-        return new TerminalLaunchResult(TerminalLaunchStatus.TerminalUnavailable, "terminal-unavailable", Target: null);
+        return new TerminalLaunchResult(TerminalLaunchStatus.TerminalUnavailable, TerminalLaunchReasonCodes.TerminalUnavailable, Target: null);
     }
 
     public static TerminalLaunchResult WorkingDirectoryUnavailable()
     {
-        return new TerminalLaunchResult(TerminalLaunchStatus.WorkingDirectoryUnavailable, "working-directory-unavailable", Target: null);
+        return new TerminalLaunchResult(TerminalLaunchStatus.WorkingDirectoryUnavailable, TerminalLaunchReasonCodes.WorkingDirectoryUnavailable, Target: null);
     }
 
-    public static TerminalLaunchResult Failed(TerminalTarget? target, string reasonCode = "terminal-launch-failed")
+    public static TerminalLaunchResult Failed(TerminalTarget? target, string reasonCode = TerminalLaunchReasonCodes.TerminalLaunchFailed)
     {
         return new TerminalLaunchResult(TerminalLaunchStatus.Failed, reasonCode, target);
     }

@@ -43,7 +43,7 @@ public sealed class WindowsTerminalProcessLauncherTests
         var result = await launcher.LaunchAsync(new TerminalLaunchRequest(target, @"D:\scratch"));
 
         Assert.AreEqual(TerminalLaunchStatus.Failed, result.Status);
-        Assert.AreEqual("terminal-launch-failed", result.ReasonCode);
+        Assert.AreEqual(TerminalLaunchReasonCodes.TerminalLaunchFailed, result.ReasonCode);
     }
 
     private sealed class RecordingWindowsProcessStarter : IWindowsProcessStarter

@@ -40,7 +40,7 @@ public sealed class TerminalLaunchServiceTests
         var result = await service.LaunchDefaultAsync(@"D:\scratch");
 
         Assert.AreEqual(TerminalLaunchStatus.TerminalUnavailable, result.Status);
-        Assert.AreEqual("terminal-unavailable", result.ReasonCode);
+        Assert.AreEqual(TerminalLaunchReasonCodes.TerminalUnavailable, result.ReasonCode);
         Assert.AreEqual(0, launcher.Requests.Count);
     }
 
@@ -57,7 +57,7 @@ public sealed class TerminalLaunchServiceTests
         var result = await service.LaunchDefaultAsync(@"D:\missing");
 
         Assert.AreEqual(TerminalLaunchStatus.WorkingDirectoryUnavailable, result.Status);
-        Assert.AreEqual("working-directory-unavailable", result.ReasonCode);
+        Assert.AreEqual(TerminalLaunchReasonCodes.WorkingDirectoryUnavailable, result.ReasonCode);
         Assert.AreEqual(0, launcher.Requests.Count);
     }
 
@@ -86,9 +86,71 @@ public sealed class TerminalLaunchServiceTests
         Assert.IsFalse(json.Contains("whoami", StringComparison.OrdinalIgnoreCase));
     }
 
+    [TestMethod]
+    public async Task Terminal_failure_diagnostics_preserve_reason_codes_without_command_text_or_path()
+    {
+        var missingDiagnostics = new CollectingDiagnosticSink();
+        await AssertFailureDiagnosticAsync(
+            new TerminalLaunchService(
+                new TerminalDiscoveryService(new StaticTerminalTargetSource([])),
+                new StaticWorkingDirectoryProbe(exists: true),
+                new RecordingTerminalProcessLauncher(),
+                diagnostics: missingDiagnostics,
+                utcNow: () => DateTimeOffset.Parse("2026-05-05T00:00:00Z")),
+            missingDiagnostics,
+            TerminalLaunchReasonCodes.TerminalUnavailable);
+
+        var workingDirectoryDiagnostics = new CollectingDiagnosticSink();
+        await AssertFailureDiagnosticAsync(
+            new TerminalLaunchService(
+                new TerminalDiscoveryService(new StaticTerminalTargetSource([Target(TerminalTargetKind.CommandPrompt, "Command Prompt")])),
+                new StaticWorkingDirectoryProbe(exists: false),
+                new RecordingTerminalProcessLauncher(),
+                diagnostics: workingDirectoryDiagnostics,
+                utcNow: () => DateTimeOffset.Parse("2026-05-05T00:00:00Z")),
+            workingDirectoryDiagnostics,
+            TerminalLaunchReasonCodes.WorkingDirectoryUnavailable);
+
+        var processFailureDiagnostics = new CollectingDiagnosticSink();
+        await AssertFailureDiagnosticAsync(
+            new TerminalLaunchService(
+                new TerminalDiscoveryService(new StaticTerminalTargetSource([Target(TerminalTargetKind.PowerShell7, "PowerShell 7")])),
+                new StaticWorkingDirectoryProbe(exists: true),
+                new RecordingTerminalProcessLauncher(request => TerminalLaunchResult.Failed(request.Target)),
+                diagnostics: processFailureDiagnostics,
+                utcNow: () => DateTimeOffset.Parse("2026-05-05T00:00:00Z")),
+            processFailureDiagnostics,
+            TerminalLaunchReasonCodes.TerminalLaunchFailed);
+    }
+
     private static TerminalTarget Target(TerminalTargetKind kind, string displayName)
     {
         return new TerminalTarget(kind.ToString(), kind, displayName, @$"C:\Tools\{kind}.exe");
+    }
+
+    private static async Task AssertFailureDiagnosticAsync(
+        TerminalLaunchService service,
+        CollectingDiagnosticSink diagnostics,
+        string expectedReasonCode)
+    {
+        var workingDirectory = @"C:\Users\alice\secret-project & pwsh -NoProfile -File C:\Users\alice\run.ps1";
+
+        var result = await service.LaunchDefaultAsync(workingDirectory);
+
+        Assert.AreEqual(expectedReasonCode, result.ReasonCode);
+        var json = DiagnosticJsonSerializer.Serialize(diagnostics.Events.Single());
+        Assert.AreEqual(expectedReasonCode, ReadStringField(json, "reasonCode"));
+        Assert.IsFalse(json.Contains(workingDirectory, StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("alice", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("secret-project", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("pwsh -NoProfile", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(json.Contains("run.ps1", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? ReadStringField(string json, string fieldName)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        return document.RootElement.GetProperty(fieldName).GetString();
     }
 
     private sealed class StaticTerminalTargetSource : ITerminalTargetSource
@@ -123,12 +185,19 @@ public sealed class TerminalLaunchServiceTests
 
     private sealed class RecordingTerminalProcessLauncher : ITerminalProcessLauncher
     {
+        private readonly Func<TerminalLaunchRequest, TerminalLaunchResult>? _resultFactory;
+
+        public RecordingTerminalProcessLauncher(Func<TerminalLaunchRequest, TerminalLaunchResult>? resultFactory = null)
+        {
+            _resultFactory = resultFactory;
+        }
+
         public List<TerminalLaunchRequest> Requests { get; } = [];
 
         public Task<TerminalLaunchResult> LaunchAsync(TerminalLaunchRequest request, CancellationToken cancellationToken = default)
         {
             Requests.Add(request);
-            return Task.FromResult(TerminalLaunchResult.Succeeded(request.Target));
+            return Task.FromResult(_resultFactory?.Invoke(request) ?? TerminalLaunchResult.Succeeded(request.Target));
         }
     }
 }

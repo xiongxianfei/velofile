@@ -117,7 +117,7 @@ public sealed class AppShellTerminalAndFileAssociationsCommandRouteTests
 
         await viewModel.ExecuteBuiltInCommandAsync(VeloFileCommandId.OpenTerminalHere);
 
-        StringAssert.Contains(viewModel.LaunchStatusText, "terminal-unavailable");
+        StringAssert.Contains(viewModel.LaunchStatusText, TerminalLaunchReasonCodes.TerminalUnavailable);
         Assert.AreEqual(beforePath, viewModel.ActivePath);
         Assert.AreEqual(0, viewModel.SelectedFileItems.Count);
     }

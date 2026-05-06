@@ -16,13 +16,13 @@ M14 wires the existing shell verbs for Open, Open With, and Open terminal here t
 
 ## Safety Notes
 
-Terminal diagnostics record the selected terminal identity and result state only. They do not record the active path, raw command text, or a concatenated launch command.
+Terminal diagnostics record the selected terminal identity, result state, and exact controlled failure reason code. They do not record the active path, raw command text, or a concatenated launch command. Terminal reason codes are centralized in `TerminalLaunchReasonCodes` and fed into the diagnostic reason-code allowlist so drift cannot silently redact known terminal failures.
 
 File association launch requests go through the Windows adapter with `UseShellExecute = true`; Open With uses `openas`. The app does not write association settings.
 
 ## Tests
 
-Core tests cover terminal ordering, optional target selection, discovery failure fallback, structured working-directory launch, missing terminal, inaccessible folder, redacted launch diagnostics, Open/Open With request shape, and broken association failures.
+Core tests cover terminal ordering, optional target selection, discovery failure fallback, structured working-directory launch, missing terminal, inaccessible folder, terminal diagnostic reason-code serialization with redaction, Open/Open With request shape, and broken association failures.
 
 App tests cover the production command route for Open, Open With, Open terminal here, terminal target selection, selected-terminal settings persistence, user-visible failures, and startup not invoking terminal discovery.
 
@@ -31,7 +31,7 @@ Windows tests cover discovery projection, structured terminal process start requ
 ## Validation
 
 - `dotnet test VeloFile.sln -c Debug --filter Terminal`
-- `dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"`
+- `dotnet test VeloFile.sln -c Debug --filter "Terminal|Diagnostics"` (19 Core, 7 App, and 3 Windows tests after the diagnostic reason-code allowlist resolution)
 - `dotnet test VeloFile.sln -c Debug --filter FileAssociations`
 - `dotnet build VeloFile.sln -c Debug`
 - `dotnet test VeloFile.sln -c Debug --no-build`
