@@ -1196,6 +1196,8 @@ Each milestone must update validation notes with the commands actually run and a
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish` passed release documentation, release-tag verifier presence, and change metadata path/anchor checks.
   - Full temp Git/GPG integration is intentionally deferred because the verifier's trust decision is covered by deterministic `git verify-tag --raw` status fixtures; the release workflow contract test separately proves production invokes the verifier before packaging with isolated `GNUPGHOME` and trusted key configuration.
   - `dotnet test VeloFile.sln -c Debug --filter Release` was attempted twice and timed out while waiting on the solution-level Release filter; focused App release contracts and release verification were used as the relevant validation scope for this CI-only remediation.
+  - Follow-up `code-review` returned `clean-with-notes`; no blocking or required-change findings remained for the trusted release-tag remediation.
+  - `verify` found the scoped remediation coherent. `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` first failed in an unrelated thumbnail timing test; the exact thumbnail test passed on rerun, and a second full CI run passed build plus Core, App, Windows, and Corpus tests.
 
 ## Outcome and Retrospective
 
@@ -1203,4 +1205,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, and M16 implem
 
 ## Readiness
 
-M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Focused automated validation is passing, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice is ready for `code-review`.
+M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation passed on rerun, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice has passed code review and verify and is ready for PR preparation after branch hygiene.
