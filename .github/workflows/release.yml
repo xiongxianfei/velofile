@@ -23,6 +23,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Import trusted release signing keys
+        shell: pwsh
+        env:
+          VELOFILE_RELEASE_GPG_PUBLIC_KEY: ${{ secrets.VELOFILE_RELEASE_GPG_PUBLIC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VELOFILE_RELEASE_GPG_PUBLIC_KEY)) {
+            throw "VELOFILE_RELEASE_GPG_PUBLIC_KEY is required to verify signed release tags."
+          }
+
+          $env:VELOFILE_RELEASE_GPG_PUBLIC_KEY | gpg --batch --import
+
+      - name: Verify signed release tag
+        shell: pwsh
+        run: |
+          git fetch --force --tags
+          git verify-tag $env:GITHUB_REF_NAME
+
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:

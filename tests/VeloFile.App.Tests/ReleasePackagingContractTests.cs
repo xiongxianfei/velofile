@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace VeloFile.App.Tests;
@@ -84,6 +86,88 @@ public sealed class ReleasePackagingContractTests
     }
 
     [TestMethod]
+    public void M16_release_workflow_verifies_signed_tag_when_stable_channel_requires_signed_git_tag()
+    {
+        var repoRoot = FindRepoRoot();
+        var stableChannel = File.ReadAllText(repoRoot.Combine("docs", "release", "stable-update-channel.md").FullName);
+        var workflow = File.ReadAllText(repoRoot.Combine(".github", "workflows", "release.yml").FullName);
+
+        StringAssert.Contains(stableChannel, "signed Git tag");
+        StringAssert.Contains(workflow, "git verify-tag");
+
+        var verifyTagIndex = workflow.IndexOf("git verify-tag", StringComparison.OrdinalIgnoreCase);
+        var packageIndex = workflow.IndexOf("./scripts/package-msix.ps1", StringComparison.OrdinalIgnoreCase);
+        var releaseIndex = workflow.IndexOf("gh release create", StringComparison.OrdinalIgnoreCase);
+
+        Assert.IsTrue(verifyTagIndex >= 0, "Release workflow must cryptographically verify the signed tag.");
+        Assert.IsTrue(packageIndex > verifyTagIndex, "Signed tag verification must run before packaging.");
+        Assert.IsTrue(releaseIndex > verifyTagIndex, "Signed tag verification must run before creating the GitHub release.");
+        Assert.IsTrue(workflow.Contains("fetch-depth: 0", StringComparison.OrdinalIgnoreCase), "Release workflow must fetch full tag history.");
+    }
+
+    [TestMethod]
+    public void M16_package_script_dry_run_maps_package_architecture_to_publish_runtime_identifier()
+    {
+        var repoRoot = FindRepoRoot();
+        var outputRoot = "artifacts/msix-dry-run-" + Guid.NewGuid().ToString("N");
+        var outputRootPath = repoRoot.Combine(outputRoot.Split('/')).FullName;
+
+        try
+        {
+            foreach (var testCase in new[]
+            {
+                new PackageArchitectureCase("x64", "win-x64", "x64"),
+                new PackageArchitectureCase("x86", "win-x86", "x86"),
+                new PackageArchitectureCase("ARM64", "win-arm64", "arm64")
+            })
+            {
+                var result = RunPowerShellScript(
+                    repoRoot.Combine("scripts", "package-msix.ps1").FullName,
+                    "-DryRun",
+                    "-SkipPublish",
+                    "-Platform",
+                    testCase.Platform,
+                    "-OutputRoot",
+                    outputRoot);
+
+                Assert.AreEqual(0, result.ExitCode, result.AllOutput);
+
+                var metadataPath = Path.Combine(outputRootPath, "package-metadata.json");
+                using var metadata = JsonDocument.Parse(File.ReadAllText(metadataPath));
+                var root = metadata.RootElement;
+
+                Assert.IsTrue(root.GetProperty("dryRun").GetBoolean());
+                Assert.AreEqual(testCase.Platform, root.GetProperty("platform").GetString());
+                Assert.AreEqual(testCase.RuntimeIdentifier, root.GetProperty("runtimeIdentifier").GetString());
+                Assert.AreEqual(testCase.ManifestArchitecture, root.GetProperty("manifestArchitecture").GetString());
+                StringAssert.Contains(root.GetProperty("packagePath").GetString()!, "_" + testCase.Platform + ".msix");
+                StringAssert.Contains(root.GetProperty("publishPath").GetString()!, "publish-" + testCase.Platform);
+
+                var publishCommand = root.GetProperty("dryRunCommands").EnumerateArray().Single(command =>
+                    command.GetProperty("name").GetString() == "dotnet publish");
+                Assert.IsTrue(publishCommand.GetProperty("arguments").EnumerateArray().Any(argument =>
+                    argument.GetString() == "-r" || argument.GetString() == "--runtime"));
+                Assert.IsTrue(publishCommand.GetProperty("arguments").EnumerateArray().Any(argument =>
+                    argument.GetString() == testCase.RuntimeIdentifier));
+
+                var generatedManifestPath = Path.Combine(outputRootPath, "publish-" + testCase.Platform, "AppxManifest.xml");
+                var generatedManifest = XDocument.Load(generatedManifestPath);
+                XNamespace packageNs = "http://schemas.microsoft.com/appx/manifest/foundation/windows10";
+                Assert.AreEqual(
+                    testCase.ManifestArchitecture,
+                    (string?)generatedManifest.Root!.Element(packageNs + "Identity")!.Attribute("ProcessorArchitecture"));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(outputRootPath))
+            {
+                Directory.Delete(outputRootPath, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
     public void M16_release_verify_script_executes_documentation_and_packaging_contract_checks()
     {
         var repoRoot = FindRepoRoot();
@@ -138,9 +222,84 @@ public sealed class ReleasePackagingContractTests
         StringAssert.Contains(readme, "docs/release/install-rollback.md");
     }
 
+    [TestMethod]
+    public void M16_change_metadata_links_resolve_to_tracked_docs()
+    {
+        var repoRoot = FindRepoRoot();
+        var changePath = repoRoot.Combine("docs", "changes", "2026-05-06-m16-msix-release-docs", "change.yaml").FullName;
+        var changeText = File.ReadAllText(changePath);
+
+        foreach (var link in ReadYamlList(changeText, "architecture").Concat(ReadYamlList(changeText, "files")))
+        {
+            var parts = link.Split('#', 2);
+            var relativePath = parts[0];
+            var targetPath = repoRoot.Combine(relativePath.Split('/')).FullName;
+
+            Assert.IsTrue(File.Exists(targetPath), $"Change metadata reference must exist: {link}");
+
+            if (parts.Length == 2)
+            {
+                var anchors = MarkdownAnchors(File.ReadAllLines(targetPath));
+                Assert.IsTrue(anchors.Contains(parts[1], StringComparer.OrdinalIgnoreCase), $"Change metadata anchor must exist: {link}");
+            }
+        }
+    }
+
     private static string ValueOf(XContainer project, string elementName)
     {
         return project.Descendants(elementName).Single().Value;
+    }
+
+    private static IReadOnlyList<string> ReadYamlList(string yaml, string key)
+    {
+        var values = new List<string>();
+        var inSection = false;
+
+        foreach (var rawLine in yaml.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+        {
+            if (Regex.IsMatch(rawLine, @"^\S"))
+            {
+                inSection = rawLine.Equals(key + ":", StringComparison.Ordinal);
+                continue;
+            }
+
+            if (!inSection)
+            {
+                continue;
+            }
+
+            var match = Regex.Match(rawLine, @"^\s+-\s+(.+?)\s*$");
+            if (match.Success)
+            {
+                values.Add(match.Groups[1].Value);
+            }
+        }
+
+        return values;
+    }
+
+    private static ISet<string> MarkdownAnchors(IEnumerable<string> lines)
+    {
+        var anchors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in lines)
+        {
+            var match = Regex.Match(line, @"^#{1,6}\s+(.+?)\s*$");
+            if (!match.Success)
+            {
+                continue;
+            }
+
+            var heading = match.Groups[1].Value.Trim().ToLowerInvariant();
+            var anchor = Regex.Replace(heading, @"[^\w\s-]", "");
+            anchor = Regex.Replace(anchor, @"\s+", "-").Trim('-');
+            if (anchor.Length > 0)
+            {
+                anchors.Add(anchor);
+            }
+        }
+
+        return anchors;
     }
 
     private static CommandResult RunPowerShellScript(string scriptPath, params string[] arguments)
@@ -192,4 +351,6 @@ public sealed class ReleasePackagingContractTests
     {
         public string AllOutput => StandardOutput + StandardError;
     }
+
+    private sealed record PackageArchitectureCase(string Platform, string RuntimeIdentifier, string ManifestArchitecture);
 }

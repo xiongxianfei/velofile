@@ -19,7 +19,7 @@ requirements:
   - QS-PREVIEW-TIMEOUT-01
 architecture:
   - ADR 0004
-  - docs/architecture/system/architecture.md#building-block-view
+  - docs/architecture/system/architecture.md#5-building-block-view
 files:
   - src/VeloFile.Core/Preview/
   - src/VeloFile.Core/Diagnostics/DiagnosticStringSanitizer.cs

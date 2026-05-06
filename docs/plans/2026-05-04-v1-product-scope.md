@@ -1168,6 +1168,21 @@ Each milestone must update validation notes with the commands actually run and a
   - The first full `dotnet test VeloFile.sln -c Debug` command hit the local tool timeout while the Corpus suite was still running; the rerun with a longer timeout passed 334 tests across App, Core, Windows, and Corpus assemblies.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 334 tests across 4 test assemblies.
   - Manual signed MSIX install/update/rollback/uninstall was not run locally because this workspace does not have a release signing certificate or an earlier signed package; `docs\release\release-checklist.md` records the required release-owner evidence fields.
+- M16 review-resolution evidence:
+  - First `code-review` found that the signed Git tag release-source claim was not enforced, non-x64 package architectures could still publish a `win-x64` payload, and the M16 architecture link pointed at a missing artifact.
+  - Added regression tests for signed-tag workflow enforcement, package architecture-to-RID mapping with dry-run metadata and generated manifest proof, and M16 change metadata path/anchor resolution.
+  - Updated the release workflow to import trusted release signing keys from `VELOFILE_RELEASE_GPG_PUBLIC_KEY` and run `git verify-tag` before release verification, packaging, or GitHub Release creation.
+  - Updated `scripts\package-msix.ps1` to map `x86` to `win-x86`, `x64` to `win-x64`, and `ARM64` to `win-arm64`, while preserving MSIX manifest architecture values and architecture-specific output paths.
+  - Added `-DryRun` package-script mode for command/manifest proof without invoking publish, MakeAppx, or SignTool.
+  - Fixed M16 and older path-like change metadata links so `scripts\release-verify.ps1` can verify referenced files/directories and Markdown anchors.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "M16_release_workflow_verifies_signed_tag_when_stable_channel_requires_signed_git_tag|M16_package_script_dry_run_maps_package_architecture_to_publish_runtime_identifier|M16_change_metadata_links_resolve_to_tracked_docs"` first failed on the three review findings, then passed 3 regression tests.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests` passed 7 App release packaging contract tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish` passed release documentation checks plus change metadata path/anchor checks.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\package-msix.ps1` passed and produced an unsigned local x64 MSIX with matching `win-x64` publish RID.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\package-msix.ps1 -DryRun -SkipPublish -Mode SignedRelease -SigningThumbprint <test-thumbprint> -Platform ARM64 -OutputRoot artifacts/msix-signed-dry-run` passed and recorded signed-release dry-run commands for `win-arm64` payload and `arm64` manifest.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1` passed and exercised publish, MSIX package creation, manifest checks, release documentation checks, and metadata link checks.
+  - `dotnet test VeloFile.sln -c Debug --filter Release` passed 8 App release tests and 3 Corpus release tests; Core and Windows assemblies had no matching Release tests.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed `dotnet --info`, restore, build with 0 warnings and 0 errors, and 337 tests across 4 test assemblies.
 
 ## Outcome and Retrospective
 
@@ -1175,4 +1190,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, and M16 implem
 
 ## Readiness
 
-M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Automated validation is passing, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice is ready for `code-review`.
+M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation is passing, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice is ready for `code-review`.

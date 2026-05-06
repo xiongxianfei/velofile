@@ -14,9 +14,11 @@ param(
 
     [string] $SigningThumbprint = "",
 
-    [string] $TimestampUrl = "http://timestamp.digicert.com",
+    [string] $TimestampUrl = "https://timestamp.digicert.com",
 
-    [switch] $SkipPublish
+    [switch] $SkipPublish,
+
+    [switch] $DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,6 +71,20 @@ function Convert-PlatformToManifestArchitecture {
     }
 
     return $PackagePlatform
+}
+
+function Convert-PlatformToRuntimeIdentifier {
+    param([string] $PackagePlatform)
+
+    if ($PackagePlatform -eq "x86") {
+        return "win-x86"
+    }
+
+    if ($PackagePlatform -eq "ARM64") {
+        return "win-arm64"
+    }
+
+    return "win-x64"
 }
 
 function New-PackageAsset {
@@ -142,25 +158,34 @@ if ($Mode -eq "SignedRelease" -and [string]::IsNullOrWhiteSpace($SigningThumbpri
     throw "SignedRelease MSIX packaging requires -SigningThumbprint."
 }
 
+$runtimeIdentifier = Convert-PlatformToRuntimeIdentifier $Platform
+$manifestArchitecture = Convert-PlatformToManifestArchitecture $Platform
+$dryRunCommands = New-Object System.Collections.Generic.List[object]
+
 New-Item -ItemType Directory -Force -Path $publishPath | Out-Null
 
-if (-not $SkipPublish) {
-    dotnet publish $projectPath `
-        -c $Configuration `
-        -p:Platform=$Platform `
-        -p:WindowsPackageType=None `
-        -p:AppxPackageSigningEnabled=false `
-        -p:PackageVersion=$Version `
-        -o $publishPath
+$publishArguments = @(
+    "publish",
+    $projectPath,
+    "-c",
+    $Configuration,
+    "-p:Platform=$Platform",
+    "-p:WindowsPackageType=None",
+    "-p:AppxPackageSigningEnabled=false",
+    "-p:PackageVersion=$Version",
+    "-r",
+    $runtimeIdentifier,
+    "-o",
+    $publishPath)
+
+$dryRunCommands.Add([ordered]@{ name = "dotnet publish"; executable = "dotnet"; arguments = $publishArguments }) | Out-Null
+
+if (-not $SkipPublish -and -not $DryRun) {
+    & dotnet @publishArguments
 
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed with exit code $LASTEXITCODE."
     }
-}
-
-$makeAppx = Find-WindowsSdkTool "makeappx.exe"
-if ([string]::IsNullOrWhiteSpace($makeAppx)) {
-    throw "MSIX packaging requires Windows SDK MakeAppx.exe."
 }
 
 Write-PackagingManifest `
@@ -169,29 +194,44 @@ Write-PackagingManifest `
     -ManifestVersion $Version `
     -PackagePlatform $Platform
 
-New-PackageAsset -Path (Join-Path $publishPath "Assets/StoreLogo.png") -Width 50 -Height 50
-New-PackageAsset -Path (Join-Path $publishPath "Assets/Square150x150Logo.png") -Width 150 -Height 150
-New-PackageAsset -Path (Join-Path $publishPath "Assets/Square44x44Logo.png") -Width 44 -Height 44
+$makeAppxArguments = @("pack", "/d", $publishPath, "/p", $packagePath, "/o")
+$dryRunCommands.Add([ordered]@{ name = "MakeAppx pack"; executable = "makeappx.exe"; arguments = $makeAppxArguments }) | Out-Null
 
-if (Test-Path $packagePath) {
-    Remove-Item -LiteralPath $packagePath -Force
-}
-
-Invoke-NativeCommand -FilePath $makeAppx -Arguments @("pack", "/d", $publishPath, "/p", $packagePath, "/o")
-
-if ($Mode -eq "SignedRelease") {
-    $signTool = Find-WindowsSdkTool "signtool.exe"
-    if ([string]::IsNullOrWhiteSpace($signTool)) {
-        throw "SignedRelease MSIX packaging requires Windows SDK SignTool.exe."
+if (-not $DryRun) {
+    $makeAppx = Find-WindowsSdkTool "makeappx.exe"
+    if ([string]::IsNullOrWhiteSpace($makeAppx)) {
+        throw "MSIX packaging requires Windows SDK MakeAppx.exe."
     }
 
-    Invoke-NativeCommand -FilePath $signTool -Arguments @(
+    New-PackageAsset -Path (Join-Path $publishPath "Assets/StoreLogo.png") -Width 50 -Height 50
+    New-PackageAsset -Path (Join-Path $publishPath "Assets/Square150x150Logo.png") -Width 150 -Height 150
+    New-PackageAsset -Path (Join-Path $publishPath "Assets/Square44x44Logo.png") -Width 44 -Height 44
+
+    if (Test-Path $packagePath) {
+        Remove-Item -LiteralPath $packagePath -Force
+    }
+
+    Invoke-NativeCommand -FilePath $makeAppx -Arguments $makeAppxArguments
+}
+
+if ($Mode -eq "SignedRelease") {
+    $signArguments = @(
         "sign",
         "/fd", "SHA256",
         "/td", "SHA256",
         "/tr", $TimestampUrl,
         "/sha1", $SigningThumbprint,
         $packagePath)
+    $dryRunCommands.Add([ordered]@{ name = "SignTool sign"; executable = "signtool.exe"; arguments = $signArguments }) | Out-Null
+
+    if (-not $DryRun) {
+        $signTool = Find-WindowsSdkTool "signtool.exe"
+        if ([string]::IsNullOrWhiteSpace($signTool)) {
+            throw "SignedRelease MSIX packaging requires Windows SDK SignTool.exe."
+        }
+
+        Invoke-NativeCommand -FilePath $signTool -Arguments $signArguments
+    }
 }
 
 $metadata = [ordered]@{
@@ -200,14 +240,18 @@ $metadata = [ordered]@{
     mode = $Mode
     unsignedLocalPackaging = ($Mode -eq "UnsignedLocal")
     msix = "MSIX"
+    dryRun = [bool]$DryRun
     packagePath = $packagePath
     appProject = "src/VeloFile.App/VeloFile.App.csproj"
     packageManifest = "src/VeloFile.App/Package.appxmanifest"
     publishPath = $publishPath
     version = $Version
     platform = $Platform
+    runtimeIdentifier = $runtimeIdentifier
+    manifestArchitecture = $manifestArchitecture
     signingThumbprint = if ($Mode -eq "SignedRelease") { $SigningThumbprint } else { "" }
     signingRequiredForRelease = $true
+    dryRunCommands = $dryRunCommands.ToArray()
     note = "Unsigned local packaging creates an unsigned MSIX. Signed release packaging creates the same MSIX and signs it with SignTool using the configured certificate thumbprint."
 }
 

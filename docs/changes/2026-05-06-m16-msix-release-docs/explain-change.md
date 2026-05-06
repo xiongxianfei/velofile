@@ -24,6 +24,8 @@ The manual install/update/rollback/uninstall matrix is recorded in `docs/release
 
 `ReleasePackagingContractTests` prove the project declares the MSIX manifest, the manifest avoids Explorer replacement and file-association ownership, release scripts/workflow run Windows package checks, the release verifier executes, and release/user docs cover extension display, File Explorer differences, rollback, and checklist requirements.
 
+Review-resolution tests also prove that the stable-channel signed Git tag claim is enforced by `git verify-tag` before packaging/release, x86/x64/ARM64 package inputs map to matching .NET RIDs and manifest architectures, and M16 change metadata links resolve to tracked files and Markdown anchors.
+
 ## Validation
 
 - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests`
@@ -32,3 +34,4 @@ The manual install/update/rollback/uninstall matrix is recorded in `docs/release
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1`
 - `dotnet test VeloFile.sln -c Debug`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
+- Review resolution additionally ran the targeted signed-tag/RID/link tests, signed-release ARM64 dry-run packaging, `dotnet test VeloFile.sln -c Debug --filter Release`, and final CI.

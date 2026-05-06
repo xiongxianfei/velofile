@@ -22,7 +22,7 @@ requirements:
 architecture:
   - ADR 0003
   - ADR 0008
-  - docs/plans/2026-05-04-v1-product-scope.md#M15
+  - docs/plans/2026-05-04-v1-product-scope.md#m15-benchmark-harness-accessibility-checks-and-release-triage
 files:
   - tools/VeloFile.Corpus/Program.cs
   - src/VeloFile.App/MainWindow.xaml

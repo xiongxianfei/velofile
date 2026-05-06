@@ -21,7 +21,7 @@ test_spec:
   - specs/v1-product-scope.test.md#T016
 architecture:
   - docs/architecture/system/architecture.md#desktop-app-components
-  - docs/architecture/system/architecture.md#building-block-view
+  - docs/architecture/system/architecture.md#5-building-block-view
 artifacts:
   - src/VeloFile.Core/Filtering/CurrentFolderFilterService.cs
   - src/VeloFile.Core/Search/

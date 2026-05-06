@@ -12,7 +12,7 @@ requirements:
 architecture:
   - ADR 0002
   - ADR 0007
-  - docs/architecture/system/architecture.md#building-block-view
+  - docs/architecture/system/architecture.md#5-building-block-view
 files:
   - src/VeloFile.Core/DragDrop/
   - src/VeloFile.Windows/DragDrop/

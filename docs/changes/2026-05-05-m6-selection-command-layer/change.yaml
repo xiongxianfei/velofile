@@ -21,7 +21,7 @@ test_spec:
   - specs/v1-product-scope.test.md#T023
 architecture:
   - docs/architecture/system/architecture.md#desktop-app-components
-  - docs/architecture/system/architecture.md#built-in-context-menu
+  - docs/architecture/system/architecture.md#desktop-app-components
   - docs/adr/0007-explorer-parity-policy.md
 artifacts:
   - src/VeloFile.Core/Selection/FileSelectionController.cs

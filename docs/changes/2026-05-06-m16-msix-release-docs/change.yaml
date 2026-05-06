@@ -17,8 +17,8 @@ requirements:
   - AC19
   - QS-MSIX-ROLLBACK-01
 architecture:
-  - docs/architecture.md#Deployment
-  - docs/plans/2026-05-04-v1-product-scope.md#M16
+  - docs/architecture/system/architecture.md#7-deployment-view
+  - docs/plans/2026-05-04-v1-product-scope.md#m16-msix-packaging-docs-release-notes-and-v1-hardening
 files:
   - src/VeloFile.App/VeloFile.App.csproj
   - src/VeloFile.App/Package.appxmanifest
@@ -49,6 +49,22 @@ validation:
     result: passed 334 tests across App, Core, Windows, and Corpus assemblies
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 334 tests across 4 test assemblies
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "M16_release_workflow_verifies_signed_tag_when_stable_channel_requires_signed_git_tag|M16_package_script_dry_run_maps_package_architecture_to_publish_runtime_identifier|M16_change_metadata_links_resolve_to_tracked_docs"
+    result: first failed on the three review findings, then passed 3 regression tests after remediation
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests
+    result: passed 7 App release packaging contract tests after review remediation
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed release documentation checks plus change metadata path/anchor checks
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\package-msix.ps1
+    result: passed and produced an unsigned local x64 MSIX with matching win-x64 publish RID
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\package-msix.ps1 -DryRun -SkipPublish -Mode SignedRelease -SigningThumbprint <test-thumbprint> -Platform ARM64 -OutputRoot artifacts/msix-signed-dry-run
+    result: passed and recorded signed-release dry-run commands for win-arm64 payload and arm64 manifest
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1
+    result: passed and exercised publish, MSIX package creation, manifest checks, release documentation checks, and metadata link checks
+  - command: dotnet test VeloFile.sln -c Debug --filter Release
+    result: passed 8 App release tests and 3 Corpus release tests; Core and Windows assemblies had no matching release tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed dotnet --info, restore, build with 0 warnings and 0 errors, and 337 tests across 4 test assemblies
 manual_validation:
   - check: Signed MSIX install/update/rollback/uninstall checklist
     result: not run locally; docs/release/release-checklist.md records required manual release evidence fields for release owners
@@ -56,3 +72,6 @@ notes:
   - Unsigned local packaging and signed release packaging are intentionally separate. Contributor runs produce an unsigned MSIX; release workflow runs signed packaging with a certificate thumbprint.
   - The package manifest avoids file associations, app execution aliases, and Explorer context menu extensions so VeloFile remains side by side with File Explorer.
   - V1 release/user docs explicitly document extension display, invoice.pdf.exe clarity, built-in context menu scope, stable update channel, rollback by uninstall, and Explorer/file-association non-ownership.
+  - Review remediation keeps the signed Git tag release-source claim and enforces it with trusted-key import plus git verify-tag before packaging or GitHub Release creation.
+  - Review remediation maps package architectures to matching .NET RIDs and adds dry-run proof for x86, x64, and ARM64 packaging.
+  - Review remediation added release verification for change metadata path and Markdown-anchor drift.
