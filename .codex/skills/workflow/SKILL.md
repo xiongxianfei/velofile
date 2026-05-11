@@ -1,7 +1,7 @@
 ---
 name: workflow
 description: >
-  Orchestrate the full spec-driven, test-driven agentic development lifecycle. Use when starting, resuming, auditing, or routing any non-trivial coding task. This skill chooses the right lane, enforces artifact order, and keeps exploration, specification, architecture, planning, tests, implementation, verification, rationale, PR, and learning connected.
+  Orchestrate the full spec-driven, test-driven agentic development lifecycle. Use when starting, resuming, auditing, or routing work through the standard RigorLoop workflow. This skill assesses workflow state, enforces artifact order, and keeps exploration, specification, architecture, planning, tests, implementation, review, rationale, verification, PR, and learning connected.
 argument-hint: [feature, bug, project goal, issue number, or current workflow state]
 ---
 
@@ -10,6 +10,62 @@ argument-hint: [feature, bug, project goal, issue number, or current workflow st
 You are the lifecycle orchestrator for a spec-driven and test-driven repository.
 
 Your job is not to replace the specialized skills. Your job is to route work through the correct skills in the correct order, prevent premature implementation, and preserve traceability from idea to PR.
+
+## Purpose
+
+Route work through the standard RigorLoop workflow, or identify a manual individual skill invocation as isolated, while preserving source-of-truth order, traceability, and stop conditions.
+
+## When to use
+
+Use this skill when starting, resuming, auditing, or routing work through the standard RigorLoop workflow.
+
+Do not classify requests into separate workflow routes. RigorLoop has one recommended standard workflow.
+
+Users may invoke individual skills manually, but those invocations remain isolated unless the user explicitly asks to continue through the full workflow or an active workflow-managed context requires continuation.
+
+## When not to use
+
+Do not use this skill as a substitute for the stage skill that owns the current artifact or proof. Use the specialized skill once routing is clear.
+
+If the user asks only for one skill's output, treat the request as an isolated manual skill invocation by default.
+
+## Inputs to read
+
+Read:
+
+- the user request and invocation context;
+- available repository governance and workflow instructions when present;
+- the relevant proposal, spec, architecture, plan, test spec, review, verify, explain-change, PR, or learn artifacts when they exist;
+- the project map only when it is present and current enough for the relied-on area;
+- current git status, changed files, validation output, or CI evidence when routing depends on them.
+
+## Outputs
+
+Produce a routing decision, current stage assessment, blockers or assumptions, and the next valid skill or stop condition. Do not replace the downstream artifact owned by that next skill.
+
+## Handoff
+
+- Normal next stage: the next valid skill or stop condition for the standard workflow state.
+- Conditional next stages: `explore`, `research`, `architecture`, `ci`, or `learn` only when their trigger is active; `code-review`, `ci-maintenance`, `explain-change`, `verify`, or `pr` only when the workflow state and readiness allow them.
+- For full stage order, obligations, and downstream-blocking semantics, use this `workflow` skill to route to the specialized stage skill.
+
+## Claims this skill must not make
+
+Do not claim:
+
+- an implementation is complete unless `implement` or tracked evidence owns that proof;
+- review passed, clean review, or no required fixes unless the relevant review stage owns that result;
+- validation passed, CI passed, branch-ready, PR-ready, `pr-body-ready`, or `pr-open-ready` unless the owning stage or evidence is cited;
+- the plan is Done when remaining completion gates exist;
+- derived artifacts are current unless validation evidence proves it.
+
+## Progress, readiness, closeout, and Done
+
+- Progress means work that has happened so far.
+- Readiness means the next stage that can happen.
+- Closeout means the current artifact or stage satisfied its checklist.
+- Done means final lifecycle state after required gates are complete.
+- Readiness is not Done. Pair readiness statements with remaining completion gates when a plan or workflow can continue.
 
 ## Core principles
 
@@ -23,18 +79,19 @@ Your job is not to replace the specialized skills. Your job is to route work thr
 
 ## Workflow Categories
 
-The workflow spec owns the full category and routing contract. Use these categories when routing work:
+The adopted workflow contract owns the full category and routing behavior. Use these categories when routing work:
 
 - Standing artifacts: `VISION.md` and `CONSTITUTION.md`.
   - `VISION.md` absence blocks the first substantive proposal unless the proposal bootstraps project vision.
   - `CONSTITUTION.md` absence blocks governance adoption, workflow-governance changes, and source-of-truth changes unless the proposal bootstraps the constitution.
 - Living references: `docs/project-map.md`.
   - Do not rely on the map when it is absent, known-stale, contradicted, or missing the relied-on area. Refresh it or record a no-map rationale before reliance.
-- Workflow infrastructure: `specs/rigorloop-workflow.md`, `docs/workflows.md`, affected root guidance, affected stage skills, and generated skill or adapter output when canonical skills change.
+- Workflow infrastructure: adopted workflow guidance, affected root guidance, affected stage skills, and derived package output only when the task explicitly changes the skill pack itself.
 - On-demand support: `explore` and `research`.
   - Use them only when ambiguity, option expansion, architecture uncertainty, or current external facts affect the decision.
 - Per-change chain:
-  - `proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> verify -> ci-maintenance when triggered -> explain-change -> pr`
+  - `proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> ci-maintenance when triggered -> explain-change -> verify -> pr`
+  - For milestone-based plans, the `implement -> code-review -> review-resolution when triggered` segment repeats for each in-scope implementation milestone. Final closeout follows only after all in-scope implementation milestones are closed and required review-resolution is closed.
 - Periodic artifacts: `learn`.
   - Run it on cadence, after repeated findings, blocker or major workflow-process findings, failed release or adapter smoke, accepted postmortem actions, or explicit maintainer request.
 
@@ -51,7 +108,9 @@ For work that has a concrete plan file under `docs/plans/`:
 - `implement` keeps the active plan body's progress, decisions, discoveries, and validation notes current during execution.
 - Final lifecycle closeout updates both `docs/plan.md` and the plan body when lifecycle state changes.
 - `verify` blocks PR readiness when stale lifecycle state remains between the plan index and the plan body.
-- When the outcome is already known before PR, `Done` should normally be recorded before the PR is opened. Only merge-dependent `Done` transitions may wait for immediate post-merge cleanup.
+- When a PR performs a lifecycle transition, synchronize `docs/plan.md` and the plan body before the PR opens for review.
+- If completion depends on a true downstream completion event, keep the plan `Active`, name that event, and close it in a later PR or repository-owned automation.
+- The merge itself is not a routine downstream completion event.
 - `Blocked` and `Superseded` transitions should be recorded as soon as they are decided.
 - `learn` captures durable lessons, but it does not own lifecycle bookkeeping.
 
@@ -76,32 +135,57 @@ Rules:
 - `superseded` artifacts must identify their replacement with `superseded_by` or equivalent labeled text.
 - `verify` blocks on stale or inconsistent lifecycle-managed artifacts that are touched, referenced, generated, or authoritative for the changed area, and warns on unrelated stale baseline artifacts.
 
-## Work lanes
+## Standard workflow and manual skill invocation
 
-### Full feature lane
-
-Use for new product behavior, API changes, data contracts, migrations, risky refactors, UI flows, safety-sensitive changes, or any change spanning multiple components.
-
-Full-lifecycle routing starts from the per-change chain:
+RigorLoop has one recommended standard workflow for complete AI-assisted delivery:
 
 ```text
-proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> verify -> ci-maintenance when triggered -> explain-change -> pr
+proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> ci-maintenance when triggered -> explain-change -> verify -> pr
 ```
+
+Manual skill use is allowed. A user may run a skill such as `verify`, `code-review`, `pr`, or `explain-change` for focused output. That output is isolated by default and does not imply that upstream or downstream stages have been completed.
+
+Workflow completion claims require evidence from the relevant stages.
+
+For milestone-based plans, do not collapse the implementation segment into a single pass. Repeat this loop for each in-scope implementation milestone:
+
+```text
+implement M<n>
+-> code-review M<n>
+-> review-resolution M<n>, when triggered
+-> implement fixes for M<n>, when needed
+-> code-review M<n> rerun, when needed
+-> close M<n>
+-> implement M<n+1>, when another in-scope implementation milestone remains
+```
+
+After all in-scope implementation milestones are closed and required review-resolution is closed, final closeout runs:
+
+```text
+ci-maintenance, when triggered
+-> explain-change
+-> verify
+-> pr
+```
+
+For planned initiatives, the active plan `Current Handoff Summary` owns live state. Track the reviewed milestone, the remaining in-scope implementation milestones, the next stage, and final-closeout readiness there. State-sync checks update affected owners before downstream readiness is claimed.
+
+Use `lifecycle-closeout` for milestones or sections that track downstream gates such as `ci-maintenance`, `explain-change`, `verify`, PR handoff, release, deploy, or final plan closeout without adding implementation scope. Lifecycle-closeout work does not count as an open implementation milestone for final-closeout readiness.
 
 Use `explore` or `research` before proposal only when the work depends on option expansion or current external evidence. Use `docs/project-map.md` as a living reference only when it is current enough for the relied-on area, or refresh it or record a no-map rationale first. Follow with `learn` only when a periodic or explicit trigger occurs.
 
 `ci-maintenance` means creating or updating hosted CI workflow files, validation automation, or related platform configuration for a material risk. Validation execution remains under `verify`.
 
-For ordinary non-trivial work in the full-feature lane, carry the baseline change-local pack:
+For standard workflow completion on non-trivial work, carry the baseline change-local pack:
 
 - `docs/changes/<change-id>/change.yaml`
 - durable Markdown reasoning, defaulting to `docs/changes/<change-id>/explain-change.md` for new work unless an approved equivalent surface already applies
 
-Keep `review-resolution.md` and `verify-report.md` conditional. Do not treat the rich `docs/changes/0001-skill-validator/` example pack as the universal minimum for every non-trivial change.
+Keep `review-resolution.md` and `verify-report.md` conditional. Do not treat any rich example change pack as the universal minimum for every non-trivial change.
 
 ### Validation layering
 
-- Before `code-review`, prefer targeted proof selected by `python scripts/select-validation.py` or executed by `bash scripts/ci.sh --mode explicit --path <path>...`.
+- Before `code-review`, prefer targeted proof selected or executed by the project's validation tooling.
 - Record stable selected check IDs when they explain the proof boundary, for example `skills.validate`, `review_artifacts.validate`, `selector.regression`, or `broad_smoke.repo`.
 - Use broad smoke as a triggered handoff gate, not the first proof step for every PR. Authoritative triggers include main/release mode, `--broad-smoke`, active plan `broad_smoke_required: true`, test-spec, review-resolution, and release metadata.
 - Preserve source attribution when available through `broad_smoke.sources`.
@@ -112,11 +196,14 @@ Keep `review-resolution.md` and `verify-report.md` conditional. Do not treat the
 - Material findings must include evidence, required outcome, and a safe resolution path or `needs-decision` rationale.
 - Record first-pass material review findings before review-driven fixes when feasible; reconstructed records must say they were reconstructed.
 - For non-trivial changes with material findings, use `review-resolution.md` and approved dispositions: `accepted`, `rejected`, `deferred`, `partially-accepted`, and `needs-decision`.
-- `needs-decision` is not final and blocks `verify`, `explain-change`, and `pr` until resolved or explicitly deferred by an authorized owner.
+- `needs-decision` is not final and blocks `explain-change`, `verify`, and `pr` until resolved or explicitly deferred by an authorized owner.
 - `Closeout status: open` means one or more material findings remain unresolved for handoff.
 - `Closeout status: closed` means every material finding has a final disposition plus required action, rationale, follow-up, and validation evidence.
 - A closed handoff requires `review-log.md` to list no open findings.
-- A review outcome requiring revision still needs a later same-stage review round or explicit reviewer or owner closeout evidence; `review-resolution.md` alone is not a silent substitute for required re-review.
+- Detailed review record triggers are material findings, stage-owned non-approval outcomes that block downstream progress or require revision, reconstructed review evidence, closeout evidence citation, and explicit reviewer or maintainer request.
+- A stage-owned non-approval outcome requiring revision still needs a same-stage later review round or explicit reviewer or owner closeout evidence naming the original Review ID; `review-resolution.md` alone is not a silent substitute for required re-review.
+- For no-material review events, no-material detailed records need `review-log.md` but not an empty `review-resolution.md`.
+- Do not add a dedicated `pr-review` stage; it is unsupported unless a later approved spec extends the stage set. A material maintainer PR comment that needs disposition must first be promoted into a supported formal lifecycle review record with a stable `Finding ID`.
 
 ### Review-stage handoff versus downstream readiness
 
@@ -143,34 +230,11 @@ Keep `review-resolution.md` and `verify-report.md` conditional. Do not treat the
 - `verify` owns `branch-ready`. `pr` owns `pr-body-ready` and `pr-open-ready`.
 - Avoid unqualified `PR-ready` as live workflow guidance or status language.
 
-### Fast lane
-
-Use for small, low-risk, well-understood changes that affect at most a few files and do not introduce architecture changes.
-
-Required stages:
-
-```text
-spec inside the PR body, issue comment, commit message, or linked change note
-→ implement
-→ verify
-→ pr
-→ learn only if a durable lesson was discovered
-```
-
-Rules:
-
-- Use the fast lane only for typos, formatting-only changes, small documentation clarifications, comment-only changes, small test-fixture corrections, small non-behavioral renames, or minor generated-artifact refreshes that do not change generator behavior.
-- The fast-lane spec must state intent, expected change, out of scope, and validation.
-- Approved fast-lane work may still omit `docs/changes/<change-id>/` when the governing workflow contract allows it.
-- Still write tests first when feasible.
-- Escalate to the full feature lane if uncertainty, coupling, or user-visible behavior grows.
-- Escalate immediately for behavior changes, workflow-stage changes, CI behavior changes, schemas, generated-output logic, or other changes that are hard to roll back safely.
-
-### Bugfix lane
+### Bugfix skill invocation
 
 Use `bugfix` when the task starts from a failure, regression, incident, or unexpected behavior.
 
-Required stages:
+The `bugfix` skill has its own explicit-step workflow:
 
 ```text
 reproduce
@@ -185,7 +249,9 @@ reproduce
 
 If the bug reveals an unclear or missing contract, update or create the relevant spec.
 
-### Review-only lane
+Bugfix skill invocation remains isolated by default unless the user asks to continue through the full workflow or an active workflow-managed context requires continuation.
+
+### Review-only manual invocation
 
 Use when the user asks for critique, readiness, audit, or explanation without changing files.
 
@@ -205,7 +271,7 @@ Do not edit files unless the user asks for edits.
 
 Classify the request into one of these contexts before deciding whether to continue:
 
-- `workflow-managed`: the agent is carrying a change through its normal downstream stages toward completion under the active lane.
+- `workflow-managed`: the agent is carrying a change through its normal downstream stages toward completion under the standard workflow.
 - `isolated`: the user asked for one stage result only, such as standalone `proposal-review`, `spec-review`, `architecture-review`, `code-review`, `verify`, or `explain-change`.
 - `direct-pr`: the user directly invoked `pr`.
 
@@ -215,22 +281,22 @@ Rules:
   - `proposal -> proposal-review`
   - `spec -> spec-review`
   - `architecture -> architecture-review` when that review stage is the next mandatory or triggered downstream stage
-  - full-feature execution from `implement` through `pr`
-- In the full-feature lane, continue through this downstream chain unless a stop condition applies:
+  - standard workflow execution from `implement` through `pr`
+- In workflow-managed standard workflow execution, continue through this downstream chain unless a stop condition applies:
   - `implement -> code-review`
   - `code-review -> review-resolution -> code-review` only for first-pass `changes-requested` findings that are fixable within current approved scope
-  - `code-review -> verify` only for first-pass `clean-with-notes` once the review gate is satisfied
-  - `verify -> ci-maintenance when triggered -> explain-change`; otherwise `verify -> explain-change`
-  - `ci-maintenance -> explain-change`
-  - `explain-change -> pr`
-- In workflow-managed full-feature runs, autoprogressed `code-review` must emit its first-pass review record before any review-driven fix begins.
-- In workflow-managed full-feature runs, first-pass `blocked` and `inconclusive` stop instead of entering `review-resolution`.
+  - clean `code-review` of a non-final implementation milestone closes that milestone and continues to the next in-scope implementation milestone
+- clean `code-review` of the final implementation milestone reaches final closeout only after all in-scope implementation milestones are closed and no required review-resolution remains open
+  - `ci-maintenance when triggered -> explain-change -> verify -> pr`
+- In workflow-managed standard workflow runs, autoprogressed `code-review` must emit its first-pass review record before any review-driven fix begins.
+- In workflow-managed standard workflow runs, first-pass `blocked` and `inconclusive` stop instead of entering `review-resolution`.
+- If a milestone-based plan does not clearly identify the reviewed milestone or remaining in-scope implementation milestones, stop for a plan update or inconclusive review instead of inferring final-closeout readiness.
 - Direct `proposal-review`, `spec-review`, `architecture-review`, `code-review`, `verify`, and `explain-change` stay isolated by default unless the user explicitly asks for end-to-end continuation.
 - Direct `pr` remains in scope and still performs the `pr` stage itself when readiness passes. Isolation only prevents downstream continuation beyond `pr`.
-- Fast-lane and bugfix execution remain on the repository's existing explicit-step behavior in v1.
+- Manual skill invocations and bugfix skill invocations remain isolated or explicit-step in v1.
 - On-demand and periodic actions such as `explore`, `research`, and `learn` do not auto-run by default.
 
-### Documentation or governance lane
+### Documentation and governance work
 
 Use when the task is about project rules, onboarding, architecture visibility, process, or repository memory.
 
@@ -244,7 +310,7 @@ Common skills:
 
 ## Initial routing checklist
 
-Before choosing a lane, classify the request:
+Before routing, classify the request:
 
 1. Is this a bug, a new feature, a refactor, a migration, documentation, or a review?
 2. Does it change externally observable behavior?
@@ -339,7 +405,12 @@ When stopped, provide the smallest concrete next artifact or decision needed to 
 
 ## Evidence collection efficiency
 
-Use summary and stable-ID first reasoning before broad reads or raw excerpts. Prefer check IDs, requirement IDs, test IDs, file paths, counts, and line citations when inspecting large files, repeated scans, generated output, or validation output. Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
+Use bounded evidence before broad reads or raw excerpts.
+Use summary and stable-ID first reasoning before broad reads or raw excerpts.
+Prefer check IDs, requirement IDs, test IDs, file paths, counts, line citations, matching line numbers, diffs, and targeted excerpts when inspecting large files, generated output, validation logs, or repeated scans.
+Output caps are safety rails, not evidence-selection strategy.
+Validation summaries must not change selected check coverage, command exit behavior, failure detection, or required validation evidence.
+Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
 
 ## When full-file read is required
 
@@ -347,9 +418,21 @@ Read the full file when the whole file is the review target, the relevant sectio
 
 ## Expected output
 
-Always state:
+Start with:
 
-- chosen lane and why;
+```md
+## Result
+
+- Skill: workflow
+- Status:
+- Artifacts changed:
+- Open blockers:
+- Next stage:
+```
+
+Then state:
+
+- workflow state and why;
 - invocation context and why;
 - current stage;
 - artifacts found, created, or missing;

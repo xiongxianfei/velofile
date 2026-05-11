@@ -11,6 +11,18 @@ You are reviewing in independent-review mode with fresh eyes.
 
 Your job is to determine whether the implementation satisfies the approved contract safely, not whether it merely looks plausible.
 
+## Purpose
+
+Review the actual implementation slice against approved artifacts, tests, diff, and validation evidence, then produce a first-pass review status and milestone-aware handoff.
+
+## When to use
+
+Use this skill after `implement` hands off a milestone, before PR readiness decisions, or when a user explicitly asks for an implementation review against the governing artifacts.
+
+## When not to use
+
+Do not use this skill to fix findings before recording them, claim branch or PR readiness, substitute passing tests for review, or review from memory without inspecting the actual review surface.
+
 ## Inputs to read
 
 Read:
@@ -29,6 +41,37 @@ Read:
 - related code paths and tests when needed.
 
 Prefer a fresh session, separate reviewer, or separate agent when available. If not, intentionally reset assumptions before reading the diff.
+
+## Outputs
+
+Produce a first-pass review record with status, inputs, diff summary, findings or no-finding rationale, checklist coverage, and a milestone-aware next-stage decision.
+
+## Handoff
+
+- Normal next stage: follow the active plan and milestone state after the first-pass review.
+- Conditional next stages: `review-resolution` for material or required-change findings; `implement <next milestone>` after a clean non-final milestone; final closeout after a clean final milestone; stop on `blocked` or `inconclusive`.
+- A clean review of a non-final implementation milestone closes that milestone and hands off to `implement <next milestone>`.
+- A clean review of the final in-scope implementation milestone reaches final closeout, not direct `verify`.
+- Final closeout runs `ci-maintenance` when triggered, otherwise `explain-change`, then `verify`, then `pr`.
+- Do not hand off to final closeout while implementation milestones remain open or required review-resolution remains unresolved.
+- For full stage order and downstream-blocking semantics, route through the `workflow` skill.
+
+## Claims this skill must not make
+
+Do not claim:
+
+- branch-ready, PR-ready, `pr-body-ready`, or `pr-open-ready`;
+- CI passed, verification passed, or tests passed unless cited as evidence from the owning validation surface;
+- implementation fixes were made unless this review also owns a recorded resolution flow;
+- derived artifacts are current unless validation evidence proves it.
+
+## Progress, readiness, closeout, and Done
+
+- Progress means work that has happened so far.
+- Readiness means the next stage that can happen.
+- Closeout means the current artifact or stage satisfied its checklist.
+- Done means final lifecycle state after required gates are complete.
+- Readiness is not Done. A clean non-final milestone review closes that milestone, not the whole plan.
 
 ## Independent-review mode
 
@@ -56,7 +99,7 @@ Prefer a fresh session, separate reviewer, or separate agent when available. If 
 - Code-shape inference alone is insufficient direct proof for a named edge case.
 - When a named edge-case proof gap is actionable within approved scope, report it as a finding instead of a clean result.
 - When the reviewer cannot inspect enough evidence to assess a named edge case credibly, use `inconclusive` rather than a clean result.
-- For validation-routing changes, targeted proof should name selector selected checks from `python scripts/select-validation.py` or `bash scripts/ci.sh --mode explicit`; broad smoke evidence is separate and required only when an authoritative trigger applies.
+- For validation-routing changes, targeted proof should name checks selected or executed by the project's validation tooling; broad smoke evidence is separate and required only when an authoritative trigger applies.
 
 ## First-pass checklist coverage
 
@@ -69,7 +112,7 @@ Evaluate each check with `pass`, `concern`, or `block`, and cite concrete eviden
 5. **Architecture boundaries**: the diff respects approved design boundaries and ADR decisions.
 6. **Compatibility**: existing workflow expectations, contributor contracts, and migrations remain valid.
 7. **Security/privacy**: no secret leakage, unsafe logging, auth bypass, or policy regression.
-8. **Generated output drift**: canonical/generated outputs remain synchronized when generation is involved.
+8. **Derived artifact currency**: canonical/derived artifacts remain synchronized when generation is involved.
 9. **Unrelated changes**: the reviewed diff does not quietly include unrelated edits.
 10. **Validation evidence**: named commands and results are present, relevant, and credible.
 
@@ -79,7 +122,7 @@ For sensitive change classes, explicitly cite the relevant governing requirement
 
 Use exactly one first-pass review status:
 
-- `clean-with-notes`: the review passes and no unresolved accepted fix is required before `verify`.
+- `clean-with-notes`: the review passes and no unresolved accepted fix is required before the next stage.
 - `changes-requested`: one or more fixable findings exist within current approved scope and with sufficient evidence to act.
 - `blocked`: the review cannot safely auto-enter `review-resolution` under current approved scope without a new decision.
 - `inconclusive`: the reviewer cannot inspect enough evidence to produce a credible clean or actionable result.
@@ -102,14 +145,67 @@ For every material finding, include evidence, the required outcome, and a safe r
 
 If a safe resolution cannot be chosen without an owner decision, use a `needs-decision` rationale that names the decision needed and owning stage. A material finding lacking evidence, required outcome, or safe resolution or `needs-decision` rationale is incomplete.
 
-When workflow-managed review findings are recorded under `docs/changes/<change-id>/reviews/`, preserve the first-pass review record before fixes and record dispositions in `review-resolution.md`.
+## Isolation and Recording
+
+Isolation governs handoff. Recording follows material findings.
+
+A direct or review-only request remains isolated by default: it does
+not automatically continue into downstream workflow stages.
+
+Isolation does not suppress recording.
+
+Every material finding requires a durable change-local review record
+under:
+
+`docs/changes/<change-id>/reviews/<stage>-r<n>.md`
+
+The review record must be indexed in `review-log.md` and resolved in
+`review-resolution.md`.
+
+Create the durable record before fixing.
+
+A material finding must include:
+
+- evidence
+- required outcome
+- safe resolution path, or `needs-decision` rationale
+
+Clean reviews with no material findings remain lightweight and do not
+require detailed review files.
+
+For an isolated review with material findings, the final review output
+must state:
+
+- no automatic downstream handoff
+- material Finding IDs
+- required review record path
+- whether the record must be created before fixing or reconstructed
+- whether owner decision is needed
+
+## Detailed Review Records
+
+Use these detailed review record triggers for formal lifecycle reviews:
+
+- material findings
+- stage-owned non-approval outcomes that block downstream progress or require revision
+- reconstructed review evidence
+- closeout evidence citation
+- explicit reviewer or maintainer request
+
+Examples of stage-owned non-approval outcomes include `revise`, `changes-requested`, `blocked`, `rethink`, `inconclusive`, and equivalent blocking stage-specific outcomes.
+
+When a detailed review file is created, `review-log.md` indexes it. Material findings need stable `Finding ID` values and disposition in `review-resolution.md`.
+
+In this contract, clean reviews can settle artifact-locally when no detailed review record triggers apply. For no-material review events, no-material detailed records need `review-log.md` but not an empty `review-resolution.md`. Likewise, artifact-local settlement must not replace detailed review records when a trigger applies.
+
+Do not add a dedicated `pr-review` stage. It is an unsupported review stage unless a later approved spec extends the stage set. A material maintainer PR comment that needs disposition must first be promoted into a supported formal lifecycle review record with a stable `Finding ID`.
 
 ## Rules
 
 - Produce a first-pass review record before any review-driven fix is applied or any `review-resolution` work begins.
 - The first-pass review record must include: review status, review inputs, diff summary, findings, checklist coverage, no-finding rationale when no findings exist, and recommended next stage.
 - Surfacing findings first means the findings are visible before fixes begin. It does not create a new user decision gate unless a stop condition applies.
-- This feature does not create a new standalone `review-resolution.md` requirement by itself.
+- A clean first-pass review with no material findings does not create a standalone `review-resolution.md` requirement by itself.
 - Do not confuse passing tests with compliance.
 - Do not review from memory; use the actual diff.
 - Do not request broad rewrites when a targeted fix is enough.
@@ -120,13 +216,51 @@ When workflow-managed review findings are recorded under `docs/changes/<change-i
 
 ## Workflow handoff behavior
 
-- In a workflow-managed full-feature flow, emit the first-pass review record before any review-driven fix begins.
-- In a workflow-managed full-feature flow, `clean-with-notes` hands off to `verify` when no stop condition applies.
-- In a workflow-managed full-feature flow, `changes-requested` enters the `review-resolution` loop, addresses the findings, and reruns `code-review` when no stop condition applies.
-- In a workflow-managed full-feature flow, `blocked` stops and reports the blocker.
-- In a workflow-managed full-feature flow, `inconclusive` stops and reports the missing evidence. It does not enter `review-resolution`.
+- In a workflow-managed standard workflow, emit the first-pass review record before any review-driven fix begins.
+- In a workflow-managed standard workflow, `clean-with-notes` hands off according to the active plan and milestone state when no stop condition applies.
+- In a workflow-managed standard workflow, `changes-requested` enters the `review-resolution` loop, addresses the findings, and reruns `code-review` when no stop condition applies.
+- In a workflow-managed standard workflow, `blocked` stops and reports the blocker.
+- In a workflow-managed standard workflow, `inconclusive` stops and reports the missing evidence. It does not enter `review-resolution`.
 - Stop instead of auto-entering `review-resolution` when the request is review-only, the request is isolated `code-review`, a finding requires a product/spec/architecture/ADR/scope decision, a higher-priority repository policy requires human review, the actual diff/tests/upstream artifacts are unavailable, or the user explicitly asked to stop after review.
 - Direct `code-review` requests remain isolated by default unless the user explicitly asks to continue beyond the review result.
+
+## Stop conditions
+
+Stop instead of clean handoff when:
+
+- the actual diff, relevant tests, or authoritative upstream artifacts cannot be inspected;
+- required tracked governing authority is missing for a clean branch-scoped conclusion;
+- findings require a product, spec, architecture, ADR, ownership, or scope decision;
+- review-only or isolated invocation forbids downstream continuation;
+- the reviewed milestone or remaining in-scope implementation milestones cannot be determined.
+
+## Milestone-aware review handoff
+
+For a milestone-based plan, identify the reviewed milestone and inspect the active plan before choosing the next stage.
+
+- A clean non-final milestone closes the reviewed milestone and hands off to the next in-scope implementation milestone.
+- A clean final milestone closes the reviewed milestone and hands off to `ci-maintenance` when triggered; otherwise it hands off to `explain-change`, only when no in-scope implementation milestone remains open or unresolved and no required review-resolution remains open.
+- Findings that require review-resolution, fixes, owner decision, or re-review move the reviewed milestone to `resolution-needed` and keep the workflow on that same milestone.
+- Accepted fixes remain attached to the same milestone. When re-review is required, the milestone returns to `review-requested` before rerun `code-review`.
+- If the reviewed milestone or remaining in-scope implementation milestones cannot be determined from the active plan and review output, return `inconclusive` or require a plan update instead of handing off to final closeout.
+
+A clean review of one non-final implementation milestone is not proof that the whole plan is ready for final closeout.
+
+## Plan closeout check
+
+For milestone-based plans, the review output must include or require a current handoff summary with:
+
+- reviewed milestone;
+- review status;
+- milestone state after review;
+- required review-resolution, if any;
+- remaining in-scope implementation milestones;
+- next stage;
+- final closeout readiness and the reason.
+
+Update or require update of the active plan `Current Handoff Summary` before downstream handoff.
+
+When review is `clean-with-notes` and no review-resolution is required, update or require update of the reviewed milestone from `review-requested` to `closed`. When findings require review-resolution, update or require update of the reviewed milestone to `resolution-needed`.
 
 ## Recommended clean review template
 
@@ -167,7 +301,7 @@ No blocking or required-change findings.
 | Architecture boundaries | pass | <evidence> |
 | Compatibility | pass | <evidence> |
 | Security/privacy | pass | <evidence> |
-| Generated output drift | pass | <evidence> |
+| Derived artifact currency | pass | <evidence> |
 | Unrelated changes | pass | <evidence> |
 
 ## No-finding rationale
@@ -186,13 +320,39 @@ No blocking findings were found because:
 
 ## Evidence collection efficiency
 
-Use summary and stable-ID first reasoning before broad reads or raw excerpts. Prefer check IDs, requirement IDs, test IDs, file paths, counts, and line citations when inspecting large files, repeated scans, generated output, or validation output. Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
+Use bounded evidence before broad reads or raw excerpts.
+Use summary and stable-ID first reasoning before broad reads or raw excerpts.
+Prefer check IDs, requirement IDs, test IDs, file paths, counts, line citations, matching line numbers, diffs, and targeted excerpts when inspecting large files, generated output, validation logs, or repeated scans.
+Output caps are safety rails, not evidence-selection strategy.
+Validation summaries must not change selected check coverage, command exit behavior, failure detection, or required validation evidence.
+Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
 
 ## When full-file read is required
 
 Read the full file when the whole file is the review target, the relevant section cannot be isolated safely, surrounding context can change the conclusion, bounded searches disagree or produce incomplete evidence, or a behavior-changing edit depends on the whole source-of-truth artifact.
 
 ## Expected output
+
+Start with:
+
+```md
+## Result
+
+- Skill: code-review
+- Status:
+- Artifacts changed:
+- Open blockers:
+- Next stage:
+- Reviewed milestone:
+- Review status:
+- Milestone closeout:
+- Remaining implementation milestones:
+- Required review-resolution:
+- Finding IDs:
+- Verify readiness:
+```
+
+Then include:
 
 - first-pass review record with:
   - review status using `clean-with-notes`, `changes-requested`, `blocked`, or `inconclusive`;

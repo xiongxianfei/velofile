@@ -24,7 +24,6 @@ Read, if present:
 - related architecture docs or ADRs
 - related issues, incidents, or user feedback
 - root `VISION.md` when present
-- migration-recognized legacy root `vision.md` when `VISION.md` has not replaced it yet
 
 ## Output path
 
@@ -68,11 +67,11 @@ The first non-empty line of the section states exactly one of:
 - `proposes a vision revision`
 - `no vision exists yet`
 
-When neither root `VISION.md` nor migration-recognized legacy root `vision.md` exists, proposals must use the exact `Vision fit` value `no vision exists yet`.
+When root `VISION.md` does not exist, proposals must use the exact `Vision fit` value `no vision exists yet`.
 
 If root `VISION.md` exists, choose one of the current-vision outcomes and do not use `no vision exists yet`.
 
-During the `vision.md` to `VISION.md` migration, do not use `no vision exists yet` solely because `VISION.md` has not yet replaced migration-recognized legacy root `vision.md`.
+Retired root `vision.md` must not prevent `no vision exists yet` when root `VISION.md` is absent.
 
 A short explanatory paragraph may follow the status line.
 
@@ -84,11 +83,35 @@ Legacy proposals are not invalid solely because they lack `Vision fit`; add it o
 
 A substantive proposal is any proposal that chooses product direction, user-facing behavior, workflow policy, architecture direction, compatibility policy, release policy, or contributor-visible contract.
 
-`VISION.md` absence blocks the first substantive proposal unless the proposal is bootstrap work to create or migrate project vision.
+`VISION.md` absence blocks the first substantive proposal unless the proposal is bootstrap work to create project vision.
 
 `CONSTITUTION.md` absence blocks governance adoption, workflow-governance changes, and source-of-truth changes unless the proposal is bootstrap work to create or migrate the constitution.
 
 Bootstrap proposals must identify the bootstrap exception in `Vision fit`. If the proposal is not bootstrap work and the required standing artifact is missing, stop before drafting a substantive proposal.
+
+## Scope preservation
+
+Before drafting or materially revising a proposal, extract the user's initial goals, concerns, constraints, and requested outcomes.
+
+Every initial user goal must be visible in the proposal as one of:
+
+- `in scope`
+- `out of scope`
+- `deferred follow-up`
+- `rejected option`
+- `open question`
+
+Do not silently drop a user goal when narrowing a proposal.
+
+If a proposal intentionally narrows the user's request, record the narrowing in `Non-goals`, `Options considered`, `Decision log`, `Next artifacts`, `Follow-on artifacts`, or `Open questions`.
+
+For broad or multi-part requests, include this section or an equivalent table:
+
+## Initial intent preservation
+
+| Initial user goal | Proposal treatment | Where recorded |
+|---|---|---|
+| <goal> | in scope / out of scope / deferred follow-up / rejected option / open question | <section> |
 
 ## Decision quality checklist
 
@@ -97,6 +120,7 @@ Before marking accepted or ready for review, verify:
 - the problem is not just a solution in disguise;
 - the recommended option is compared against alternatives;
 - non-goals protect the scope;
+- each initial user goal is classified and traceable when the request is broad or multi-part;
 - user value is explicit;
 - `Vision fit` is present and consistent with root `VISION.md` when required;
 - architecture impact is acknowledged;
@@ -123,7 +147,12 @@ Before marking accepted or ready for review, verify:
 
 ## Evidence collection efficiency
 
-Use summary and stable-ID first reasoning before broad reads or raw excerpts. Prefer check IDs, requirement IDs, test IDs, file paths, counts, and line citations when inspecting large files, repeated scans, generated output, or validation output. Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
+Use bounded evidence before broad reads or raw excerpts.
+Use summary and stable-ID first reasoning before broad reads or raw excerpts.
+Prefer check IDs, requirement IDs, test IDs, file paths, counts, line citations, matching line numbers, diffs, and targeted excerpts when inspecting large files, generated output, validation logs, or repeated scans.
+Output caps are safety rails, not evidence-selection strategy.
+Validation summaries must not change selected check coverage, command exit behavior, failure detection, or required validation evidence.
+Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
 
 ## When full-file read is required
 

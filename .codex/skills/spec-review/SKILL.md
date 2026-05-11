@@ -53,7 +53,60 @@ For every material finding, include evidence, the required outcome, and a safe r
 
 If a safe resolution cannot be chosen without an owner decision, use a `needs-decision` rationale that names the decision needed and owning stage. A material finding lacking evidence, required outcome, or safe resolution or `needs-decision` rationale is incomplete.
 
-When workflow-managed review findings are recorded under `docs/changes/<change-id>/reviews/`, preserve the first-pass review record before fixes and record dispositions in `review-resolution.md`.
+## Isolation and Recording
+
+Isolation governs handoff. Recording follows material findings.
+
+A direct or review-only request remains isolated by default: it does
+not automatically continue into downstream workflow stages.
+
+Isolation does not suppress recording.
+
+Every material finding requires a durable change-local review record
+under:
+
+`docs/changes/<change-id>/reviews/<stage>-r<n>.md`
+
+The review record must be indexed in `review-log.md` and resolved in
+`review-resolution.md`.
+
+Create the durable record before fixing.
+
+A material finding must include:
+
+- evidence
+- required outcome
+- safe resolution path, or `needs-decision` rationale
+
+Clean reviews with no material findings remain lightweight and do not
+require detailed review files.
+
+For an isolated review with material findings, the final review output
+must state:
+
+- no automatic downstream handoff
+- material Finding IDs
+- required review record path
+- whether the record must be created before fixing or reconstructed
+- whether owner decision is needed
+
+## Detailed Review Records
+
+Use these detailed review record triggers for formal lifecycle reviews:
+
+- material findings
+- stage-owned non-approval outcomes that block downstream progress or require revision
+- reconstructed review evidence
+- closeout evidence citation
+- explicit reviewer or maintainer request
+
+Examples of stage-owned non-approval outcomes include `revise`, `changes-requested`, `blocked`, `rethink`, `inconclusive`, and equivalent blocking stage-specific outcomes.
+
+When a detailed review file is created, `review-log.md` indexes it. Material findings need stable `Finding ID` values and disposition in `review-resolution.md`.
+
+In this contract, clean reviews can settle artifact-locally when no detailed review record triggers apply. For no-material review events, no-material detailed records need `review-log.md` but not an empty `review-resolution.md`. Likewise, artifact-local settlement must not replace detailed review records when a trigger applies.
+
+Do not add a dedicated `pr-review` stage. It is an unsupported review stage unless a later approved spec extends the stage set. A material maintainer PR comment that needs disposition must first be promoted into a supported formal lifecycle review record with a stable `Finding ID`.
 
 ## Rules
 
@@ -76,7 +129,12 @@ When workflow-managed review findings are recorded under `docs/changes/<change-i
 
 ## Evidence collection efficiency
 
-Use summary and stable-ID first reasoning before broad reads or raw excerpts. Prefer check IDs, requirement IDs, test IDs, file paths, counts, and line citations when inspecting large files, repeated scans, generated output, or validation output. Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
+Use bounded evidence before broad reads or raw excerpts.
+Use summary and stable-ID first reasoning before broad reads or raw excerpts.
+Prefer check IDs, requirement IDs, test IDs, file paths, counts, line citations, matching line numbers, diffs, and targeted excerpts when inspecting large files, generated output, validation logs, or repeated scans.
+Output caps are safety rails, not evidence-selection strategy.
+Validation summaries must not change selected check coverage, command exit behavior, failure detection, or required validation evidence.
+Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
 
 ## When full-file read is required
 

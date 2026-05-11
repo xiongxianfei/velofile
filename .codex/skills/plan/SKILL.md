@@ -11,6 +11,18 @@ You are turning approved behavior and architecture into a safe, reviewable imple
 
 Planning happens after the spec defines behavior and architecture defines the design direction. Do not use this skill to decide what the product should be.
 
+## Purpose
+
+Create or revise a concrete execution plan that turns approved artifacts into reviewable implementation milestones, validation commands, recovery paths, and lifecycle readiness.
+
+## When to use
+
+Use this skill after proposal, spec, and architecture are stable enough to sequence implementation, especially for multi-file, risky, milestone-based, migration-heavy, or cross-component work.
+
+## When not to use
+
+Do not use this skill to choose product direction, replace missing specs, perform implementation, claim review or verification outcomes, or mark work Done when downstream lifecycle gates remain.
+
 ## Inputs to read
 
 Read:
@@ -39,6 +51,35 @@ docs/plan.md
 Create a new dated plan for new initiatives. Update `docs/plan.md` as the lifecycle index of active, blocked, done, and superseded plans.
 For planned initiatives, `docs/plan.md` remains the lifecycle index while files under `docs/plans/` remain the plan bodies. `plan` owns creating or revising those surfaces when an initiative starts or is re-planned, not every later execution-time update.
 
+## Outputs
+
+Produce or update the concrete plan body and, when starting or replanning an initiative, the `docs/plan.md` lifecycle index. The plan must name the milestone sequence, validation commands, recovery path, current handoff summary, and remaining completion gates.
+
+## Handoff
+
+- Normal next stage: `plan-review`.
+- Conditional next stages: return to `spec` or `architecture` when planning exposes a blocking gap; proceed to `test-spec` only after plan-review when the workflow allows it.
+- For full stage order and downstream-blocking semantics, route through the `workflow` skill.
+
+## Claims this skill must not make
+
+Do not claim:
+
+- code is implemented, review passed, verification passed, branch-ready, or PR-ready;
+- the plan is Done merely because it is ready for the next stage;
+- ready for PR or ready for final closeout without explicit remaining gates and the owning review/verification evidence;
+- derived artifacts are current unless validation evidence proves it.
+
+Use `Readiness is not Done` as the default interpretation for handoff lines. Keep `Remaining completion gates` visible whenever readiness could be confused with completion.
+
+## Progress, readiness, closeout, and Done
+
+- Progress means work that has happened so far.
+- Readiness means the next stage that can happen.
+- Closeout means the current artifact or stage satisfied its checklist.
+- Done means final lifecycle state after required gates are complete.
+- Readiness is not Done. A plan may remain `Active` while it is ready for the next gate.
+
 ## Required sections
 
 1. **Status**: draft, reviewed, active, blocked, done, superseded.
@@ -63,6 +104,7 @@ Each milestone should include:
 
 ```text
 M1. Title
+- Milestone state:
 - Goal:
 - Requirements:
 - Files/components likely touched:
@@ -84,6 +126,53 @@ M1. Title
 
 Milestones should be small enough for one review loop and one coherent commit. A PR may contain one or more completed milestones when that is the clearest review boundary.
 
+## Milestone-aware plans
+
+For milestone-based plans, each implementation milestone has exactly one `Milestone state`.
+
+Allowed values:
+
+- `planned`
+- `implementing`
+- `review-requested`
+- `resolution-needed`
+- `closed`
+
+Use `review-requested` after implementation and targeted validation complete and the slice has been handed to `code-review`. Use `resolution-needed` when review findings require review-resolution, fixes, owner decision, or re-review. `implementation-complete` and `review-clean` are evidence descriptions, not milestone state values.
+
+Each implementation milestone normally follows this loop:
+
+```text
+implement M<n>
+-> code-review M<n>
+-> review-resolution M<n>, when triggered
+-> implement fixes for M<n>, when needed
+-> code-review M<n> rerun, when needed
+-> close M<n>
+-> implement M<n+1>, when another in-scope implementation milestone remains
+```
+
+Do not hand off to final closeout until all in-scope implementation milestones are `closed` or explicitly removed by plan revision and required review-resolution is closed.
+
+Milestones are not postponed to make final closeout available. If a planned implementation milestone no longer belongs in the current change, revise the plan before handoff.
+
+Use `lifecycle-closeout` for a milestone or section that tracks only downstream gates such as `ci-maintenance`, `explain-change`, `verify`, PR handoff, release, deploy, or final plan closeout. A mixed milestone that still contains implementation work remains an implementation milestone for final-closeout readiness decisions.
+
+For milestone-based plans, include and update a current handoff summary whenever implementation or review changes milestone readiness:
+
+```text
+Current milestone:
+Current milestone state:
+Last reviewed milestone:
+Review status:
+Remaining in-scope implementation milestones:
+Next stage:
+Final closeout readiness:
+Reason final closeout is or is not ready:
+```
+
+The active plan `Readiness` section points to `Current Handoff Summary` for current live state. Do not duplicate the current next stage outside `Current Handoff Summary` unless the statement is explicitly historical.
+
 ## Planning rules
 
 - Derive work from spec requirements and architecture decisions.
@@ -92,19 +181,51 @@ Milestones should be small enough for one review loop and one coherent commit. A
 - Do not omit validation commands.
 - Keep `docs/plan.md` as an index, not a second long-form plan body.
 - When planning starts a new initiative or replaces an older one, update the relevant `docs/plan.md` entry and plan body in the same planning change.
+- When a plan lifecycle transition is performed by a PR, plan the synchronized `docs/plan.md` and plan-body update before the PR opens for review.
+- If completion depends on a true downstream completion event, keep the plan `Active` and name that event; merge itself is not that event.
 - Do not create a plan that only the current chat context can understand.
-- Do not proceed to implementation until `plan-review` and `test-spec` are ready unless using the fast lane.
+- Do not proceed to implementation until `plan-review` and `test-spec` are ready unless the user explicitly requests an isolated manual skill invocation and the limitation is recorded.
 - If planning reveals spec or architecture gaps, update those artifacts first.
+
+## Stop conditions
+
+Stop before handoff when:
+
+- required source artifacts are missing, contradictory, or not approved enough for the workflow state;
+- architecture, migration, security, or release boundaries are too unclear to sequence safely;
+- validation commands cannot be identified;
+- a milestone would rely on chat-only context;
+- the plan would hide open implementation work behind `Ready for final closeout`, Done, or PR readiness wording.
 
 ## Evidence collection efficiency
 
-Use summary and stable-ID first reasoning before broad reads or raw excerpts. Prefer check IDs, requirement IDs, test IDs, file paths, counts, and line citations when inspecting large files, repeated scans, generated output, or validation output. Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
+Use bounded evidence before broad reads or raw excerpts.
+Use summary and stable-ID first reasoning before broad reads or raw excerpts.
+Prefer check IDs, requirement IDs, test IDs, file paths, counts, line citations, matching line numbers, diffs, and targeted excerpts when inspecting large files, generated output, validation logs, or repeated scans.
+Output caps are safety rails, not evidence-selection strategy.
+Validation summaries must not change selected check coverage, command exit behavior, failure detection, or required validation evidence.
+Read exact ranges after locating relevant lines, then expand only when the narrower evidence is insufficient.
 
 ## When full-file read is required
 
 Read the full file when the whole file is the review target, the relevant section cannot be isolated safely, surrounding context can change the conclusion, bounded searches disagree or produce incomplete evidence, or a behavior-changing edit depends on the whole source-of-truth artifact.
 
 ## Expected output
+
+Start with:
+
+```md
+## Result
+
+- Skill: plan
+- Status:
+- Artifacts changed:
+- Open blockers:
+- Next stage:
+- Readiness:
+```
+
+Then include:
 
 - concrete plan file path;
 - updated `docs/plan.md` index when applicable;
