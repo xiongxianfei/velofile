@@ -128,7 +128,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M3. Guarded Test Fixture Mode and Deterministic File-List States
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Add the non-production fixture launch path and deterministic first-slice file-list fixtures needed for visual evidence.
 - Requirements: R62-R69, R67-R68, S1-S4, O2, AC11-AC13, ADR 0009.
 - Files/components likely touched: `src/VeloFile.App/App.xaml.cs`, `src/VeloFile.App/AppCompositionRoot.cs`, `src/VeloFile.App/ViewModels/`, `tests/VeloFile.App.Tests/`, possibly a small app-shell fixture registry under `src/VeloFile.App/Testing/` guarded by build symbols.
@@ -266,20 +266,20 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
-- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - review-requested
+- [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
-Current milestone: M3. Guarded Test Fixture Mode and Deterministic File-List States
-Current milestone state: review-requested
-Last reviewed milestone: M2
-Review status: CR-M3-001 resolved; M3 ready for rerun code-review
-Remaining in-scope implementation milestones: M3, M4
-Next stage: rerun `code-review` M3
+Current milestone: M4. Visual Baseline Evidence and Baseline Update Workflow
+Current milestone state: planned
+Last reviewed milestone: M3
+Review status: M3 rerun code-review clean-with-notes; no required-change findings remain for M3
+Remaining in-scope implementation milestones: M4
+Next stage: `implement` M4
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M3 awaits rerun code-review and M4 remains planned.
+Reason final closeout is or is not ready: M4 remains planned.
 
 ## Decision Log
 
@@ -408,6 +408,12 @@ M3 review-resolution validation:
 
 M3 review-resolution resolved CR-M3-001 by adding explicit fixture presentation state with stable row IDs, preserving that state through fixture shell creation, and applying accepted fixture selected/focused rows through `FileListSurface` in `MainWindow`.
 
+M3 rerun code-review result:
+
+- Status: clean-with-notes.
+- No required-change findings remain for M3.
+- M3 is closed and the next implementation milestone is M4.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M3 rerun code-review. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M4 implementation. Final closeout is not ready.

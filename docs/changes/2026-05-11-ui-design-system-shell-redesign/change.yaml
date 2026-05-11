@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: m3-review-requested
+status: m3-closed
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,13 +10,12 @@ architecture:
 milestone:
   id: M3
   title: Guarded Test Fixture Mode and Deterministic File-List States
-  state: review-requested
+  state: closed
 review:
   stage: code-review
-  status: changes-requested
+  status: clean-with-notes
   record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r4.md
-  findings:
-    - CR-M3-001
+  findings: []
   resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
 validation:
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
@@ -133,4 +132,11 @@ m3_review_resolution_validation:
     result: passed with 0 warnings and 0 errors
   - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: passed with build success, UI contract validation pass, and 382 tests
-next_stage: rerun code-review M3
+m3_rerun_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: review of tracked diff and validation evidence
+      result: passed; no required-change findings remain for M3
+next_stage: implement M4
