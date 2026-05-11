@@ -2,7 +2,7 @@
 
 ## Status
 
-M2 resolved; awaiting rerun code-review
+All recorded M1 and M2 findings resolved. M2 closed by rerun code-review.
 
 ## Pending findings
 
