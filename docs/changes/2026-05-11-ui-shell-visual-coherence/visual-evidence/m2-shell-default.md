@@ -2,7 +2,7 @@
 
 ## Evidence Type
 
-unavailable full-shell visual evidence
+unavailable full-shell visual evidence after failed capture attempt
 
 ## Profile
 
@@ -19,13 +19,17 @@ unavailable full-shell visual evidence
 
 ## Launch / Review Method
 
-No observed full-shell visual review was performed in this environment.
+No accepted full-shell visual review was performed in this environment.
 
 The repository currently has `scripts/update-ui-baselines.ps1`, which copies already-reviewed current screenshots into baselines, but no checked-in script that launches the WinUI app and captures `shell-default` current screenshots. This tool session also cannot directly observe the local WinUI desktop, so it cannot truthfully record a manual visual review result.
 
+A later bounded local capture attempt launched `src\VeloFile.App\bin\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` and confirmed that the app exposes a visible `VeloFile` window. The attempted screenshot path did not produce valid evidence because the local desktop reported `150%` scale instead of the required `100%` profile, and the first capture targeted the foreground browser rather than the VeloFile window. The invalid generated screenshot and sidecar outputs were discarded.
+
 ## Observed Result
 
-- Whole shell visible: not observed
+- App launched: yes, during bounded capture diagnostic
+- Required profile used: no; local desktop reported `150%` scale instead of required `100%`
+- Whole shell visible: not accepted as observed evidence
 - New redesigned/non-redesigned mismatch observed: not assessed
 - Primary navigation visible and reachable: not assessed visually
 - Path/search controls visible and reachable: not assessed visually
@@ -41,7 +45,7 @@ No deviation was recorded because no visual review was performed. If a later rev
 
 - Current screenshot: not captured
 - Sidecar: not captured
-- Reason: screenshot capture automation is not implemented for M2, and this tool session cannot observe the WinUI desktop for manual visual review.
+- Reason: screenshot capture automation is not implemented for M2, the local capture attempt ran at `150%` desktop scale rather than the required `100%` profile, and this tool session cannot truthfully record a manual full-shell visual-review result.
 
 ## Conclusion
 
