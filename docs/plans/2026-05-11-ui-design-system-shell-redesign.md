@@ -158,7 +158,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M4. Visual Baseline Evidence and Baseline Update Workflow
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add the reviewed visual baseline storage, generated-output ignore rules, metadata sidecars, and review-gated baseline update workflow for the first file-list profile.
 - Requirements: R69-R79, O3-O4, AC8-AC10, ADR 0009.
 - Files/components likely touched: `tests/visual/baselines/winui/dark-comfortable-1440x900-100/`, `tests/visual/current/`, `tests/visual/diffs/`, `.gitignore`, `scripts/update-ui-baselines.ps1`, `tests/VeloFile.Corpus.Tests/` or script validation tests, docs under `docs/ui/` if needed.
@@ -267,19 +267,19 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
-- [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - review-requested
+- [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - resolution-needed
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
 Current milestone: M4. Visual Baseline Evidence and Baseline Update Workflow
-Current milestone state: review-requested
-Last reviewed milestone: M3
-Review status: M3 rerun code-review clean-with-notes; no required-change findings remain for M3
+Current milestone state: resolution-needed
+Last reviewed milestone: M4
+Review status: M4 code-review changes-requested with CR-M4-001
 Remaining in-scope implementation milestones: M4
-Next stage: `code-review` M4
+Next stage: `review-resolution` M4
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M4 awaits code-review.
+Reason final closeout is or is not ready: M4 has an open required-change finding.
 
 ## Decision Log
 

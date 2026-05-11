@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: m4-review-requested
+status: m4-resolution-needed
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,12 +10,13 @@ architecture:
 milestone:
   id: M4
   title: Visual Baseline Evidence and Baseline Update Workflow
-  state: review-requested
+  state: resolution-needed
 review:
   stage: code-review
-  status: clean-with-notes
-  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r4.md
-  findings: []
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r5.md
+  findings:
+    - CR-M4-001
   resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
 validation:
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
@@ -154,4 +155,4 @@ m4_validation:
     result: no output; generated visual outputs remain ignored
   - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: first run hit the 5-minute tool timeout; rerun with longer timeout passed with build success, UI contract validation pass, and 387 tests
-next_stage: code-review M4
+next_stage: review-resolution M4
