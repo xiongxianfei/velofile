@@ -63,12 +63,37 @@ public sealed class UiFixtureRegistryTests
     }
 
     [TestMethod]
+    public void File_list_v1_fixture_exposes_explicit_presentation_targets()
+    {
+        var fixture = UiFixtureRegistry.GetFixture("file-list-v1");
+
+        Assert.IsNotNull(fixture);
+        var rowIds = fixture.Rows.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.IsNotEmpty(fixture.PresentationState.SelectedRowIds);
+        Assert.IsNotNull(fixture.PresentationState.FocusedRowId);
+        Assert.IsNotNull(fixture.PresentationState.SelectedFocusedRowId);
+        Assert.IsGreaterThan(1, fixture.PresentationState.MultiSelectedRowIds.Count);
+        Assert.AreEqual(fixture.PresentationState.SelectedFocusedRowId, fixture.PresentationState.FocusedRowId);
+        CollectionAssert.Contains(fixture.PresentationState.AllSelectedRowIds.ToArray(), fixture.PresentationState.SelectedFocusedRowId);
+
+        foreach (var targetId in fixture.PresentationState.AllSelectedRowIds
+            .Concat([fixture.PresentationState.FocusedRowId, fixture.PresentationState.SelectedFocusedRowId])
+            .Where(id => id is not null)
+            .Cast<string>())
+        {
+            CollectionAssert.Contains(rowIds.ToArray(), targetId);
+            Assert.IsNotNull(fixture.PresentationState.GetFullPath(targetId), targetId);
+        }
+    }
+
+    [TestMethod]
     public void Empty_folder_fixture_contains_no_rows()
     {
         var fixture = UiFixtureRegistry.GetFixture("file-list-empty-folder");
 
         Assert.IsNotNull(fixture);
         Assert.HasCount(0, fixture.Rows);
+        Assert.IsFalse(fixture.PresentationState.HasTargets);
         Assert.AreEqual("file-list-empty-folder", fixture.Name);
     }
 
@@ -87,6 +112,39 @@ public sealed class UiFixtureRegistryTests
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.DisplayName.Contains("Very long filename", StringComparison.Ordinal)));
     }
 
+    [TestMethod]
+    public async Task Fixture_shell_state_preserves_presentation_targets_after_view_model_creation()
+    {
+        var shellState = UiFixtureRegistry.CreateFileListV1ShellState();
+
+        await WaitUntilAsync(() => shellState.ViewModel.FileListRows.Count >= 10);
+
+        var plan = UiFixturePresentationPlanner.Create(shellState.PresentationState, shellState.ViewModel.FileListRows);
+
+        Assert.IsGreaterThanOrEqualTo(4, plan.SelectedRows.Count);
+        Assert.IsNotNull(plan.FocusedRow);
+        Assert.IsNotNull(plan.SelectedFocusedRow);
+        Assert.AreSame(plan.FocusedRow, plan.SelectedFocusedRow);
+        Assert.IsTrue(plan.SelectedRows.Contains(plan.SelectedFocusedRow));
+        CollectionAssert.IsSubsetOf(
+            new[] { "selected-report.docx", "selected-focused.xlsx", "multi-selected-a.txt", "multi-selected-b.txt" },
+            plan.SelectedRows.Select(row => row.DisplayName).ToArray());
+    }
+
+    [TestMethod]
+    public void App_startup_path_applies_fixture_presentation_to_file_list_surface()
+    {
+        var appSource = ReadRepoFile("src", "VeloFile.App", "App.xaml.cs");
+        var mainWindowSource = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml.cs");
+
+        StringAssert.Contains(appSource, "fixtureShellState?.PresentationState");
+        StringAssert.Contains(mainWindowSource, "ApplyUiFixturePresentationState");
+        StringAssert.Contains(mainWindowSource, "FileListSurface.SelectedItems.Add");
+        StringAssert.Contains(mainWindowSource, "FileListSelectionMapper.ToListedFileItems");
+        StringAssert.Contains(mainWindowSource, "ContainerFromItem");
+        StringAssert.Contains(mainWindowSource, "Focus(FocusState.Keyboard)");
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -100,5 +158,28 @@ public sealed class UiFixtureRegistryTests
 
             await Task.Delay(20);
         }
+    }
+
+    private static string ReadRepoFile(params string[] relativePath)
+    {
+        return File.ReadAllText(FindRepoRoot().Combine(relativePath).FullName);
+    }
+
+    private static DirectoryInfo FindRepoRoot()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "VeloFile.sln")))
+            {
+                return current;
+            }
+
+            current = current.Parent;
+        }
+
+        Assert.Fail("Could not find repository root from test output directory.");
+        throw new InvalidOperationException("Could not find repository root from test output directory.");
     }
 }

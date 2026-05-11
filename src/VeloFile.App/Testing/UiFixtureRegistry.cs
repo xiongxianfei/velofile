@@ -31,14 +31,88 @@ public sealed record UiFixtureDefinition(
     string Theme,
     string Density,
     string Viewport,
-    IReadOnlyList<UiFixtureRow> Rows);
+    IReadOnlyList<UiFixtureRow> Rows,
+    UiFixturePresentationState PresentationState);
 
 public sealed record UiFixtureRow(
+    string Id,
     UiFixtureRowState State,
     ListedFileItem Item,
     ThumbnailState Thumbnail)
 {
     public string FullPath => Item.FullPath;
+}
+
+public sealed record UiFixturePresentationState(
+    IReadOnlyList<string> SelectedRowIds,
+    string? FocusedRowId,
+    string? SelectedFocusedRowId,
+    IReadOnlyList<string> MultiSelectedRowIds,
+    string? InitialKeyboardFocusTarget,
+    IReadOnlyDictionary<string, string> FullPathByRowId)
+{
+    public static UiFixturePresentationState Empty { get; } =
+        new([], null, null, [], null, new Dictionary<string, string>(StringComparer.Ordinal));
+
+    public IReadOnlyList<string> AllSelectedRowIds =>
+        SelectedRowIds
+            .Concat(MultiSelectedRowIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+    public bool HasTargets =>
+        AllSelectedRowIds.Count > 0
+        || FocusedRowId is not null
+        || SelectedFocusedRowId is not null
+        || InitialKeyboardFocusTarget is not null;
+
+    public string? GetFullPath(string? rowId)
+    {
+        return rowId is not null && FullPathByRowId.TryGetValue(rowId, out var fullPath)
+            ? fullPath
+            : null;
+    }
+}
+
+public sealed record UiFixtureShellState(
+    AppShellViewModel ViewModel,
+    UiFixturePresentationState PresentationState);
+
+public sealed record UiFixturePresentationPlan(
+    IReadOnlyList<FileListRowViewModel> SelectedRows,
+    FileListRowViewModel? FocusedRow,
+    FileListRowViewModel? SelectedFocusedRow);
+
+public static class UiFixturePresentationPlanner
+{
+    public static UiFixturePresentationPlan Create(
+        UiFixturePresentationState presentationState,
+        IReadOnlyList<FileListRowViewModel> rows)
+    {
+        var rowsByPath = rows.ToDictionary(row => row.FullPath, StringComparer.OrdinalIgnoreCase);
+        var selectedRows = presentationState.AllSelectedRowIds
+            .Select(presentationState.GetFullPath)
+            .Where(path => path is not null)
+            .Select(path => rowsByPath.TryGetValue(path!, out var row) ? row : null)
+            .Where(row => row is not null)
+            .Cast<FileListRowViewModel>()
+            .ToArray();
+        var focusedRow = ResolveRow(presentationState, rowsByPath, presentationState.FocusedRowId);
+        var selectedFocusedRow = ResolveRow(presentationState, rowsByPath, presentationState.SelectedFocusedRowId);
+
+        return new UiFixturePresentationPlan(selectedRows, focusedRow, selectedFocusedRow);
+    }
+
+    private static FileListRowViewModel? ResolveRow(
+        UiFixturePresentationState presentationState,
+        IReadOnlyDictionary<string, FileListRowViewModel> rowsByPath,
+        string? rowId)
+    {
+        var path = presentationState.GetFullPath(rowId);
+        return path is not null && rowsByPath.TryGetValue(path, out var row)
+            ? row
+            : null;
+    }
 }
 
 public static class UiFixtureRegistry
@@ -62,29 +136,44 @@ public static class UiFixtureRegistry
         return fixtureName switch
         {
             FileListV1Name => CreateFileListV1Definition(),
-            EmptyFolderName => new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", []),
+            EmptyFolderName => new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", [], UiFixturePresentationState.Empty),
             _ => null
         };
     }
 
+    public static UiFixtureShellState CreateFileListV1ShellState()
+    {
+        return CreateShellState(CreateFileListV1Definition());
+    }
+
     public static AppShellViewModel CreateFileListV1ViewModel()
     {
-        return CreateViewModel(CreateFileListV1Definition());
+        return CreateFileListV1ShellState().ViewModel;
+    }
+
+    public static UiFixtureShellState CreateEmptyFolderShellState()
+    {
+        return CreateShellState(new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", [], UiFixturePresentationState.Empty));
     }
 
     public static AppShellViewModel CreateEmptyFolderViewModel()
     {
-        return CreateViewModel(new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", []));
+        return CreateEmptyFolderShellState().ViewModel;
+    }
+
+    public static UiFixtureShellState CreateShellState(string fixtureName)
+    {
+        var fixture = GetFixture(fixtureName)
+            ?? throw new ArgumentException("Fixture name is not allowlisted.", nameof(fixtureName));
+        return CreateShellState(fixture);
     }
 
     public static AppShellViewModel CreateViewModel(string fixtureName)
     {
-        var fixture = GetFixture(fixtureName)
-            ?? throw new ArgumentException("Fixture name is not allowlisted.", nameof(fixtureName));
-        return CreateViewModel(fixture);
+        return CreateShellState(fixtureName).ViewModel;
     }
 
-    private static AppShellViewModel CreateViewModel(UiFixtureDefinition fixture)
+    private static UiFixtureShellState CreateShellState(UiFixtureDefinition fixture)
     {
         var workspace = NavigationWorkspace.Create(FixtureRoot);
         var sidebar = SidebarStateService.Create(
@@ -116,35 +205,49 @@ public static class UiFixtureRegistry
             new FixtureThumbnailProvider(fixture.Rows.ToDictionary(row => row.Item.FullPath, row => row.Thumbnail, StringComparer.OrdinalIgnoreCase)),
             PreviewTimeoutPolicy.Default);
 
-        return new AppShellViewModel(
+        var viewModel = new AppShellViewModel(
             startupState,
             listingCoordinator: listingCoordinator,
             thumbnailController: thumbnailController,
             viewportItemCount: 100);
+
+        return new UiFixtureShellState(viewModel, fixture.PresentationState);
     }
 
     private static UiFixtureDefinition CreateFileListV1Definition()
     {
         var rows = new[]
         {
-            Row(UiFixtureRowState.Normal, "Document.pdf", "Document.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 192_000),
-            Row(UiFixtureRowState.Folder, "src", "src", FileSystemEntryKind.Directory, FileAttributes.Directory, "DIR"),
-            Row(UiFixtureRowState.Selected, "selected-report.docx", "selected-report.docx", FileSystemEntryKind.File, FileAttributes.Normal, "DOC", length: 81_920),
-            Row(UiFixtureRowState.Focused, "keyboard-focus.md", "keyboard-focus.md", FileSystemEntryKind.File, FileAttributes.Normal, "MD", length: 12_288),
-            Row(UiFixtureRowState.SelectedFocused, "selected-focused.xlsx", "selected-focused.xlsx", FileSystemEntryKind.File, FileAttributes.Normal, "XLS", length: 44_032),
-            Row(UiFixtureRowState.MultiSelected, "multi-selected-a.txt", "multi-selected-a.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_096),
-            Row(UiFixtureRowState.MultiSelected, "multi-selected-b.txt", "multi-selected-b.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_608),
-            Row(UiFixtureRowState.Hidden, ".env", ".env", FileSystemEntryKind.File, FileAttributes.Hidden, "ENV", length: 512),
-            Row(UiFixtureRowState.ProtectedSystem, "system.ini", "system.ini", FileSystemEntryKind.File, FileAttributes.Hidden | FileAttributes.System, "SYS", length: 2_048),
-            Row(UiFixtureRowState.ThumbnailFallback, "preview-timeout.png", "preview-timeout.png", FileSystemEntryKind.File, FileAttributes.Normal, "PNG", length: 735_232),
-            Row(UiFixtureRowState.LongName, "Very long filename with spaces and extension - final final v3 copy.pdf", "Very long filename with spaces and extension - final final v3 copy.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 1_240_000),
-            Row(UiFixtureRowState.MetadataHeavy, "invoice.pdf.exe", "invoice.pdf.exe", FileSystemEntryKind.File, FileAttributes.Normal, "EXE", length: 98_304)
+            Row("row-document", UiFixtureRowState.Normal, "Document.pdf", "Document.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 192_000),
+            Row("row-src-folder", UiFixtureRowState.Folder, "src", "src", FileSystemEntryKind.Directory, FileAttributes.Directory, "DIR"),
+            Row("row-report-selected", UiFixtureRowState.Selected, "selected-report.docx", "selected-report.docx", FileSystemEntryKind.File, FileAttributes.Normal, "DOC", length: 81_920),
+            Row("row-keyboard-focus", UiFixtureRowState.Focused, "keyboard-focus.md", "keyboard-focus.md", FileSystemEntryKind.File, FileAttributes.Normal, "MD", length: 12_288),
+            Row("row-selected-focused", UiFixtureRowState.SelectedFocused, "selected-focused.xlsx", "selected-focused.xlsx", FileSystemEntryKind.File, FileAttributes.Normal, "XLS", length: 44_032),
+            Row("row-multi-a", UiFixtureRowState.MultiSelected, "multi-selected-a.txt", "multi-selected-a.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_096),
+            Row("row-multi-b", UiFixtureRowState.MultiSelected, "multi-selected-b.txt", "multi-selected-b.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_608),
+            Row("row-hidden-env", UiFixtureRowState.Hidden, ".env", ".env", FileSystemEntryKind.File, FileAttributes.Hidden, "ENV", length: 512),
+            Row("row-protected-system", UiFixtureRowState.ProtectedSystem, "system.ini", "system.ini", FileSystemEntryKind.File, FileAttributes.Hidden | FileAttributes.System, "SYS", length: 2_048),
+            Row("row-thumbnail-fallback", UiFixtureRowState.ThumbnailFallback, "preview-timeout.png", "preview-timeout.png", FileSystemEntryKind.File, FileAttributes.Normal, "PNG", length: 735_232),
+            Row("row-long-name", UiFixtureRowState.LongName, "Very long filename with spaces and extension - final final v3 copy.pdf", "Very long filename with spaces and extension - final final v3 copy.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 1_240_000),
+            Row("row-metadata-heavy", UiFixtureRowState.MetadataHeavy, "invoice.pdf.exe", "invoice.pdf.exe", FileSystemEntryKind.File, FileAttributes.Normal, "EXE", length: 98_304)
         };
 
-        return new UiFixtureDefinition(FileListV1Name, "dark", "comfortable", "1440x900", rows);
+        return new UiFixtureDefinition(FileListV1Name, "dark", "comfortable", "1440x900", rows, CreateFileListV1PresentationState(rows));
+    }
+
+    private static UiFixturePresentationState CreateFileListV1PresentationState(IReadOnlyList<UiFixtureRow> rows)
+    {
+        return new UiFixturePresentationState(
+            SelectedRowIds: ["row-report-selected", "row-selected-focused"],
+            FocusedRowId: "row-selected-focused",
+            SelectedFocusedRowId: "row-selected-focused",
+            MultiSelectedRowIds: ["row-multi-a", "row-multi-b"],
+            InitialKeyboardFocusTarget: "FileListSurface",
+            FullPathByRowId: rows.ToDictionary(row => row.Id, row => row.FullPath, StringComparer.Ordinal));
     }
 
     private static UiFixtureRow Row(
+        string id,
         UiFixtureRowState state,
         string name,
         string displayName,
@@ -167,6 +270,7 @@ public static class UiFixtureRegistry
             IsVisuallyDimmed: attributes.HasFlag(FileAttributes.Hidden) || attributes.HasFlag(FileAttributes.System));
 
         return new UiFixtureRow(
+            id,
             state,
             item,
             ThumbnailState.GenericIcon(ThumbnailArtifact.GenericIcon(thumbnailText), "ui-fixture"));

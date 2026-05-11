@@ -129,8 +129,8 @@ public sealed class UiFixtureLaunchTests
 
         StringAssert.Contains(appSource, "UiFixtureLaunchGate.FromCurrentProcess");
         StringAssert.Contains(appSource, "Environment.Exit");
-        StringAssert.Contains(appSource, "CreateFixtureShellViewModel");
-        StringAssert.Contains(compositionRoot, "UiFixtureRegistry.CreateFileListV1ViewModel");
+        StringAssert.Contains(appSource, "CreateFixtureShellState");
+        StringAssert.Contains(compositionRoot, "UiFixtureRegistry.CreateFileListV1ShellState");
     }
 
     private static string ReadRepoFile(params string[] relativePath)

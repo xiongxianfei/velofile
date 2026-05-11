@@ -123,12 +123,17 @@ public static class AppCompositionRoot
 
     public static AppShellViewModel CreateFixtureShellViewModel(string fixtureName, IShellDispatcher? shellDispatcher = null)
     {
+        return CreateFixtureShellState(fixtureName, shellDispatcher).ViewModel;
+    }
+
+    public static UiFixtureShellState CreateFixtureShellState(string fixtureName, IShellDispatcher? shellDispatcher = null)
+    {
         var viewModel = string.Equals(fixtureName, UiFixtureRegistry.FileListV1Name, StringComparison.Ordinal)
-            ? UiFixtureRegistry.CreateFileListV1ViewModel()
-            : UiFixtureRegistry.CreateViewModel(fixtureName);
+            ? UiFixtureRegistry.CreateFileListV1ShellState()
+            : UiFixtureRegistry.CreateShellState(fixtureName);
         if (shellDispatcher is not null)
         {
-            viewModel.SetShellDispatcher(shellDispatcher);
+            viewModel.ViewModel.SetShellDispatcher(shellDispatcher);
         }
 
         return viewModel;

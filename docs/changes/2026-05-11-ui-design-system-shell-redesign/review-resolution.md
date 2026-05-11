@@ -2,17 +2,17 @@
 
 ## Status
 
-M3 has an unresolved code-review finding. Do not begin M4 until CR-M3-001 is resolved and M3 returns to code-review.
+All recorded M1 and M2 findings resolved. CR-M3-001 has been resolved and M3 is ready for rerun code-review.
 
 ## Pending findings
 
 ### CR-M3-001
 
 - Source: [code-review-r4](reviews/code-review-r4.md)
-- Status: pending
+- Status: resolved
 - Required outcome: The fixture launch path must make selected, focused, selected+focused, and multi-selected fixture states deterministic through the app/UI boundary used for screenshots, or M3 must explicitly split those states into separate allowed fixtures/fixture instructions that the screenshot harness can apply deterministically before capture.
-- Resolution: pending.
-- Evidence: pending.
+- Resolution: `UiFixtureDefinition` now carries `UiFixturePresentationState` with stable synthetic row IDs, selected row IDs, selected+focused row ID, multi-selected row IDs, focused row ID, and row ID to synthetic path mapping. `UiFixtureRegistry.CreateFileListV1ShellState` preserves that presentation state alongside the fixture view model. Accepted fixture launches pass the presentation state into `MainWindow`, where `ApplyUiFixturePresentationState` applies selected rows through `FileListSurface.SelectedItems`, updates the normal app selection route through `FileListSelectionMapper`, scrolls to the focused row, and focuses the generated row container through `Focus(FocusState.Keyboard)`.
+- Evidence: Added fixture tests that assert presentation targets are explicit, row-ID based, and valid; that shell-state creation preserves presentation targets after conversion to `FileSystemEntrySnapshot`; that the presentation planner resolves selected/focused rows from the rendered row view models; and that the app startup/window path passes and applies fixture presentation state through `FileListSurface`.
 
 ### CR-M1-001
 
@@ -77,3 +77,10 @@ M3 has an unresolved code-review finding. Do not begin M4 until CR-M3-001 is res
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
 - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed: 18 app tests passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 367 tests passed.
+
+## M3 CR-M3-001 review-resolution validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` failed before the resolution for missing presentation-state code paths, then passed after resolution with 15 app tests.
+- `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed: App fixture tests 15 passed, Corpus UI contract tests 14 passed, and Core/Windows projects had no matching tests.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 382 tests passed.

@@ -128,7 +128,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M3. Guarded Test Fixture Mode and Deterministic File-List States
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: Add the non-production fixture launch path and deterministic first-slice file-list fixtures needed for visual evidence.
 - Requirements: R62-R69, R67-R68, S1-S4, O2, AC11-AC13, ADR 0009.
 - Files/components likely touched: `src/VeloFile.App/App.xaml.cs`, `src/VeloFile.App/AppCompositionRoot.cs`, `src/VeloFile.App/ViewModels/`, `tests/VeloFile.App.Tests/`, possibly a small app-shell fixture registry under `src/VeloFile.App/Testing/` guarded by build symbols.
@@ -266,20 +266,20 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
-- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - resolution-needed
+- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - review-requested
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
 Current milestone: M3. Guarded Test Fixture Mode and Deterministic File-List States
-Current milestone state: resolution-needed
+Current milestone state: review-requested
 Last reviewed milestone: M2
-Review status: M3 code-review requested changes: CR-M3-001
+Review status: CR-M3-001 resolved; M3 ready for rerun code-review
 Remaining in-scope implementation milestones: M3, M4
-Next stage: `review-resolution` M3
+Next stage: rerun `code-review` M3
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M3 has unresolved review-resolution and M4 remains planned.
+Reason final closeout is or is not ready: M3 awaits rerun code-review and M4 remains planned.
 
 ## Decision Log
 
@@ -399,6 +399,15 @@ M3 code-review requested changes:
 
 - CR-M3-001: deterministic selected/focused/multi-selected fixture states are labels only and are not consumed by the rendered app/startup path.
 
+M3 review-resolution validation:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` failed before the resolution for missing presentation-state code paths, then passed after resolution with 15 app tests.
+- `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed: App fixture tests 15 passed, Corpus UI contract tests 14 passed, and Core/Windows projects had no matching tests.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 382 tests passed.
+
+M3 review-resolution resolved CR-M3-001 by adding explicit fixture presentation state with stable row IDs, preserving that state through fixture shell creation, and applying accepted fixture selected/focused rows through `FileListSurface` in `MainWindow`.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M3 review-resolution. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M3 rerun code-review. Final closeout is not ready.

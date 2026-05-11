@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using VeloFile.App.Input;
+using VeloFile.App.Testing;
 using VeloFile.App.ViewModels;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Commands;
@@ -28,18 +29,27 @@ public sealed partial class MainWindow : Window
     private readonly IKeyboardFocusContextProvider _keyboardFocusContextProvider;
     private readonly AppFileCommandAcceleratorRouter _fileCommandAcceleratorRouter;
     private readonly AppDragDropRoute _dragDropRoute;
+    private readonly UiFixturePresentationState? _fixturePresentationState;
     private bool _isRefreshingShellBindings;
+    private bool _isApplyingFixturePresentation;
+    private bool _fixturePresentationApplied;
+    private int _fixturePresentationAttempts;
     private int _previewArtifactVersion;
+    private const int MaxFixturePresentationAttempts = 8;
 
     public MainWindow(AppShellViewModel viewModel)
-        : this(viewModel, new WinUiWindowPlacementApplier())
+        : this(viewModel, new WinUiWindowPlacementApplier(), fixturePresentationState: null)
     {
     }
 
-    public MainWindow(AppShellViewModel viewModel, IWindowPlacementApplier windowPlacementApplier)
+    public MainWindow(
+        AppShellViewModel viewModel,
+        IWindowPlacementApplier windowPlacementApplier,
+        UiFixturePresentationState? fixturePresentationState = null)
     {
         InitializeComponent();
         ViewModel = viewModel;
+        _fixturePresentationState = fixturePresentationState;
         ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue));
         _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
         _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
@@ -162,6 +172,11 @@ public sealed partial class MainWindow : Window
 
     private void FileListSurface_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_isApplyingFixturePresentation)
+        {
+            return;
+        }
+
         ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems));
         RefreshShellBindings();
     }
@@ -711,6 +726,7 @@ public sealed partial class MainWindow : Window
             SidebarLocationsList.ItemsSource = ViewModel.SidebarNavigationTargets;
             BreadcrumbPathBar.ItemsSource = ViewModel.BreadcrumbSegments;
             FileListSurface.ItemsSource = ViewModel.FileListRows;
+            ApplyUiFixturePresentationState();
             CurrentFolderFilterBox.Text = ViewModel.CurrentFolderFilterText;
             CancelSearchButton.IsEnabled = ViewModel.RecursiveSearch.CanCancel;
             ClearSearchButton.IsEnabled = ViewModel.IsRecursiveSearchDisplayActive;
@@ -766,6 +782,74 @@ public sealed partial class MainWindow : Window
         {
             _isRefreshingShellBindings = false;
         }
+    }
+
+    private void ApplyUiFixturePresentationState()
+    {
+        if (_fixturePresentationState is null || _fixturePresentationApplied)
+        {
+            return;
+        }
+
+        if (!_fixturePresentationState.HasTargets)
+        {
+            _fixturePresentationApplied = true;
+            return;
+        }
+
+        var plan = UiFixturePresentationPlanner.Create(_fixturePresentationState, ViewModel.FileListRows);
+        if (plan.SelectedRows.Count == 0 && plan.FocusedRow is null)
+        {
+            RetryOrFailFixturePresentation("Fixture presentation targets were not available in the file-list rows.");
+            return;
+        }
+
+        _isApplyingFixturePresentation = true;
+        try
+        {
+            FileListSurface.SelectedItems.Clear();
+            foreach (var row in plan.SelectedRows)
+            {
+                FileListSurface.SelectedItems.Add(row);
+            }
+        }
+        finally
+        {
+            _isApplyingFixturePresentation = false;
+        }
+
+        if (plan.SelectedRows.Count > 0)
+        {
+            ViewModel.SetSelectedFileItems(FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems));
+        }
+
+        if (plan.FocusedRow is null)
+        {
+            _fixturePresentationApplied = true;
+            return;
+        }
+
+        FileListSurface.ScrollIntoView(plan.FocusedRow);
+        FileListSurface.UpdateLayout();
+        if (FileListSurface.ContainerFromItem(plan.FocusedRow) is ListViewItem focusedContainer
+            && focusedContainer.Focus(FocusState.Keyboard))
+        {
+            _fixturePresentationApplied = true;
+            return;
+        }
+
+        RetryOrFailFixturePresentation("Fixture focused row container was not available.");
+    }
+
+    private void RetryOrFailFixturePresentation(string reason)
+    {
+        if (_fixturePresentationAttempts++ < MaxFixturePresentationAttempts)
+        {
+            DispatcherQueue.TryEnqueue(ApplyUiFixturePresentationState);
+            return;
+        }
+
+        throw new InvalidOperationException(reason);
     }
 
     private async Task SetPreviewArtifactAsync(PreviewContent? content, int version)

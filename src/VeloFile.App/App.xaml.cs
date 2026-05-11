@@ -23,12 +23,14 @@ public partial class App : Application
         }
 
         var shellDispatcher = new WinUiShellDispatcher(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
-        var viewModel = fixtureLaunch.ShouldLaunchFixture && fixtureLaunch.FixtureName is not null
-            ? AppCompositionRoot.CreateFixtureShellViewModel(fixtureLaunch.FixtureName, shellDispatcher)
-            : AppCompositionRoot.CreateShellViewModel(shellDispatcher);
+        var fixtureShellState = fixtureLaunch.ShouldLaunchFixture && fixtureLaunch.FixtureName is not null
+            ? AppCompositionRoot.CreateFixtureShellState(fixtureLaunch.FixtureName, shellDispatcher)
+            : null;
+        var viewModel = fixtureShellState?.ViewModel ?? AppCompositionRoot.CreateShellViewModel(shellDispatcher);
         _window = new MainWindow(
             viewModel,
-            AppCompositionRoot.CreateWindowPlacementApplier());
+            AppCompositionRoot.CreateWindowPlacementApplier(),
+            fixtureShellState?.PresentationState);
         _window.Activate();
     }
 }

@@ -97,3 +97,14 @@ Normal app launches without `--test-ui-fixture` still follow `CreateShellViewMod
 - `rg "fixture-data|C:\\Users|xiongxianfei|20260428-velofile|--test-ui-fixture|VELOFILE_ENABLE_TEST_UI_FIXTURES" src\VeloFile.App tests\VeloFile.App.Tests docs -n` found only expected source, test, and documentation references.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed with build success, UI contract validation pass, and 379 tests.
 - Process-level GUI launch checks were not run in this slice; fixture rejection and acceptance are covered by launch gate unit tests plus static startup wiring tests.
+
+## Review resolution
+
+CR-M3-001 found that selected/focused/multi-selected fixture states were labels only. The resolution adds explicit `UiFixturePresentationState` with stable synthetic row IDs and selected/focused targets, preserves that state through `UiFixtureShellState`, and passes it into `MainWindow` for accepted fixture launches. `MainWindow` now applies fixture selection through `FileListSurface.SelectedItems`, updates the normal selection mapping route, scrolls to the focused row, and focuses the generated row container.
+
+Resolution validation:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` passed with 15 app tests.
+- `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed with build success, UI contract validation pass, and 382 tests.
