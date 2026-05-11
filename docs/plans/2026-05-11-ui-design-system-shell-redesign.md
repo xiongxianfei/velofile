@@ -277,9 +277,9 @@ Current milestone state: lifecycle-closeout
 Last reviewed milestone: M4
 Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
 Remaining in-scope implementation milestones: none
-Next stage: `explain-change`
+Next stage: `verify`
 Final closeout readiness: ready to begin
-Reason final closeout is or is not ready: M1-M4 are closed with no unresolved review-resolution findings; M5 lifecycle closeout, final verification, and PR handoff remain.
+Reason final closeout is or is not ready: M1-M4 are closed with no unresolved review-resolution findings, and the durable explain-change artifact is complete; final verification and PR handoff remain.
 
 ## Decision Log
 
@@ -441,6 +441,12 @@ M4 rerun code-review result:
 - No required-change findings remain for M4.
 - M4 is closed and all in-scope implementation milestones are closed.
 
+Explain-change result:
+
+- Artifact: `docs/changes/2026-05-11-ui-design-system-shell-redesign/explain-change.md`.
+- Status: complete.
+- The explanation traces the implementation from proposal/spec/ADR/plan decisions through grouped diffs, tests, validation evidence, resolved review findings, rejected alternatives, scope control, and remaining risks.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M5 lifecycle closeout beginning with `explain-change`. Final verification is not complete.
+See Current Handoff Summary. This plan is active and ready for `verify`. Final verification is not complete.

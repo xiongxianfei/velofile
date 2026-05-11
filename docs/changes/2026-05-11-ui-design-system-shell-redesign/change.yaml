@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: m4-closed
+status: explain-change-complete
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -170,4 +170,8 @@ m4_rerun_review:
   validation:
     - command: review of tracked diff and validation evidence
       result: passed; CR-M4-001 resolved and no required-change findings remain for M4
-next_stage: explain-change
+explain_change:
+  stage: explain-change
+  status: complete
+  artifact: docs/changes/2026-05-11-ui-design-system-shell-redesign/explain-change.md
+next_stage: verify
