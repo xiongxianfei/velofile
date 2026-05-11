@@ -2,9 +2,9 @@
 
 ## Status
 
-All recorded M1 and M2 findings resolved. CR-M3-001 has been resolved and M3 is ready for rerun code-review.
+All recorded findings through M4 are resolved. M4 rerun code-review closed CR-M4-001 with no remaining required-change findings.
 
-## Pending findings
+## Resolved findings
 
 ### CR-M4-001
 
@@ -48,7 +48,7 @@ All recorded M1 and M2 findings resolved. CR-M3-001 has been resolved and M3 is 
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 tests.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 356 tests passed.
 
-## Pending M2 findings
+## Resolved M2 findings
 
 ### CR-M2-001
 
@@ -66,7 +66,7 @@ All recorded M1 and M2 findings resolved. CR-M3-001 has been resolved and M3 is 
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 364 tests passed.
 
-## Pending M2 rerun findings
+## Resolved M2 rerun findings
 
 ### CR-M2-002
 

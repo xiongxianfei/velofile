@@ -158,7 +158,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M4. Visual Baseline Evidence and Baseline Update Workflow
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Add the reviewed visual baseline storage, generated-output ignore rules, metadata sidecars, and review-gated baseline update workflow for the first file-list profile.
 - Requirements: R69-R79, O3-O4, AC8-AC10, ADR 0009.
 - Files/components likely touched: `tests/visual/baselines/winui/dark-comfortable-1440x900-100/`, `tests/visual/current/`, `tests/visual/diffs/`, `.gitignore`, `scripts/update-ui-baselines.ps1`, `tests/VeloFile.Corpus.Tests/` or script validation tests, docs under `docs/ui/` if needed.
@@ -267,19 +267,19 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
-- [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - review-requested
+- [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
-Current milestone: M4. Visual Baseline Evidence and Baseline Update Workflow
-Current milestone state: review-requested
+Current milestone: M5. Lifecycle Closeout and Regression Verification
+Current milestone state: lifecycle-closeout
 Last reviewed milestone: M4
-Review status: M4 review-resolution completed for CR-M4-001; rerun code-review pending
-Remaining in-scope implementation milestones: M4
-Next stage: `code-review` M4
-Final closeout readiness: not ready
-Reason final closeout is or is not ready: M4 awaits rerun code-review after review-resolution.
+Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
+Remaining in-scope implementation milestones: none
+Next stage: `explain-change`
+Final closeout readiness: ready to begin
+Reason final closeout is or is not ready: M1-M4 are closed with no unresolved review-resolution findings; M5 lifecycle closeout, final verification, and PR handoff remain.
 
 ## Decision Log
 
@@ -435,6 +435,12 @@ M4 review-resolution validation:
 - `dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts|QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins"` passed: App tests 3 passed, Corpus tests 18 passed, and Core/Windows projects had no matching tests.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 388 tests passed.
 
+M4 rerun code-review result:
+
+- Status: clean-with-notes.
+- No required-change findings remain for M4.
+- M4 is closed and all in-scope implementation milestones are closed.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M4 code-review. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M5 lifecycle closeout beginning with `explain-change`. Final verification is not complete.
