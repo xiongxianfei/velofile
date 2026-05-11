@@ -57,3 +57,40 @@ Additional validation:
 - M1 does not change App/Core/Windows behavior routes.
 
 Those surfaces belong to later milestones.
+
+## M2: Shell Surface Foundation
+
+M2 implements the first production visual slice for the follow-on: a tokenized shell surface layer applied to the existing WinUI shell containers.
+
+## What Changed
+
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml` with shell-owned styles and resource aliases for app root, chrome, sidebar, content, command band container, status container, preview container, separators, text hierarchy, focus/accent, selection, hover, disabled, danger, warning, and success surfaces.
+- Merged the shell resource dictionary through `src/VeloFile.App/App.xaml` after token dictionaries and before file-list resources.
+- Updated `src/VeloFile.App/MainWindow.xaml` so the root shell, tab/chrome, command band container, sidebar, content region, status container, and preview pane consume the shell foundation resources.
+- Activated the `shell-surface-foundation` scope in `docs/ui/ui-contract-scopes.v1.json`.
+- Added `tests/VeloFile.App.Tests/UiDesign/ShellSurfaceResourceContractTests.cs` to prove the dictionary merge, governed resource exposure, scoped resource consumption, and existing route-control preservation.
+- Updated UI-contract fixtures so the valid fixture set also represents the newly active shell surface scope.
+- Recorded M2 soft visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md`.
+
+## Why This Changed
+
+The approved spec requires the shell surface foundation to be the first follow-on implementation region. The current shell was mixing raw/default surfaces with the first-slice file-list treatment. M2 creates the shared resource layer before deeper file-list, command band, sidebar, status, or preview polish.
+
+M2 reuses existing first-slice V1 tokens instead of adding new token IDs because the current token contract already covers the needed dark comfortable surfaces, text colors, focus/accent, state colors, spacing, radius, sizing, and disabled opacity.
+
+## Validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface` failed before implementation with 3 expected failures, then passed after implementation: 4 passed.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"` passed: 18 passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid` passed after fixture update.
+- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"` passed for matching App and Corpus tests; Core and Windows had no matching tests for this filter.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors after rerunning without the parallel testhost lock.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
+
+## Deferred By Design
+
+- M2 does not reorder the sidebar, redesign command controls, replace fixture icon chips, or change file-list row state treatment.
+- M2 does not add persisted theme/density settings or new token major versions.
+- M2 does not change Core, Windows adapters, file operations, preview providers, terminal launch, diagnostics, persistence, or runtime behavior routes.
+- M2 records a manual visual-review note rather than a screenshot because full-shell screenshot automation is not stable or implemented for this milestone.

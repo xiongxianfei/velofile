@@ -106,7 +106,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M2. Shell Surface Foundation
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Apply one dark comfortable shell surface model to app root, chrome, sidebar, content, command band, status area, and preview/details containers before isolated region polish.
 - Requirements: R16-R27, R57, R62, A11Y1-A11Y3, A11Y6, P1-P2, AC4-AC5.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, new or extended `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -464,13 +464,13 @@ No data migration is expected. Rollback is per governed region by reverting that
 ## Current Handoff Summary
 
 Current milestone: M2. Shell Surface Foundation
-Current milestone state: planned
+Current milestone state: review-requested
 Last reviewed milestone: M1
 Review status: M1 code-review clean-with-notes after CR-001 resolution
 Remaining in-scope implementation milestones: M2-M8
-Next stage: `implement` M2
+Next stage: `code-review` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 is closed, but M2-M8 have not started.
+Reason final closeout is or is not ready: M1 is closed and M2 is ready for code review, but M2-M8 are not all closed.
 
 ## Decision Log
 
@@ -481,10 +481,13 @@ Reason final closeout is or is not ready: M1 is closed, but M2-M8 have not start
 | 2026-05-11 | Keep shell surface foundation before file-list polish and icon treatment. | The spec requires shell foundation as the first follow-on implementation region and file-list/icon work as the second. |
 | 2026-05-11 | Split command band, sidebar, status/operation, and preview/details into separate implementation milestones. | Each region touches different behavior-preservation rows and should get its own review loop. |
 | 2026-05-11 | Treat M9 as lifecycle closeout, not implementation. | Final closeout must not hide unfinished region work. |
+| 2026-05-11 | Reuse existing first-slice dark comfortable tokens for M2 shell foundation instead of adding new token IDs. | Existing V1 tokens already cover the M2 surface, text, focus, selection, hover, disabled, danger, warning, success, spacing, radius, sizing, and focus-thickness needs. |
 
 ## Surprises and Discoveries
 
-- None yet.
+- M2 did not require new token values; it added shell component resources that alias and consume existing token resources.
+- `scripts/ci.ps1` exposed that the valid UI-contract fixture also needed the newly active shell surface scope and fixture shell dictionary. The fixture was updated so active M2 validation remains representative.
+- An attempted build run overlapped a filtered test run and failed because `testhost` temporarily locked `VeloFile.Corpus.Tests.dll`; rerunning `dotnet build VeloFile.sln -c Debug` after the testhost exited passed with 0 warnings and 0 errors.
 
 ## Validation Notes
 
@@ -527,6 +530,24 @@ CR-001 review-resolution validation:
   - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: 20 passed.
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+
+M2 implementation validation:
+
+- M2 implementation started; scope is limited to shell surface foundation resources, static XAML contract tests, scoped `MainWindow.xaml` resource consumption, manual visual evidence note, and plan/change-record state sync.
+- Added tests first in `tests/VeloFile.App.Tests/UiDesign/ShellSurfaceResourceContractTests.cs`.
+- Confirmed the new M2 tests failed before implementation with missing `VeloFile.Shell.xaml`, missing `App.xaml` merge, and missing `shell-surface-foundation` scope markers:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface` failed with 3 expected failures.
+- Implemented `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml`, merged it through `App.xaml`, activated the `shell-surface-foundation` UI contract scope, and applied shell surface styles to the root shell, tab/chrome, command band container, sidebar, content, status container, and preview pane.
+- Updated the valid UI-contract fixture and M1 follow-on scope test so `shell-surface-foundation` may be active while later follow-on scopes remain planned.
+- Recorded soft full-shell visual evidence note at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md`. Screenshot automation was not stable/implemented for M2, and this slice did not change layout dimensions, surface sizes, titlebar/sidebar width, command-band height, content bounds, or minimum-window behavior.
+- Targeted and broad validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface`: 4 passed after implementation.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"`: 18 passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid`: passed after fixture update.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"`: App 20 passed, Corpus 20 passed; Core/Windows had no matching tests for the filter.
+  - `dotnet build VeloFile.sln -c Debug`: passed with 0 warnings and 0 errors after rerunning without the parallel testhost lock.
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 142/Windows 52/Corpus 37 tests passed.
 
 ## Outcome and Retrospective
 

@@ -52,7 +52,8 @@ public sealed class ShellVisualCoherenceContractTests
         foreach (var scopeId in FollowOnScopeIds)
         {
             Assert.IsTrue(byId.TryGetValue(scopeId, out var scope), $"Missing follow-on scope '{scopeId}'.");
-            Assert.AreEqual("planned", (string?)scope["status"], scopeId);
+            var expectedStatus = scopeId is "shell-surface-foundation" ? "active" : "planned";
+            Assert.AreEqual(expectedStatus, (string?)scope["status"], scopeId);
             Assert.IsGreaterThan(0, scope["files"]!.AsArray().Count, scopeId);
             Assert.IsGreaterThan(0, scope["requiredResourceReferences"]!.AsArray().Count, scopeId);
             Assert.IsGreaterThan(0, scope["allowedResourceKeys"]!.AsArray().Count, scopeId);

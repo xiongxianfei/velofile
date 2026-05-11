@@ -9,7 +9,18 @@
     Title="VeloFile">
     <Grid
         x:Name="RootShell"
-        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        Style="{StaticResource VfShellAppRootStyle}">
+        <Grid.Resources>
+            <!-- ui-contract-scope:shell-surface-foundation:start -->
+            <StaticResource x:Key="VfShellSurfaceScopeAppRootStyle" ResourceKey="VfShellAppRootStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeChromeStyle" ResourceKey="VfShellChromeStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeSidebarStyle" ResourceKey="VfShellSidebarStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeContentStyle" ResourceKey="VfShellContentStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeCommandBandContainerStyle" ResourceKey="VfShellCommandBandContainerStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeStatusContainerStyle" ResourceKey="VfShellStatusContainerStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopePreviewContainerStyle" ResourceKey="VfShellPreviewContainerStyle" />
+            <!-- ui-contract-scope:shell-surface-foundation:end -->
+        </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
             <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />
@@ -49,8 +60,9 @@
             x:Name="TabStrip"
             Grid.Row="0"
             Grid.ColumnSpan="3"
+            Style="{StaticResource VfShellChromeStyle}"
             BorderThickness="0,0,0,1"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            BorderBrush="{StaticResource VfShellSeparatorBrush}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -167,7 +179,8 @@
         <Grid
             Grid.Row="1"
             Grid.Column="1"
-            Margin="12,8,12,8">
+            Margin="12,8,12,8"
+            Style="{StaticResource VfShellCommandBandContainerStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -262,9 +275,10 @@
             Grid.Row="1"
             Grid.RowSpan="3"
             Grid.Column="0"
+            Style="{StaticResource VfShellSidebarStyle}"
             Padding="12,8"
             BorderThickness="0,0,1,0"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            BorderBrush="{StaticResource VfShellSeparatorBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -334,7 +348,8 @@
         <Grid
             Grid.Row="2"
             Grid.Column="1"
-            Margin="12,0,12,8">
+            Margin="12,0,12,8"
+            Style="{StaticResource VfShellContentStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -584,7 +599,7 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="5" Margin="0,8,0,0">
+            <Grid Grid.Row="5" Margin="0,8,0,0" Style="{StaticResource VfShellStatusContainerStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -650,9 +665,10 @@
             Grid.Row="1"
             Grid.RowSpan="3"
             Grid.Column="2"
+            Style="{StaticResource VfShellPreviewContainerStyle}"
             Padding="12,8"
             BorderThickness="1,0,0,0"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+            BorderBrush="{StaticResource VfShellSeparatorBrush}"
             Visibility="Collapsed"
             AutomationProperties.Name="Preview pane">
             <Grid RowSpacing="8">

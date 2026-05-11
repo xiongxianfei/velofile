@@ -2,6 +2,14 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Grid>
+    <!-- ui-contract-scope:shell-surface-foundation:start -->
+    <Grid.Resources>
+      <StaticResource x:Key="ShellFixtureAppRootStyle" ResourceKey="VfShellAppRootStyle" />
+      <StaticResource x:Key="ShellFixtureChromeStyle" ResourceKey="VfShellChromeStyle" />
+      <StaticResource x:Key="ShellFixtureSidebarStyle" ResourceKey="VfShellSidebarStyle" />
+      <StaticResource x:Key="ShellFixtureContentStyle" ResourceKey="VfShellContentStyle" />
+    </Grid.Resources>
+    <!-- ui-contract-scope:shell-surface-foundation:end -->
     <!-- ui-contract-scope:file-list-first-slice:start -->
     <ListView
         ItemTemplate="{StaticResource VfFileListRowTemplate}"

@@ -28,6 +28,49 @@
         "inline-selection-brush",
         "inline-focus-thickness"
       ]
+    },
+    {
+      "id": "shell-surface-foundation",
+      "status": "active",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfShellAppRootStyle",
+        "VfShellChromeStyle",
+        "VfShellSidebarStyle",
+        "VfShellContentStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfShellAppRootStyle",
+        "VfShellChromeStyle",
+        "VfShellSidebarStyle",
+        "VfShellContentStyle",
+        "VfShellCommandBandContainerStyle",
+        "VfShellStatusContainerStyle",
+        "VfShellPreviewContainerStyle",
+        "VfShellSeparatorBrush",
+        "VfShellFocusBrush",
+        "VfShellAccentBrush",
+        "VfShellElevatedBrush",
+        "VfShellSelectionBrush",
+        "VfShellHoverBrush",
+        "VfShellDangerBrush",
+        "VfShellWarningBrush",
+        "VfShellSuccessBrush",
+        "VfShellDisabledOpacity",
+        "VfShellPrimaryTextStyle",
+        "VfShellSecondaryTextStyle",
+        "VfShellMutedTextStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
     }
   ]
 }

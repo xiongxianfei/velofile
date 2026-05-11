@@ -42,7 +42,7 @@
     },
     {
       "id": "shell-surface-foundation",
-      "status": "planned",
+      "status": "active",
       "files": [
         "src/VeloFile.App/MainWindow.xaml",
         "src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml"
@@ -61,7 +61,19 @@
         "VfShellCommandBandContainerStyle",
         "VfShellStatusContainerStyle",
         "VfShellPreviewContainerStyle",
-        "VfShellSeparatorBrush"
+        "VfShellSeparatorBrush",
+        "VfShellFocusBrush",
+        "VfShellAccentBrush",
+        "VfShellElevatedBrush",
+        "VfShellSelectionBrush",
+        "VfShellHoverBrush",
+        "VfShellDangerBrush",
+        "VfShellWarningBrush",
+        "VfShellSuccessBrush",
+        "VfShellDisabledOpacity",
+        "VfShellPrimaryTextStyle",
+        "VfShellSecondaryTextStyle",
+        "VfShellMutedTextStyle"
       ],
       "forbiddenLiteralRules": [
         "inline-color",
