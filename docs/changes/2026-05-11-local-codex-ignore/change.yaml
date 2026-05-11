@@ -1,0 +1,27 @@
+id: 2026-05-11-local-codex-ignore
+title: Stop tracking local Codex tooling files
+status: implemented
+milestone: governance
+requirements:
+  - local-tooling-not-repository-governance
+files:
+  - .gitignore
+  - AGENTS.md
+  - CONSTITUTION.md
+  - docs/project-map.md
+  - docs/changes/2026-05-06-constitution-bootstrap/change.yaml
+  - docs/changes/2026-05-06-constitution-bootstrap/explain-change.md
+validation:
+  - command: git ls-files .codex
+    result: passed with no tracked .codex paths after removing cached entries
+  - command: pwsh -NoProfile -Command '$matches = rg -n "docs/(workflows|roadmap)\\.md" AGENTS.md CONSTITUTION.md docs specs .github README.md CONTRIBUTING.md; if ($LASTEXITCODE -eq 0) { $matches; exit 1 } elseif ($LASTEXITCODE -eq 1) { exit 0 } else { exit $LASTEXITCODE }'
+    result: passed with no stale workflow or roadmap references
+  - command: git check-ignore .codex/skills/workflow/SKILL.md
+    result: passed
+  - command: git diff --check
+    result: passed with line-ending normalization warnings only
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed
+notes:
+  - .codex is local agent tooling and should not be tracked as repository content.
+  - Existing local .codex files are preserved on disk while removed from the Git index.

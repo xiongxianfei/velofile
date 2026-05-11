@@ -6,7 +6,7 @@ Added `CONSTITUTION.md` as the durable governance source for VeloFile agentic de
 
 Updated `AGENTS.md` so its instruction precedence and required-reading sections point to `CONSTITUTION.md` and tracked architecture/plan artifacts instead of deleted workflow documents. `CONTRIBUTING.md` now asks contributors to read both the constitution and agent operating guide.
 
-Updated the affected stage skills that still referenced deleted governance files so future agents do not look for removed workflow or roadmap documents as authoritative surfaces.
+Recorded that local `.codex` files are ignored and are not tracked repository governance.
 
 ## Why
 
@@ -14,6 +14,6 @@ The repository had no `CONSTITUTION.md`, while active guidance still pointed to 
 
 ## Validation
 
-- `pwsh -NoProfile -Command "$matches = rg -n 'docs/(workflows|roadmap)\\.md' AGENTS.md CONSTITUTION.md .codex docs specs .github README.md CONTRIBUTING.md; if ($LASTEXITCODE -eq 0) { $matches; exit 1 } elseif ($LASTEXITCODE -eq 1) { exit 0 } else { exit $LASTEXITCODE }"`
+- `pwsh -NoProfile -Command '$matches = rg -n "docs/(workflows|roadmap)\\.md" AGENTS.md CONSTITUTION.md docs specs .github README.md CONTRIBUTING.md; if ($LASTEXITCODE -eq 0) { $matches; exit 1 } elseif ($LASTEXITCODE -eq 1) { exit 0 } else { exit $LASTEXITCODE }'`
 - `git diff --check`
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish`

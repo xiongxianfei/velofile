@@ -18,11 +18,13 @@ When sources conflict, agents MUST follow this order:
 4. Matching test specifications in `specs/`.
 5. Approved architecture docs and ADRs under `docs/architecture/` and `docs/adr/`.
 6. Active execution plans in `docs/plan.md` and `docs/plans/`.
-7. Root agent guidance such as `AGENTS.md` and stage skills under `.codex/skills/`.
+7. Root agent guidance such as `AGENTS.md`.
 8. Implementation code, tests, and local scripts.
 9. Chat summaries, generated notes, or unapproved draft artifacts.
 
 `VISION.md` defines product direction and SHOULD guide proposals and scope decisions, but it does not override this constitution or approved specs. If any source appears stale, missing, or contradictory, agents MUST call out the conflict instead of silently blending instructions.
+
+Local `.codex/` files are personal agent tooling. They are ignored by Git and MUST NOT be treated as tracked repository governance.
 
 ## Spec-Driven Rules
 

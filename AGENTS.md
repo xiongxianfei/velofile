@@ -14,8 +14,7 @@ When instructions conflict, follow this order:
 4. Matching test spec in `specs/`
 5. Approved architecture docs and ADRs under `docs/architecture/` and `docs/adr/`
 6. Active execution plan file in `docs/plans/` and the index in `docs/plan.md`
-7. Stage skills under `.codex/skills/`
-8. This file
+7. This file
 
 Do not silently blend conflicting higher-priority instructions. Call out the conflict, explain the impact, and follow the highest-priority source that already implies the answer.
 
@@ -47,7 +46,7 @@ Use `bugfix` for bugs, `ci` for GitHub Actions or automation changes, and `pr` o
 - Every approved initiative gets its own living plan file under `docs/plans/YYYY-MM-DD-slug.md`.
 - Never overwrite an older plan when starting a new initiative.
 - If a new plan replaces an older one, keep the older file and mark it as superseded.
-- Execution plans should follow `.codex/PLANS.md`.
+- Keep execution plans concrete, dated, and reviewable under `docs/plans/`.
 
 ## Required reading before implementation
 

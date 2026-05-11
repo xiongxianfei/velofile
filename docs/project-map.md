@@ -48,7 +48,6 @@ The `.csproj` graph keeps `VeloFile.Core` independent from Windows platform refe
 ## Repository Layout
 
 - [.github/workflows](../.github/workflows): Windows CI and release workflows.
-- [.codex/skills](../.codex/skills): local workflow, implementation, review, verification, and governance skills.
 - [docs](../docs): architecture, plans, release evidence, changes, decisions, and this project map.
 - [docs/architecture](architecture): system architecture and ADRs.
 - [docs/changes](changes): change records and explanations.
