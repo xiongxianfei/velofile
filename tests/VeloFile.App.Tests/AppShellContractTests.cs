@@ -61,19 +61,21 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
-    public void Main_window_previous_and_next_tab_buttons_use_font_independent_icons()
+    public void Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons()
     {
         var xaml = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
         var previousButton = ExtractButtonBlock(xaml, "AutomationProperties.Name=\"Previous tab\"");
         var nextButton = ExtractButtonBlock(xaml, "AutomationProperties.Name=\"Next tab\"");
 
-        StringAssert.Contains(previousButton, "<PathIcon");
+        StringAssert.Contains(previousButton, "<Viewbox");
+        StringAssert.Contains(previousButton, "<Path");
         StringAssert.Contains(previousButton, "Data=\"");
-        Assert.IsFalse(previousButton.Contains("<SymbolIcon", StringComparison.Ordinal), "Previous tab must not depend on SymbolIcon font glyph resolution.");
+        Assert.IsFalse(previousButton.Contains("Icon", StringComparison.Ordinal), "Previous tab must not depend on icon controls or icon font glyph resolution.");
 
-        StringAssert.Contains(nextButton, "<PathIcon");
+        StringAssert.Contains(nextButton, "<Viewbox");
+        StringAssert.Contains(nextButton, "<Path");
         StringAssert.Contains(nextButton, "Data=\"");
-        Assert.IsFalse(nextButton.Contains("<SymbolIcon", StringComparison.Ordinal), "Next tab must not depend on SymbolIcon font glyph resolution.");
+        Assert.IsFalse(nextButton.Contains("Icon", StringComparison.Ordinal), "Next tab must not depend on icon controls or icon font glyph resolution.");
     }
 
     [TestMethod]

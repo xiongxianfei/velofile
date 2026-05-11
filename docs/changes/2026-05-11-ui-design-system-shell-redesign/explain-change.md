@@ -136,13 +136,13 @@ All implementation milestones M1-M4 are closed. `explain-change` was completed b
 
 After local final verification, the Previous tab and Next tab buttons were reported as rendering garbled icon text. The bug was caused by those two buttons using `SymbolIcon Symbol="Back"` and `SymbolIcon Symbol="Forward"`, which depend on icon-font/private-use glyph resolution. If that font path fails, the UI can show garbled text instead of arrows.
 
-The fix is intentionally narrow: only the two tab-switch buttons in `MainWindow.xaml` now use font-independent `PathIcon` chevrons. Click handlers, tooltips, automation names, keyboard accelerators, tab-switch routing, and the rest of the shell icons are unchanged.
+The fix is intentionally narrow: only the two tab-switch buttons in `MainWindow.xaml` now use raw vector `Path` chevrons inside `Viewbox` elements. This avoids both icon font glyph lookup and icon-control rendering. Click handlers, tooltips, automation names, keyboard accelerators, tab-switch routing, and the rest of the shell icons are unchanged.
 
-Regression coverage was added in `AppShellContractTests.Main_window_previous_and_next_tab_buttons_use_font_independent_icons`. The test failed before the XAML fix because the buttons still contained `SymbolIcon`; it passed after the fix.
+Regression coverage was tightened in `AppShellContractTests.Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons`. The test failed against the insufficient `PathIcon` version because the buttons still used icon controls; it passed after the raw vector fix.
 
 Validation for the addendum:
 
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_font_independent_icons` failed before the fix and passed after it.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons` failed against the insufficient `PathIcon` version and passed after the raw vector fix.
 - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests.
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 

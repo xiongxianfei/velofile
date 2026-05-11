@@ -196,13 +196,13 @@ verify:
 post_verify_bugfix:
   issue: Previous tab and Next tab icons rendered garbled glyph text when SymbolIcon font glyphs did not resolve.
   root_cause: tab-switch buttons used SymbolIcon Back/Forward glyphs, which depend on icon font/private-use glyph resolution.
-  fix: replace the two tab-switch SymbolIcon elements with font-independent PathIcon chevrons.
+  fix: replace the two tab-switch icon-control elements with raw vector Path chevrons inside Viewbox elements.
   files:
     - src/VeloFile.App/MainWindow.xaml
     - tests/VeloFile.App.Tests/AppShellContractTests.cs
   validation:
-    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_font_independent_icons
-      result: failed before fix, then passed
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons
+      result: failed against the insufficient PathIcon version, then passed after the raw vector fix
     - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
       result: passed, 19 tests
     - command: dotnet build VeloFile.sln -c Debug

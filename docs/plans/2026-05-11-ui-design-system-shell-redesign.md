@@ -463,9 +463,9 @@ Post-verify tab icon bugfix:
 
 - Bug: the Previous tab and Next tab buttons rendered garbled glyph text when their `SymbolIcon` font glyphs did not resolve.
 - Root cause: those two tab-switch buttons depended on `SymbolIcon` private-use glyph font resolution for Back/Forward icons.
-- Fix: replace only the Previous tab and Next tab `SymbolIcon` elements with font-independent `PathIcon` chevrons while preserving click handlers, tooltips, automation names, keyboard accelerators, and tab-switch behavior.
-- Regression test: `Main_window_previous_and_next_tab_buttons_use_font_independent_icons` failed before the XAML change and passed after it.
-- Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_font_independent_icons` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- Fix: replace only the Previous tab and Next tab icon-control content with raw vector `Path` chevrons inside `Viewbox` elements while preserving click handlers, tooltips, automation names, keyboard accelerators, and tab-switch behavior.
+- Regression test: `Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons` failed against the insufficient `PathIcon` version and passed after the raw vector fix.
+- Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 - Handoff impact: the prior branch-ready state is superseded by this post-verify bugfix until code-review and final verification are rerun.
 
 ## Readiness
