@@ -76,6 +76,8 @@ validation:
     result: passed 12 App release packaging contract tests after trusted release-key decision-seam remediation
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
     result: passed release documentation, verifier presence, and change metadata path/anchor checks
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests
+    result: passed 12 App release packaging contract tests after final-verify assertion warning cleanup
 manual_validation:
   - check: Signed MSIX install/update/rollback/uninstall checklist
     result: not run locally; docs/release/release-checklist.md records required manual release evidence fields for release owners
@@ -88,3 +90,4 @@ notes:
   - Review remediation added release verification for change metadata path and Markdown-anchor drift.
   - Follow-up review remediation verifies release tags with an isolated GNUPGHOME and an explicit approved full-fingerprint release-key allowlist, so tags signed by unapproved available keys do not pass the release gate.
   - Full temp Git/GPG integration is intentionally deferred because the verifier trust decision is covered by deterministic git verify-tag --raw status fixtures; the workflow contract test separately proves production invokes the verifier before packaging with isolated GNUPGHOME and trusted key configuration.
+  - Final verification replaced generic boolean ordering assertions in the release workflow contract test with MSTest comparison assertions, preserving the same workflow-order proof while keeping Debug builds free of MSTest analyzer warnings.

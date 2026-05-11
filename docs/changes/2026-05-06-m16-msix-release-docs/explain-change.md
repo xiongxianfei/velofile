@@ -22,6 +22,8 @@ Rollback remains uninstalling the MSIX package. VeloFile does not replace File E
 
 The manual install/update/rollback/uninstall matrix is recorded in `docs/release/release-checklist.md`. It was not executed in this local implementation run because there is no release signing certificate or previous signed package in the workspace.
 
+Final verification also cleaned the release workflow ordering assertions so they use MSTest comparison helpers instead of generic boolean assertions. The test still proves trusted tag verification precedes packaging and GitHub release creation, but Debug builds no longer emit analyzer warnings for those assertions.
+
 ## Tests
 
 `ReleasePackagingContractTests` prove the project declares the MSIX manifest, the manifest avoids Explorer replacement and file-association ownership, release scripts/workflow run Windows package checks, the release verifier executes, and release/user docs cover extension display, File Explorer differences, rollback, and checklist requirements.

@@ -116,9 +116,9 @@ public sealed class ReleasePackagingContractTests
         var packageIndex = workflow.IndexOf("./scripts/package-msix.ps1", StringComparison.OrdinalIgnoreCase);
         var releaseIndex = workflow.IndexOf("gh release create", StringComparison.OrdinalIgnoreCase);
 
-        Assert.IsTrue(verifyTagIndex >= 0, "Release workflow must cryptographically verify the signed tag with the trusted release-key verifier.");
-        Assert.IsTrue(packageIndex > verifyTagIndex, "Trusted signed tag verification must run before packaging.");
-        Assert.IsTrue(releaseIndex > verifyTagIndex, "Trusted signed tag verification must run before creating the GitHub release.");
+        Assert.IsGreaterThanOrEqualTo(0, verifyTagIndex, "Release workflow must cryptographically verify the signed tag with the trusted release-key verifier.");
+        Assert.IsGreaterThan(verifyTagIndex, packageIndex, "Trusted signed tag verification must run before packaging.");
+        Assert.IsGreaterThan(verifyTagIndex, releaseIndex, "Trusted signed tag verification must run before creating the GitHub release.");
         Assert.IsTrue(workflow.Contains("fetch-depth: 0", StringComparison.OrdinalIgnoreCase), "Release workflow must fetch full tag history.");
     }
 
