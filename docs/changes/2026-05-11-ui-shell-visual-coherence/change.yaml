@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-shell-visual-coherence
 title: UI shell visual coherence
-status: m1-review-requested
+status: m1-closed
 proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
 spec: specs/ui-shell-visual-coherence.md
 plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
@@ -9,16 +9,15 @@ architecture:
   - docs/adr/0010-shell-visual-coherence-contracts.md
 review:
   stage: code-review
-  status: review-resolution-applied
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r2.md
-  findings:
-    - CR-001
+  status: clean-with-notes
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r3.md
+  findings: []
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
   milestone: M1
-  status: review-requested
+  status: closed
   summary: Added shell visual-coherence contract validation for follow-on scopes, fixture icon invariants, visual sidecars, and behavior matrix inventory.
   validation:
     - dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"
@@ -26,4 +25,4 @@ implementation:
     - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
     - dotnet build VeloFile.sln -c Debug
     - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-next_stage: code-review
+next_stage: implement-m2

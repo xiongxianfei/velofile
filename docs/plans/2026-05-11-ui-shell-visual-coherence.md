@@ -76,7 +76,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M1. Shell Contract and Validator Extension
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Extend the existing V1 UI contract chain for shell-wide scopes, fixture icon invariants, screenshot sidecar metadata, and behavior-preservation matrix hooks before changing shell visuals.
 - Requirements: R1-R15, R66-R82, O1-O5, S1-S6, AC2-AC5, AC7, AC12, AC17-AC20, ADR 0010.
 - Files/components likely touched: `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `docs/ui/design-deviations.md`, `tools/VeloFile.UiContracts/`, `tests/fixtures/ui-contracts/`, `tests/VeloFile.Corpus.Tests/UiContracts/`, `tests/VeloFile.App.Tests/`.
@@ -451,7 +451,7 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] Plan review completed.
 - [x] Matching test spec created.
 - [x] Matching test spec accepted.
-- [ ] M1 closed; implementation is review-requested.
+- [x] M1 closed.
 - [ ] M2 closed.
 - [ ] M3 closed.
 - [ ] M4 closed.
@@ -463,14 +463,14 @@ No data migration is expected. Rollback is per governed region by reverting that
 
 ## Current Handoff Summary
 
-Current milestone: M1. Shell Contract and Validator Extension
-Current milestone state: review-requested
+Current milestone: M2. Shell Surface Foundation
+Current milestone state: planned
 Last reviewed milestone: M1
-Review status: review-resolution applied for CR-001; code-review rerun needed
-Remaining in-scope implementation milestones: M1-M8
-Next stage: `code-review` M1 rerun
+Review status: M1 code-review clean-with-notes after CR-001 resolution
+Remaining in-scope implementation milestones: M2-M8
+Next stage: `implement` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 is implemented but not closed by code review, and M2-M8 have not started.
+Reason final closeout is or is not ready: M1 is closed, but M2-M8 have not started.
 
 ## Decision Log
 
