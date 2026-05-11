@@ -6,6 +6,29 @@ resolved; ready for M1 code-review rerun
 
 ## Findings
 
+### CR-002: M2 visual evidence note does not record an actual full-shell visual review
+
+- Source review: [code-review-r4](reviews/code-review-r4.md)
+- Status: blocked; visual evidence unavailable in this tool session
+- Required outcome: before M2 can close, record actual `shell-default` full-shell visual evidence for `shell-standard-1440x900-100` through an automated/current screenshot, a manual screenshot review, or a manual visual-review note that records an observed whole-shell review result. Any accepted mismatch must be recorded in `docs/ui/design-deviations.md`.
+- Resolution plan:
+  - Launch or otherwise visually inspect the M2 default shell in the required profile when possible.
+  - Update `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md` with reviewer/date, profile, observed whole-shell result, and deviation status; include screenshot/sidecar if automation becomes available.
+  - If the shell cannot be launched in the current environment, keep M2 in `resolution-needed` and do not close the milestone.
+  - Rerun M2 targeted validation after the evidence record is corrected.
+- Validation:
+  - `rg -n "capture-ui|screenshot|update-ui-baselines|visual/current|shell-default|UiFixture|test-ui-fixture" scripts src tests docs -g "!*bin*" -g "!*obj*"`
+  - `Get-ChildItem scripts`
+  - `Get-ChildItem src\VeloFile.App\bin -Recurse -Filter VeloFile.App.exe`
+  - `dotnet test VeloFile.sln -c Debug --filter ShellSurfaceResourceContractTests`: passed after rerun; the first parallel attempt hit a transient file lock.
+  - `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests`: passed after rerun; the first parallel attempt hit a transient file lock.
+  - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 142/Windows 52/Corpus 37 tests passed.
+- Resolution:
+  - Confirmed there is no checked-in script that launches the WinUI app and captures `shell-default` current screenshots.
+  - Replaced the prior static-only visual evidence note with an explicit unavailable evidence record at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md`.
+  - M2 remains `resolution-needed`; this does not satisfy R22, R26, TSC013, or the M2 visual-evidence closeout rule.
+
 ### CR-001: Governed fixture icon validation does not reject local icon color literals
 
 - Source review: [code-review-r2](reviews/code-review-r2.md)

@@ -12,7 +12,7 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| [2026-05-11 UI shell visual coherence](plans/2026-05-11-ui-shell-visual-coherence.md) | Implement the follow-on shell-wide visual-coherence work: shell surface foundation, deterministic fixture icons, command band, sidebar, status/operation, preview/details, and full-shell visual evidence. | active; M1 closed; M2 review-requested | `code-review` M2 |
+| [2026-05-11 UI shell visual coherence](plans/2026-05-11-ui-shell-visual-coherence.md) | Implement the follow-on shell-wide visual-coherence work: shell surface foundation, deterministic fixture icons, command band, sidebar, status/operation, preview/details, and full-shell visual evidence. | active; M1 closed; M2 resolution-needed | `review-resolution` CR-002 |
 | [2026-05-11 UI design-system and shell redesign](plans/2026-05-11-ui-design-system-shell-redesign.md) | Implement the first UI design-system slice: repo-owned tokens, WinUI resources, file-list row redesign, fixture mode, and visual evidence. | active; branch-ready | `pr` |
 
 ## Blocked

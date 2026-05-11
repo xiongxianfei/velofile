@@ -106,7 +106,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M2. Shell Surface Foundation
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Apply one dark comfortable shell surface model to app root, chrome, sidebar, content, command band, status area, and preview/details containers before isolated region polish.
 - Requirements: R16-R27, R57, R62, A11Y1-A11Y3, A11Y6, P1-P2, AC4-AC5.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, new or extended `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -464,13 +464,13 @@ No data migration is expected. Rollback is per governed region by reverting that
 ## Current Handoff Summary
 
 Current milestone: M2. Shell Surface Foundation
-Current milestone state: review-requested
+Current milestone state: resolution-needed
 Last reviewed milestone: M1
-Review status: M1 code-review clean-with-notes after CR-001 resolution
+Review status: M2 code-review changes-requested; CR-002 pending
 Remaining in-scope implementation milestones: M2-M8
-Next stage: `code-review` M2
+Next stage: `review-resolution` CR-002 for M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 is closed and M2 is ready for code review, but M2-M8 are not all closed.
+Reason final closeout is or is not ready: M1 is closed, but M2 has pending CR-002 and M2-M8 are not all closed.
 
 ## Decision Log
 
@@ -548,6 +548,22 @@ M2 implementation validation:
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"`: App 20 passed, Corpus 20 passed; Core/Windows had no matching tests for the filter.
   - `dotnet build VeloFile.sln -c Debug`: passed with 0 warnings and 0 errors after rerunning without the parallel testhost lock.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 142/Windows 52/Corpus 37 tests passed.
+
+CR-002 review-resolution attempt:
+
+- Code review found that the M2 visual evidence note did not record an observed full-shell visual review.
+- Checked for an existing screenshot/capture path:
+  - `rg -n "capture-ui|screenshot|update-ui-baselines|visual/current|shell-default|UiFixture|test-ui-fixture" scripts src tests docs -g "!*bin*" -g "!*obj*"`
+  - `Get-ChildItem scripts`
+  - `Get-ChildItem src\VeloFile.App\bin -Recurse -Filter VeloFile.App.exe`
+- Discovery: the repo has `scripts/update-ui-baselines.ps1` for copying reviewed current screenshots, but no checked-in script that launches the WinUI app and captures `shell-default`; this tool session cannot directly observe the local WinUI desktop.
+- Updated `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md` to explicitly record visual evidence as unavailable.
+- Validation after updating the evidence record:
+  - `dotnet test VeloFile.sln -c Debug --filter ShellSurfaceResourceContractTests`: passed after rerun; the first parallel attempt hit a transient file lock.
+  - `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests`: passed after rerun; the first parallel attempt hit a transient file lock.
+  - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 142/Windows 52/Corpus 37 tests passed.
+- M2 remains `resolution-needed`; it cannot return to code review until automated screenshot evidence or an observed manual full-shell visual-review note exists for `shell-default` at `shell-standard-1440x900-100`.
 
 ## Outcome and Retrospective
 
