@@ -130,4 +130,20 @@ The implementation preserves the approved non-goals:
 
 ## Current Readiness
 
-All implementation milestones M1-M4 are closed. `explain-change` is now complete. The next stage is `verify`; this artifact does not claim final verification, PR readiness, or hosted CI status.
+All implementation milestones M1-M4 are closed. `explain-change` was completed before final verify.
+
+## Post-Verify Bugfix Addendum
+
+After local final verification, the Previous tab and Next tab buttons were reported as rendering garbled icon text. The bug was caused by those two buttons using `SymbolIcon Symbol="Back"` and `SymbolIcon Symbol="Forward"`, which depend on icon-font/private-use glyph resolution. If that font path fails, the UI can show garbled text instead of arrows.
+
+The fix is intentionally narrow: only the two tab-switch buttons in `MainWindow.xaml` now use font-independent `PathIcon` chevrons. Click handlers, tooltips, automation names, keyboard accelerators, tab-switch routing, and the rest of the shell icons are unchanged.
+
+Regression coverage was added in `AppShellContractTests.Main_window_previous_and_next_tab_buttons_use_font_independent_icons`. The test failed before the XAML fix because the buttons still contained `SymbolIcon`; it passed after the fix.
+
+Validation for the addendum:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_font_independent_icons` failed before the fix and passed after it.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+
+This post-verify code change supersedes the prior branch-ready state until code review and final verification are rerun. The next stage is `code-review` for the tab icon bugfix.

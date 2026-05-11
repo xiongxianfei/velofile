@@ -268,18 +268,18 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
-- [ ] M5. Lifecycle Closeout and Regression Verification - branch-ready; PR handoff pending
+- [ ] M5. Lifecycle Closeout and Regression Verification - tab icon bugfix pending code-review
 
 ## Current Handoff Summary
 
 Current milestone: M5. Lifecycle Closeout and Regression Verification
-Current milestone state: branch-ready
+Current milestone state: bugfix-code-review-needed
 Last reviewed milestone: M4
 Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
 Remaining in-scope implementation milestones: none
-Next stage: `pr`
-Final closeout readiness: branch-ready
-Reason final closeout is or is not ready: M1-M4 are closed, review-resolution is closed, explain-change is complete, and local final verification passed; PR handoff remains. Hosted GitHub CI was not observed in this stage.
+Next stage: `code-review` tab icon bugfix
+Final closeout readiness: not branch-ready after post-verify bugfix
+Reason final closeout is or is not ready: M1-M4 remain closed, but the Previous/Next tab icon bugfix was applied after final verify and needs code-review plus renewed final verification before PR handoff. Hosted GitHub CI was not observed in this stage.
 
 ## Decision Log
 
@@ -459,6 +459,15 @@ Final verify result:
 - `git diff --check` passed.
 - Hosted GitHub CI was not observed during local verify.
 
+Post-verify tab icon bugfix:
+
+- Bug: the Previous tab and Next tab buttons rendered garbled glyph text when their `SymbolIcon` font glyphs did not resolve.
+- Root cause: those two tab-switch buttons depended on `SymbolIcon` private-use glyph font resolution for Back/Forward icons.
+- Fix: replace only the Previous tab and Next tab `SymbolIcon` elements with font-independent `PathIcon` chevrons while preserving click handlers, tooltips, automation names, keyboard accelerators, and tab-switch behavior.
+- Regression test: `Main_window_previous_and_next_tab_buttons_use_font_independent_icons` failed before the XAML change and passed after it.
+- Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_font_independent_icons` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- Handoff impact: the prior branch-ready state is superseded by this post-verify bugfix until code-review and final verification are rerun.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for `pr`. Local final verification is complete; PR handoff is not complete.
+See Current Handoff Summary. This plan is active and ready for `code-review` of the tab icon bugfix. Final verification must be rerun after review.

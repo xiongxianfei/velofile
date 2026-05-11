@@ -89,14 +89,20 @@
                         ToolTipService.ToolTip="Previous tab"
                         Click="PreviousTabButton_Click"
                         AutomationProperties.Name="Previous tab">
-                        <SymbolIcon Symbol="Back" />
+                        <PathIcon
+                            Width="16"
+                            Height="16"
+                            Data="M 12.7,4.3 L 5,12 L 12.7,19.7 L 14.1,18.3 L 7.8,12 L 14.1,5.7 Z" />
                     </Button>
                     <Button
                         Width="36"
                         ToolTipService.ToolTip="Next tab"
                         Click="NextTabButton_Click"
                         AutomationProperties.Name="Next tab">
-                        <SymbolIcon Symbol="Forward" />
+                        <PathIcon
+                            Width="16"
+                            Height="16"
+                            Data="M 7.3,4.3 L 15,12 L 7.3,19.7 L 5.9,18.3 L 12.2,12 L 5.9,5.7 Z" />
                     </Button>
                     <Button
                         Width="36"

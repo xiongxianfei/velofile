@@ -61,6 +61,22 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    public void Main_window_previous_and_next_tab_buttons_use_font_independent_icons()
+    {
+        var xaml = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var previousButton = ExtractButtonBlock(xaml, "AutomationProperties.Name=\"Previous tab\"");
+        var nextButton = ExtractButtonBlock(xaml, "AutomationProperties.Name=\"Next tab\"");
+
+        StringAssert.Contains(previousButton, "<PathIcon");
+        StringAssert.Contains(previousButton, "Data=\"");
+        Assert.IsFalse(previousButton.Contains("<SymbolIcon", StringComparison.Ordinal), "Previous tab must not depend on SymbolIcon font glyph resolution.");
+
+        StringAssert.Contains(nextButton, "<PathIcon");
+        StringAssert.Contains(nextButton, "Data=\"");
+        Assert.IsFalse(nextButton.Contains("<SymbolIcon", StringComparison.Ordinal), "Next tab must not depend on SymbolIcon font glyph resolution.");
+    }
+
+    [TestMethod]
     public void App_launch_uses_composition_root_instead_of_hardcoded_main_window_state()
     {
         var repoRoot = FindRepoRoot();
@@ -478,5 +494,19 @@ public sealed class AppShellContractTests
 
         Assert.Fail("Could not find repository root from test output directory.");
         throw new InvalidOperationException("Could not find repository root from test output directory.");
+    }
+
+    private static string ExtractButtonBlock(string xaml, string marker)
+    {
+        var markerIndex = xaml.IndexOf(marker, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, markerIndex, $"Could not find button marker: {marker}");
+
+        var startIndex = xaml.LastIndexOf("<Button", markerIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, startIndex, $"Could not find button start for marker: {marker}");
+
+        var endIndex = xaml.IndexOf("</Button>", markerIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, endIndex, $"Could not find button end for marker: {marker}");
+
+        return xaml[startIndex..(endIndex + "</Button>".Length)];
     }
 }
