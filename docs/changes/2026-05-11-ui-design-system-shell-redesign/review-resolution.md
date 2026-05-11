@@ -2,9 +2,17 @@
 
 ## Status
 
-All recorded M1 and M2 findings resolved. M2 closed by rerun code-review.
+M3 has an unresolved code-review finding. Do not begin M4 until CR-M3-001 is resolved and M3 returns to code-review.
 
 ## Pending findings
+
+### CR-M3-001
+
+- Source: [code-review-r4](reviews/code-review-r4.md)
+- Status: pending
+- Required outcome: The fixture launch path must make selected, focused, selected+focused, and multi-selected fixture states deterministic through the app/UI boundary used for screenshots, or M3 must explicitly split those states into separate allowed fixtures/fixture instructions that the screenshot harness can apply deterministically before capture.
+- Resolution: pending.
+- Evidence: pending.
 
 ### CR-M1-001
 

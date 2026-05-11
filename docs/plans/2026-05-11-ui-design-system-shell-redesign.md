@@ -128,7 +128,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M3. Guarded Test Fixture Mode and Deterministic File-List States
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add the non-production fixture launch path and deterministic first-slice file-list fixtures needed for visual evidence.
 - Requirements: R62-R69, R67-R68, S1-S4, O2, AC11-AC13, ADR 0009.
 - Files/components likely touched: `src/VeloFile.App/App.xaml.cs`, `src/VeloFile.App/AppCompositionRoot.cs`, `src/VeloFile.App/ViewModels/`, `tests/VeloFile.App.Tests/`, possibly a small app-shell fixture registry under `src/VeloFile.App/Testing/` guarded by build symbols.
@@ -266,20 +266,20 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
-- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - review-requested
+- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - resolution-needed
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
 Current milestone: M3. Guarded Test Fixture Mode and Deterministic File-List States
-Current milestone state: review-requested
+Current milestone state: resolution-needed
 Last reviewed milestone: M2
-Review status: M3 implementation complete and ready for code-review; M2 rerun `code-review` was clean-with-notes
+Review status: M3 code-review requested changes: CR-M3-001
 Remaining in-scope implementation milestones: M3, M4
-Next stage: `code-review` M3
+Next stage: `review-resolution` M3
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M3 awaits code-review and M4 remains planned.
+Reason final closeout is or is not ready: M3 has unresolved review-resolution and M4 remains planned.
 
 ## Decision Log
 
@@ -395,6 +395,10 @@ M3 validation:
 
 M3 added a guarded non-production UI fixture launch path and deterministic first-slice file-list fixtures. Fixture mode is accepted only in Debug/test builds with `VELOFILE_ENABLE_TEST_UI_FIXTURES=1` and a hardcoded allowlisted fixture name. Release/production, missing guard, unsupported options, arbitrary fixture-data paths, positional data paths, and unknown fixtures reject before normal or fixture UI creation. The fixture registry provides `file-list-v1` and `file-list-empty-folder` using synthetic rows under `C:\VeloFileFixture`, preserving the normal app shell/listing/view-model route without reading real disk fixtures.
 
+M3 code-review requested changes:
+
+- CR-M3-001: deterministic selected/focused/multi-selected fixture states are labels only and are not consumed by the rendered app/startup path.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M3 code-review. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M3 review-resolution. Final closeout is not ready.
