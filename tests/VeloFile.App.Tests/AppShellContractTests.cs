@@ -254,14 +254,16 @@ public sealed class AppShellContractTests
     {
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var fileListResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
         var app = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
         var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
         var normalizedComposition = composition.Replace("\r\n", "\n", StringComparison.Ordinal);
 
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
-        StringAssert.Contains(xaml, "Text=\"{Binding ThumbnailDisplayText}\"");
-        StringAssert.Contains(xaml, "Opacity=\"{Binding RowOpacity}\"");
+        StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
+        StringAssert.Contains(fileListResources, "Text=\"{Binding ThumbnailDisplayText}\"");
+        StringAssert.Contains(fileListResources, "Opacity=\"{Binding RowOpacity}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
         StringAssert.Contains(codeBehind, "ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue))");
@@ -292,7 +294,7 @@ public sealed class AppShellContractTests
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
-        StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
+        StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
         Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems)");

@@ -97,7 +97,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M2. WinUI Token Resources and File-List Row Redesign
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add first-slice WinUI resource dictionaries and consume named file-list row resources from `MainWindow.xaml` without changing file-list behavior.
 - Requirements: R9-R14, R26-R35, R48-R61, A11Y1-A11Y7, P1-P4, AC4, AC7, AC14.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `tests/VeloFile.App.Tests/`.
@@ -265,21 +265,21 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Progress
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
-- [ ] M2. WinUI Token Resources and File-List Row Redesign - planned
+- [ ] M2. WinUI Token Resources and File-List Row Redesign - review-requested
 - [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
-Current milestone: M1. UI Contract Artifacts and Static Validator
-Current milestone state: closed
+Current milestone: M2. WinUI Token Resources and File-List Row Redesign
+Current milestone state: review-requested
 Last reviewed milestone: M1
 Review status: rerun `code-review` clean-with-notes; no required-change findings remain for M1
 Remaining in-scope implementation milestones: M2, M3, M4
-Next stage: `implement` M2
+Next stage: `code-review` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M2-M4 remain planned.
+Reason final closeout is or is not ready: M2 awaits code review, and M3-M4 remain planned.
 
 ## Decision Log
 
@@ -291,11 +291,13 @@ Reason final closeout is or is not ready: M2-M4 remain planned.
 | 2026-05-11 | Use the matching test spec as the active proof surface before implementation. | Keeps implementation test-driven and traceable to spec requirements. |
 | 2026-05-11 | Expose first-slice scope validation through `validate-tokens --scopes` rather than a separate command. | Keeps M1 validation entry points small while still supporting token and targeted scope checks. |
 | 2026-05-11 | Add explicit scope-region markers for targeted literal scanning when present. | Prevents M1 validation from blocking unrelated legacy XAML literals outside the first file-list scope. |
+| 2026-05-11 | Keep the first file-list row extraction to `DataTemplate`, `ItemContainerStyle`, text styles, and component padding resources. | Meets M2's named-resource contract without introducing a custom row control, selection model, or virtualization behavior. |
 
 ## Surprises and Discoveries
 
 - The first UI contract test run failed as expected because `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `docs/ui/design-deviations.md`, and `tools/VeloFile.UiContracts` did not exist yet.
 - Initial scope validation was too broad: it scanned all of `MainWindow.xaml` and required every resource reference in every scoped file. The validator now aggregates required references across scoped files and scans explicit `ui-contract-scope:<id>` marker regions when they exist.
+- Existing app-shell contract tests expected file-row thumbnail and opacity bindings directly in `MainWindow.xaml`; M2 updated those tests to follow the extracted `VeloFile.FileList.xaml` component resource instead.
 
 ## Validation Notes
 
@@ -328,6 +330,17 @@ M1 rerun code-review validation:
 
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 tests passed.
 
+M2 validation:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests.App_resources_merge"` failed before implementation for the expected missing first-slice resource dictionaries.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests"` passed: 6 tests passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources` passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"` passed: App tests 19 passed, Corpus UI contract tests 14 passed.
+- First `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` attempt timed out at the 5-minute tool limit while the no-build test step was still running; the leftover test process was allowed to finish.
+- Rerun `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 362 tests passed.
+
 ## Outcome and Retrospective
 
 M1 added the repo-owned UI token contract, first active UI contract scope, design-deviation policy document, static validation tool, controlled valid/invalid XAML fixtures, and focused contract/tool tests. No production UI behavior was changed.
@@ -339,6 +352,8 @@ Code review R1 requested changes for M1:
 
 Rerun code review closed M1 with status `clean-with-notes`; no required-change findings remain for M1.
 
+M2 added checked-in WinUI token dictionaries, the first file-list component resource dictionary, and scoped `MainWindow.xaml` references to `VfFileListRowTemplate` and `VfFileListItemContainerStyle`. Existing file-list command, selection, drag/drop, context-menu, row opacity, thumbnail, and metadata bindings remain routed through the same app state; M2 did not add fixture mode, screenshot baselines, a custom row control, or new behavior/persistence.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M2 implementation. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M2 code review. Final closeout is not ready.

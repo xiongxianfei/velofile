@@ -8,6 +8,16 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Colors.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Typography.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Spacing.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Sizing.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Radius.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Focus.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Density.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.State.xaml" />
+                <ResourceDictionary Source="Resources/Tokens/VeloFile.Motion.xaml" />
+                <ResourceDictionary Source="Resources/Components/VeloFile.FileList.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

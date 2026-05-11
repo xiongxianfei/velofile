@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: implementation-m1-closed
+status: implementation-m2-review-requested
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -8,9 +8,9 @@ architecture:
   - docs/architecture/system/architecture.md
   - docs/adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md
 milestone:
-  id: M1
-  title: UI Contract Artifacts and Static Validator
-  state: closed
+  id: M2
+  title: WinUI Token Resources and File-List Row Redesign
+  state: review-requested
 review:
   stage: code-review
   status: clean-with-notes-after-resolution
@@ -48,4 +48,19 @@ review_resolution_validation:
 rerun_review_validation:
   - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
     result: passed, 14 tests
-next_stage: implement M2
+m2_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests.App_resources_merge"
+    result: failed before implementation for expected missing first-slice resource dictionaries
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests"
+    result: passed, 6 tests
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources
+    result: passed
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"
+    result: passed; App tests 19 passed, Corpus UI contract tests 14 passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: first attempt timed out at tool limit while tests continued; rerun passed with build success, UI contract validation pass, and 362 tests
+next_stage: code-review M2

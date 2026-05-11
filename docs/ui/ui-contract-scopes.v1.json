@@ -19,7 +19,8 @@
         "VfFileListRowTemplate",
         "VfFileListItemContainerStyle",
         "VfFileListRowNameTextStyle",
-        "VfFileListRowMetadataTextStyle"
+        "VfFileListRowMetadataTextStyle",
+        "VfFileListRowPadding"
       ],
       "forbiddenLiteralRules": [
         "inline-color",
