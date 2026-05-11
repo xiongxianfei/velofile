@@ -128,7 +128,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M3. Guarded Test Fixture Mode and Deterministic File-List States
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add the non-production fixture launch path and deterministic first-slice file-list fixtures needed for visual evidence.
 - Requirements: R62-R69, R67-R68, S1-S4, O2, AC11-AC13, ADR 0009.
 - Files/components likely touched: `src/VeloFile.App/App.xaml.cs`, `src/VeloFile.App/AppCompositionRoot.cs`, `src/VeloFile.App/ViewModels/`, `tests/VeloFile.App.Tests/`, possibly a small app-shell fixture registry under `src/VeloFile.App/Testing/` guarded by build symbols.
@@ -266,20 +266,20 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
-- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
+- [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - review-requested
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
 Current milestone: M3. Guarded Test Fixture Mode and Deterministic File-List States
-Current milestone state: planned
+Current milestone state: review-requested
 Last reviewed milestone: M2
-Review status: M2 rerun `code-review` clean-with-notes; no required-change findings remain for M2
+Review status: M3 implementation complete and ready for code-review; M2 rerun `code-review` was clean-with-notes
 Remaining in-scope implementation milestones: M3, M4
-Next stage: `implement` M3
+Next stage: `code-review` M3
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M3-M4 remain planned.
+Reason final closeout is or is not ready: M3 awaits code-review and M4 remains planned.
 
 ## Decision Log
 
@@ -383,6 +383,18 @@ M2 final rerun code-review validation:
 - `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests` passed: 11 app tests passed.
 - `git diff --check` passed.
 
+M3 validation:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` failed before implementation for the expected missing fixture launch and registry files.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` passed after implementation: 12 app tests passed.
+- `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed: App fixture tests 12 passed, Corpus UI contract tests 14 passed, and Core/Windows projects had no matching tests.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
+- `rg "fixture-data|C:\\Users|xiongxianfei|20260428-velofile|--test-ui-fixture|VELOFILE_ENABLE_TEST_UI_FIXTURES" src\VeloFile.App tests\VeloFile.App.Tests docs -n` found only expected source, test, and documentation references; deterministic fixture rows do not use local user/workspace paths.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 379 tests passed.
+- Process-level GUI launch checks were not run in this slice; fixture rejection/acceptance was covered by static startup wiring tests and launch gate unit tests.
+
+M3 added a guarded non-production UI fixture launch path and deterministic first-slice file-list fixtures. Fixture mode is accepted only in Debug/test builds with `VELOFILE_ENABLE_TEST_UI_FIXTURES=1` and a hardcoded allowlisted fixture name. Release/production, missing guard, unsupported options, arbitrary fixture-data paths, positional data paths, and unknown fixtures reject before normal or fixture UI creation. The fixture registry provides `file-list-v1` and `file-list-empty-folder` using synthetic rows under `C:\VeloFileFixture`, preserving the normal app shell/listing/view-model route without reading real disk fixtures.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M3 implementation. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M3 code-review. Final closeout is not ready.

@@ -1,4 +1,5 @@
 using VeloFile.App.ViewModels;
+using VeloFile.App.Testing;
 using VeloFile.App.Windowing;
 using VeloFile.Core.Diagnostics;
 using VeloFile.Core.FileAssociations;
@@ -118,6 +119,19 @@ public static class AppCompositionRoot
             shellDispatcher,
             terminalLaunchService,
             fileAssociationLaunchService);
+    }
+
+    public static AppShellViewModel CreateFixtureShellViewModel(string fixtureName, IShellDispatcher? shellDispatcher = null)
+    {
+        var viewModel = string.Equals(fixtureName, UiFixtureRegistry.FileListV1Name, StringComparison.Ordinal)
+            ? UiFixtureRegistry.CreateFileListV1ViewModel()
+            : UiFixtureRegistry.CreateViewModel(fixtureName);
+        if (shellDispatcher is not null)
+        {
+            viewModel.SetShellDispatcher(shellDispatcher);
+        }
+
+        return viewModel;
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

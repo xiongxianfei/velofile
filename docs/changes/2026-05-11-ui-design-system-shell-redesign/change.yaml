@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: m2-closed
+status: m3-review-requested
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -8,9 +8,9 @@ architecture:
   - docs/architecture/system/architecture.md
   - docs/adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md
 milestone:
-  id: M2
-  title: WinUI Token Resources and File-List Row Redesign
-  state: closed
+  id: M3
+  title: Guarded Test Fixture Mode and Deterministic File-List States
+  state: review-requested
 review:
   stage: code-review
   status: clean-with-notes
@@ -110,4 +110,17 @@ m2_final_review:
       result: passed, 11 app tests
     - command: git diff --check
       result: passed
-next_stage: implement M3
+m3_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"
+    result: failed before implementation for expected missing fixture launch and registry files; passed after implementation with 12 app tests
+  - command: dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"
+    result: passed; App fixture tests 12 passed, Corpus UI contract tests 14 passed, Core/Windows projects had no matching tests
+  - command: dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release
+    result: passed with 0 warnings and 0 errors
+  - command: rg "fixture-data|C:\\Users|xiongxianfei|20260428-velofile|--test-ui-fixture|VELOFILE_ENABLE_TEST_UI_FIXTURES" src\VeloFile.App tests\VeloFile.App.Tests docs -n
+    result: found only expected source, test, and documentation references; deterministic fixture rows do not use local user/workspace paths
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 379 tests
+  - command: manual or scripted process-level GUI launch checks
+    result: not run; covered by static startup wiring tests and launch gate unit tests in this slice
+next_stage: code-review M3

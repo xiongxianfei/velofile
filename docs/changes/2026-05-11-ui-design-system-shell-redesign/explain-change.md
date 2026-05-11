@@ -66,3 +66,34 @@ M2 does not add fixture mode, screenshot baselines, runtime theme/density switch
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed on rerun with build success, UI contract validation pass, and 362 tests.
 - M2 review-resolution validation passed with `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests`, scoped UI contract validation, `dotnet build VeloFile.sln -c Debug`, `dotnet test VeloFile.sln -c Debug --filter UiContracts`, and `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`.
 - CR-M2-002 review-resolution validation passed with focused file-list contract tests, `dotnet build VeloFile.sln -c Debug`, scoped UI contract validation, `dotnet test VeloFile.sln -c Debug --filter UiContracts`, `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests`, and `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`.
+
+# M3 Change Explanation
+
+M3 adds the guarded non-production fixture path needed before screenshot evidence can be captured.
+
+## What changed
+
+- Added `src/VeloFile.App/Testing/UiFixtureLaunch.cs` with fixture command-line parsing and launch gating for `--test-ui-fixture`, `--theme`, `--density`, and `--viewport`.
+- Added `src/VeloFile.App/Testing/UiFixtureRegistry.cs` with hardcoded `file-list-v1` and `file-list-empty-folder` fixtures.
+- Wired `App.xaml.cs` to reject invalid fixture launches before normal window creation and to create a fixture shell view model only when the fixture request is accepted.
+- Added `AppCompositionRoot.CreateFixtureShellViewModel` so fixture mode uses the existing app-shell/listing/view-model route.
+- Added fixture tests for Release/production rejection, missing environment guard rejection, unknown fixture rejection, allowlisted acceptance, unsupported option/path rejection, static startup wiring, deterministic synthetic rows, required file-list visual states, empty-folder state, and disk-free view-model rendering.
+
+## Why it changed
+
+The approved M3 slice requires visual evidence fixtures to be deterministic and non-production. The launch guard prevents accidental production exposure, while the fixture registry gives M4 stable file-list states without generated disk fixtures, user paths, or filesystem timing.
+
+## Boundaries preserved
+
+M3 does not add screenshot baselines, fixture-data paths, a `DebugUiTest` configuration, a custom row control, a new selection system, persisted theme/density settings, or disk-backed integration fixtures.
+
+Normal app launches without `--test-ui-fixture` still follow `CreateShellViewModel`. Fixture rows are synthetic and rooted at `C:\VeloFileFixture`; they do not read local workspace or user-profile files.
+
+## Validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"` failed before implementation for the expected missing fixture launch and registry files, then passed after implementation with 12 app tests.
+- `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed: App fixture tests 12 passed, Corpus UI contract tests 14 passed, and Core/Windows projects had no matching tests.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
+- `rg "fixture-data|C:\\Users|xiongxianfei|20260428-velofile|--test-ui-fixture|VELOFILE_ENABLE_TEST_UI_FIXTURES" src\VeloFile.App tests\VeloFile.App.Tests docs -n` found only expected source, test, and documentation references.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed with build success, UI contract validation pass, and 379 tests.
+- Process-level GUI launch checks were not run in this slice; fixture rejection and acceptance are covered by launch gate unit tests plus static startup wiring tests.
