@@ -268,18 +268,18 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
-- [ ] M5. Lifecycle Closeout and Regression Verification - shell icon bugfix pending code-review
+- [ ] M5. Lifecycle Closeout and Regression Verification - shell icon bugfix reviewed; renewed verify needed
 
 ## Current Handoff Summary
 
 Current milestone: M5. Lifecycle Closeout and Regression Verification
-Current milestone state: bugfix-code-review-needed
-Last reviewed milestone: M4
-Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
+Current milestone state: verify-needed
+Last reviewed milestone: M5 post-verify shell icon bugfix
+Review status: clean-with-notes; shell icon bugfix has no required-change findings
 Remaining in-scope implementation milestones: none
-Next stage: `code-review` shell icon bugfix
+Next stage: `verify`
 Final closeout readiness: not branch-ready after post-verify bugfix
-Reason final closeout is or is not ready: M1-M4 remain closed, but the shell icon bugfix was applied after final verify and needs code-review plus renewed final verification before PR handoff. Hosted GitHub CI was not observed in this stage.
+Reason final closeout is or is not ready: M1-M4 remain closed and the shell icon bugfix has passed code-review, but final verification must be rerun before PR handoff. Hosted GitHub CI was not observed in this stage.
 
 ## Decision Log
 
@@ -468,6 +468,13 @@ Post-verify shell icon bugfix:
 - Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors; `rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml` returned no matches.
 - Handoff impact: the prior branch-ready state is superseded by this post-verify shell icon bugfix until code-review and final verification are rerun.
 
+Post-verify shell icon bugfix code-review:
+
+- Status: clean-with-notes.
+- No required-change findings remain for the shell icon bugfix.
+- Review evidence: all `MainWindow.xaml` shell icon buttons use raw vector `Path` shapes inside `Viewbox` elements, `SymbolIcon` and `PathIcon` are absent from `MainWindow.xaml`, and `Main_window_icon_buttons_use_raw_vectors` covers all affected shell buttons.
+- Handoff impact: ready for renewed final verification before PR handoff.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for `code-review` of the shell icon bugfix. Final verification must be rerun after review.
+See Current Handoff Summary. This plan is active and ready for renewed `verify` after the shell icon bugfix review.

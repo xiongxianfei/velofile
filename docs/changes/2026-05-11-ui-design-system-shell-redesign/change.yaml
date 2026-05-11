@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: bugfix-code-review-needed
+status: verify-needed
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,7 +10,7 @@ architecture:
 milestone:
   id: M5
   title: Lifecycle Closeout and Regression Verification
-  state: bugfix-code-review-needed
+  state: verify-needed
 review:
   stage: code-review
   status: clean-with-notes
@@ -209,4 +209,17 @@ post_verify_bugfix:
       result: passed with 0 warnings and 0 errors
     - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
       result: no matches
-next_stage: code-review shell icon bugfix
+post_verify_bugfix_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: review of tracked shell icon bugfix diff and validation evidence
+      result: passed; no required-change findings remain for the shell icon bugfix
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+      result: passed; 19 tests
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors
+      result: passed; 1 test
+    - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
+      result: no matches
+next_stage: verify
