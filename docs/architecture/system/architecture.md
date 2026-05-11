@@ -2,12 +2,14 @@
 
 ## Lifecycle Metadata
 
-- Status: approved; amended 2026-05-11 for UI design-system and shell redesign architecture
+- Status: approved; amended 2026-05-11 for UI design-system, shell redesign, and shell visual-coherence architecture
 - Scope: canonical baseline architecture for VeloFile V1
 - Related V1 proposal: [V1 Product Direction](../../proposals/2026-05-04-v1-product-direction.md)
 - Related V1 spec: [V1 Product Scope](../../../specs/v1-product-scope.md)
 - Related UI proposal: [UI Design System and Shell Redesign](../../proposals/2026-05-11-ui-design-system-shell-redesign.md)
 - Related UI spec: [UI Design System and Shell Redesign](../../../specs/ui-design-system-shell-redesign.md)
+- Related shell visual-coherence proposal: [Shell Visual Coherence Follow-up](../../proposals/2026-05-11-shell-visual-coherence-follow-up.md)
+- Related shell visual-coherence spec: [UI Shell Visual Coherence](../../../specs/ui-shell-visual-coherence.md)
 - Context diagram: [diagrams/context.mmd](diagrams/context.mmd)
 - Container diagram: [diagrams/container.mmd](diagrams/container.mmd)
 - Component diagram: [diagrams/desktop-app-components.mmd](diagrams/desktop-app-components.mmd)
@@ -24,6 +26,7 @@ Primary goals:
 - Use Windows-native integration for file associations, Recycle Bin, drag/drop, thumbnails/icons, long paths, DPI, terminal launch, and MSIX packaging.
 - Keep open-source contribution boundaries visible through explicit services, providers, adapters, diagnostics, and ADRs.
 - Keep visible UI quality governed by repo-owned WinUI design contracts, validation tools, and reviewed evidence rather than external prototype packages.
+- Keep whole-shell visual coherence governed by additive token/scope contracts, deterministic vector fixture icons, full-shell soft-review evidence, and behavior-preservation matrices.
 - Preserve post-V1 extension points without pre-building out-of-scope features.
 
 ## 2. Architecture Constraints
@@ -35,6 +38,9 @@ Primary goals:
 - V1 does not expose OS Shell extension context menu entries or host third-party Shell menu handlers.
 - The UI design system is owned by repository specs, token contracts, XAML resources, validation tools, and accepted evidence; external design packages are reference input only.
 - The first UI redesign slice uses fixed dark and comfortable defaults and does not persist new theme or density preferences.
+- Shell-wide visual-coherence contracts extend `docs/ui/tokens.v1.json` and `docs/ui/ui-contract-scopes.v1.json` additively unless an approved incompatible redesign reset creates a new major contract.
+- Deterministic fixture icons use VeloFile-owned XAML vector resources and allowlisted icon kinds; first visual baselines do not depend on real Windows Shell icon extraction.
+- Full-shell visual evidence uses effective-pixel app-window review profiles and remains soft-review evidence until a later accepted decision hardens screenshot comparison.
 - Shell-owned behavior is preferred for Windows-correct copy, move, delete, drag/drop, file association, thumbnail/icon, long-path, and Recycle Bin behavior.
 - Paths, file names, terminal targets, persisted state, and diagnostic inputs are untrusted.
 - Diagnostics are local-only by default. No diagnostics, telemetry, crash reports, paths, filenames, or preview-derived content are uploaded without a separate approved proposal and explicit user opt-in.
@@ -67,8 +73,8 @@ Out of scope for V1:
 The architecture uses a layered Windows desktop app:
 
 - **UI shell** owns WinUI windows, tabs, sidebar, breadcrumb/path bar, file list, preview/details pane, built-in context menu, dialogs, and keyboard flow.
-- **UI design resources** own VeloFile token/resource dictionaries, file-list row presentation resources, focus and density constants, and resource consumption rules inside the WinUI app.
-- **UI contract tooling** owns static validation from repo-owned UI contracts to WinUI resources and scoped literal checks without launching the app.
+- **UI design resources** own VeloFile token/resource dictionaries, shell surface resources, command/sidebar/status/preview resources, deterministic vector fixture icons, file-list row presentation resources, focus and density constants, and resource consumption rules inside the WinUI app.
+- **UI contract tooling** owns static validation from repo-owned UI contracts to WinUI resources, fixture icon resources, screenshot sidecars, and scoped literal checks without launching the app.
 - **Application services** own navigation, tabs, search, filtering, commands, session restore, settings, diagnostics, preview orchestration, and benchmark hooks.
 - **Windows integration adapters** wrap Shell COM, Win32, WinRT, drag/drop, terminal launch, file associations, thumbnails/icons, and MSIX/platform behaviors.
 - **Persistence providers** own versioned session state, settings, crash markers, last-action markers, diagnostic logs, benchmark reports, favorites, and recent locations.
@@ -94,8 +100,8 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 ### Desktop App Components
 
 - **UI shell**: visual shell for windows, tabs, file list, sidebar, breadcrumb, preview/details, command surfaces, and accessibility.
-- **UI design resources**: checked-in WinUI `ResourceDictionary` files for VeloFile-owned colors, brushes, typography, spacing, sizing, radius, density, focus, state, motion, and first-slice file-list component resources.
-- **UI test fixture host**: Debug/test-only app launch path that renders hardcoded deterministic visual fixture states when the fixture flag, environment guard, and allowlist all pass.
+- **UI design resources**: checked-in WinUI `ResourceDictionary` files for VeloFile-owned colors, brushes, typography, spacing, sizing, radius, density, focus, state, motion, shell surface resources, deterministic fixture vector icons, and file-list component resources.
+- **UI test fixture host**: Debug/test-only app launch path that renders hardcoded deterministic visual fixture states and allowlisted fixture icon kinds when the fixture flag, environment guard, and allowlist all pass.
 - **Command layer**: built-in context menu, keyboard shortcuts, command availability, clipboard commands, Open/Open With, and terminal command routing.
 - **Session service**: tab lifecycle, history, active tab, path navigation, invalid/missing path states, crash recovery flow, and restore orchestration.
 - **Persistence service**: versioned session state, settings, favorites, recent locations capped at 20, terminal choice, visibility settings, crash markers, last-action markers, and atomic local writes.
@@ -127,6 +133,13 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 | UI redesign R48-R61 | UI Shell; UI Design Resources; File Listing Service |
 | UI redesign R62-R79 | UI Test Fixture Host; UI Contract Tooling; Visual Baseline Evidence |
 | UI redesign R80-R84 | Architecture Decisions; UI Design Resources; Visual Baseline Evidence |
+| Shell coherence R1-R8 | UI Shell; UI Design Resources; Architecture Decisions |
+| Shell coherence R9-R15 | UI Contract Tooling; UI Design Resources; Visual Baseline Evidence |
+| Shell coherence R16-R27 | UI Shell; UI Design Resources; Visual Baseline Evidence |
+| Shell coherence R28-R43 | UI Shell; UI Design Resources; UI Test Fixture Host; UI Contract Tooling |
+| Shell coherence R44-R65 | UI Shell; Command Layer; File Listing Service; Preview Providers; File Operation Service |
+| Shell coherence R66-R77 | UI Test Fixture Host; UI Contract Tooling; Visual Baseline Evidence |
+| Shell coherence R78-R82 | Test Specs; UI Shell; Application Services; Windows Integration Layer |
 
 ## 6. Runtime View
 
@@ -197,6 +210,18 @@ The first file-list visual evidence uses a Debug/test-only fixture route:
 
 Visual baseline updates are explicit maintainer actions. Normal CI may generate current screenshots and diffs, but must not mutate committed baselines. The baseline update script copies reviewed current outputs into `tests/visual/baselines/` only when a review id is supplied and current screenshots exist.
 
+### Shell Visual-Coherence Evidence
+
+Shell-wide visual evidence extends the first-slice fixture and baseline flow rather than replacing it. The app remains the rendering boundary for screenshots, while static validation remains the first line of defense for token, scope, icon, and sidecar conformance.
+
+1. Shell-wide token and scope entries are added to `docs/ui/tokens.v1.json` and `docs/ui/ui-contract-scopes.v1.json` as additive V1 contract entries.
+2. Governed shell resources are checked statically for tokenized surface, command band, sidebar, status, preview, file-list, and icon rules before screenshot review.
+3. Fixture rows expose allowlisted icon kinds. The fixture host maps those kinds to VeloFile-owned vector geometry resources and never accepts arbitrary icon resource keys.
+4. Full-shell fixture states are captured for the required shell states and effective-pixel review profiles when automation supports them.
+5. If `shell-standard-1440x900-200` cannot be automated reliably, the evidence record classifies it as manual/release review evidence instead of dropping it.
+6. Screenshot sidecars carry profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review id.
+7. Full-shell screenshots remain soft-review evidence until a later accepted spec and architecture decision define stable hard-gate comparison.
+
 ## 7. Deployment View
 
 V1 deployment is a signed MSIX package installed side by side with File Explorer. The package uses a documented stable update channel with release source, signing identity, versioning policy, update cadence expectation, and rollback/uninstall instructions.
@@ -213,6 +238,7 @@ Validation and repository evidence:
 - WinUI token and component resources live in the app resource tree and are merged into the application resource dictionaries.
 - UI contract tooling lives under `tools/` and is included in `VeloFile.sln`; it has no dependency on the app runtime for static validation.
 - First-slice committed visual baselines live under `tests/visual/baselines/winui/<profile>/` with JSON sidecars.
+- Shell-wide full-shell visual evidence uses reviewed profiles under `tests/visual/baselines/winui/<profile>/` with JSON sidecars. The initial shell visual-coherence profiles are `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`; the `200%` profile may be manual/release evidence until automation is stable.
 - Generated visual outputs under `tests/visual/current/` and `tests/visual/diffs/` are transient and ignored by Git.
 
 Rollback is uninstalling the MSIX. VeloFile does not own global Explorer replacement behavior or system file associations, so uninstall does not require system repair.
@@ -279,9 +305,17 @@ Every V1 workflow has a keyboard path. Focus state stays visible. Destructive di
 
 New token and component resource dictionaries are held to strict tokenized-literal rules. Legacy XAML outside the active first-slice scope is not globally cleaned up by this architecture; literal enforcement expands region by region as specs approve more shell surfaces.
 
+Shell visual-coherence work extends the same contract chain additively. `docs/ui/tokens.v1.json` remains the V1 token contract and `docs/ui/ui-contract-scopes.v1.json` remains the V1 governed-scope contract unless a later accepted decision introduces incompatible token or scope semantics. This avoids a parallel shell-token authority while still allowing a future major version for an intentional redesign reset.
+
+Deterministic fixture icons are VeloFile-owned vector resources under `src/VeloFile.App/Resources/Icons/`. The fixture host accepts only allowlisted icon kinds and maps them to named geometry resources. Governed fixture/file-list icon scopes reject `SymbolIcon`, `PathIcon`, private-use glyph fonts, ellipsized extension chips, unapproved icon colors, and unapproved icon sizes. Real Windows Shell icons remain future integration evidence, not first deterministic fixture-baseline input.
+
+Shell-wide visual evidence uses effective-pixel app-window profiles. `shell-min-900x560-100` protects the product minimum layout gate, `shell-standard-1440x900-100` is the primary visual baseline, and `shell-standard-1440x900-200` protects high-DPI readability and scaling. If the `200%` profile is not automatable, it is recorded as manual/release review evidence with the same sidecar expectations.
+
 Theme and density are not persisted by the first slice. Any future persisted theme or density setting must update the spec, persistence architecture, migration expectations, and tests before implementation.
 
 Visual evidence is not release proof for filesystem integration by itself. First-slice deterministic fixtures prove row presentation stability and reviewability; real listing, thumbnail, search, operation, drag/drop, and preview behavior still require existing V1 integration, adapter, corpus, or manual evidence as appropriate.
+
+Shell visual-coherence slices must maintain a behavior-preservation matrix that maps touched shell regions to V1 behavior routes and tests or explicit manual evidence. Screenshots and fixture-only evidence cannot replace behavior-route evidence through the App/Core/Windows boundaries.
 
 ## 9. Architecture Decisions
 
@@ -296,6 +330,7 @@ Durable decisions are recorded in ADRs:
 - [ADR 0007: Explorer Parity Policy](../../adr/0007-explorer-parity-policy.md)
 - [ADR 0008: Diagnostics and Preview Triage](../../adr/0008-diagnostics-and-preview-triage.md)
 - [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
+- [ADR 0010: Shell Visual-Coherence Contracts and Evidence](../../adr/0010-shell-visual-coherence-contracts.md)
 
 ## 10. Quality Requirements
 
@@ -313,6 +348,8 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 | QS-UI-CONTRACT-01 | UI design-system conformance | A contributor changes first-slice tokens, file-list resources, or governed XAML. | Local validation or CI on Windows/.NET. | Static UI contract validation fails fast for missing token keys, wrong comparable values, duplicate governed keys, and forbidden first-slice literals without launching the app. | 100% of governed first-slice token and scope contract violations produce nonzero validation with actionable file/key/scope output. |
 | QS-UI-FIXTURE-01 | Fixture safety | A process starts the app with `--test-ui-fixture`. | Release build, Debug without environment guard, Debug with guard, and unknown fixture names. | Only allowed Debug/test launches with `VELOFILE_ENABLE_TEST_UI_FIXTURES=1` and a hardcoded fixture name render fixture UI; all other fixture requests exit nonzero before rendering normal or fixture UI. | Production/Release, missing guard, and unknown fixture cases all fail nonzero; allowed case renders deterministic fixture state. |
 | QS-UI-VISUAL-01 | Visual evidence reviewability | A maintainer updates first-slice screenshot baselines. | Reviewed current screenshots and sidecars for the approved profile. | Baseline mutation happens only through the review-gated command with a review id; normal CI never mutates committed baselines. | Missing review id or missing current screenshots exits nonzero; committed baselines have matching JSON sidecars and generated current/diff outputs remain uncommitted. |
+| QS-UI-SHELL-01 | Shell visual coherence | A contributor changes governed shell surface, command band, sidebar, status, preview, file-list, or icon resources. | Local validation or CI on Windows/.NET. | Static UI contract validation rejects unapproved literals, raw/default governed visuals, forbidden icon controls, arbitrary fixture icon keys, and incomplete sidecar metadata before visual review. | 100% of governed shell-scope contract violations produce nonzero validation with actionable file/scope/rule output. |
+| QS-UI-SHELL-02 | Full-shell visual evidence | A maintainer reviews a shell visual-coherence region slice. | Required shell states and effective-pixel profiles, with `200%` automated or recorded as manual/release evidence. | Full-shell screenshots and sidecars show no unrecorded mismatch between redesigned and non-redesigned regions, and behavior preservation is cited separately. | Seven required shell states have sidecars for required profiles or controlled manual/release classification; generated current/diff outputs remain uncommitted; no fixture-only evidence is used as behavior proof. |
 
 ## 11. Risks and Technical Debt
 
@@ -326,6 +363,9 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - UI contract tooling may drift from app resources if it is treated as an orphan script. Mitigation: include the .NET tool in `VeloFile.sln`, validate static artifacts deterministically, and keep PowerShell responsible only for orchestration and baseline approval.
 - Deterministic visual fixtures may be mistaken for product integration evidence. Mitigation: classify first-slice screenshots as row-presentation evidence and keep V1 integration/corpus/manual evidence requirements for real filesystem and Windows behavior.
 - New visual styling may hurt virtualization or accessibility. Mitigation: keep the first slice to named resources/templates/styles, preserve row height stability, keep focus visible, and forbid synchronous filesystem or preview work during row rendering.
+- Shell-wide visual evidence may become subjective or over-trusted. Mitigation: pair full-shell screenshots with additive token/scope validation, icon-resource invariants, screenshot sidecar checks, and behavior-preservation matrix evidence.
+- High-DPI visual evidence may be hard to automate consistently. Mitigation: require `shell-standard-1440x900-200` as manual/release evidence until automation is stable, rather than dropping the profile.
+- Deterministic fixture icon resources may diverge from later real Shell icon integration. Mitigation: classify vector fixture icons as visual baseline evidence only and keep real Shell icons as a later integration evidence path.
 
 ## 12. Glossary
 
@@ -336,11 +376,14 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - **Shell-owned behavior**: behavior delegated to Windows Shell APIs instead of reimplemented in VeloFile.
 - **UI contract tooling**: static validation and review-support tooling that checks repo-owned UI contracts against WinUI resources and visual evidence metadata.
 - **Visual baseline evidence**: reviewed screenshots and JSON sidecars used to compare first-slice UI presentation over time.
+- **Shell visual-coherence evidence**: reviewed full-shell screenshots and JSON sidecars across required shell states and effective-pixel profiles, used as soft-review evidence alongside behavior-preservation proof.
 - **V1**: first public release scope defined by the approved V1 product scope spec.
 
 ## Next Artifacts
 
-- Plan and test-spec artifacts for the UI design-system and shell redesign.
+- Architecture review for the shell visual-coherence architecture update and ADR 0010.
+- Matching test spec for [UI Shell Visual Coherence](../../../specs/ui-shell-visual-coherence.md).
+- Execution plan for [UI Shell Visual Coherence](../../../docs/plans/2026-05-11-ui-shell-visual-coherence.md).
 
 ## Follow-on Artifacts
 
@@ -348,8 +391,10 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - [UI Design System and Shell Redesign Proposal](../../proposals/2026-05-11-ui-design-system-shell-redesign.md)
 - [UI Design System and Shell Redesign Spec](../../../specs/ui-design-system-shell-redesign.md)
 - [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
+- [UI Shell Visual Coherence Spec](../../../specs/ui-shell-visual-coherence.md)
+- [ADR 0010: Shell Visual-Coherence Contracts and Evidence](../../adr/0010-shell-visual-coherence-contracts.md)
 - Architecture review for the UI design-system update completed on 2026-05-11 with status `approved` and no material findings.
 
 ## Readiness
 
-Approved by `architecture-review` for the UI design-system and shell redesign update. No open architecture questions block execution planning.
+Ready for `architecture-review` for the shell visual-coherence update. No open architecture questions block review.

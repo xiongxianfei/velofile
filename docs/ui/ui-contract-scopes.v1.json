@@ -39,6 +39,238 @@
         "inline-selection-brush",
         "inline-focus-thickness"
       ]
+    },
+    {
+      "id": "shell-surface-foundation",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfShellAppRootStyle",
+        "VfShellChromeStyle",
+        "VfShellSidebarStyle",
+        "VfShellContentStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfShellAppRootStyle",
+        "VfShellChromeStyle",
+        "VfShellSidebarStyle",
+        "VfShellContentStyle",
+        "VfShellCommandBandContainerStyle",
+        "VfShellStatusContainerStyle",
+        "VfShellPreviewContainerStyle",
+        "VfShellSeparatorBrush"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "shell-command-band",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfCommandBandButtonStyle",
+        "VfCommandBandInputStyle",
+        "VfCommandBandPathStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfCommandBandButtonStyle",
+        "VfCommandBandIconButtonStyle",
+        "VfCommandBandInputStyle",
+        "VfCommandBandPathStyle",
+        "VfCommandBandDisabledOpacity"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "shell-sidebar",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Sidebar.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfSidebarSectionHeaderStyle",
+        "VfSidebarItemStyle",
+        "VfSidebarToggleStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfSidebarSectionHeaderStyle",
+        "VfSidebarItemStyle",
+        "VfSidebarSelectedItemStyle",
+        "VfSidebarToggleStyle",
+        "VfSidebarTerminalPickerStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "shell-status-operations",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Status.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Operations.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfStatusSurfaceStyle",
+        "VfOperationProgressStyle",
+        "VfDestructiveConfirmationStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfStatusSurfaceStyle",
+        "VfOperationProgressStyle",
+        "VfOperationFailureStyle",
+        "VfOperationConflictStyle",
+        "VfDestructiveConfirmationStyle",
+        "VfDestructiveActionButtonStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "shell-preview-details",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfPreviewPaneStyle",
+        "VfPreviewHeaderStyle",
+        "VfPreviewMetadataStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfPreviewPaneStyle",
+        "VfPreviewHeaderStyle",
+        "VfPreviewMetadataStyle",
+        "VfPreviewLoadingStyle",
+        "VfPreviewUnsupportedStyle",
+        "VfPreviewFailedStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "fixture-icons",
+      "status": "planned",
+      "files": [
+        "src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfIconGeometryFileGeneric",
+        "VfIconGeometryFolder",
+        "VfFileListIconContainerStyle",
+        "VfFileListIconPathStyle",
+        "VfFileListFixtureIconTemplate"
+      ],
+      "allowedResourceKeys": [
+        "VfIconGeometryFileGeneric",
+        "VfIconGeometryFolder",
+        "VfIconGeometryPdf",
+        "VfIconGeometryImage",
+        "VfIconGeometryText",
+        "VfIconGeometrySpreadsheet",
+        "VfIconGeometryExecutable",
+        "VfIconGeometryMarkdown",
+        "VfIconGeometryThumbnailFallback",
+        "VfFileListIconContainerStyle",
+        "VfFileListIconPathStyle",
+        "VfFileListFixtureIconTemplate"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness",
+        "forbidden-icon-control",
+        "forbidden-icon-glyph",
+        "forbidden-icon-chip",
+        "inline-icon-size"
+      ]
+    },
+    {
+      "id": "full-shell-visual-evidence",
+      "status": "planned",
+      "files": [
+        "tests/visual/baselines/winui/shell-min-900x560-100",
+        "tests/visual/baselines/winui/shell-standard-1440x900-100",
+        "tests/visual/baselines/winui/shell-standard-1440x900-200"
+      ],
+      "requiredResourceReferences": [
+        "shell-default",
+        "shell-file-list-selected-focused",
+        "shell-filter-active",
+        "shell-search-active",
+        "shell-preview-open",
+        "shell-operation-running",
+        "shell-destructive-confirmation"
+      ],
+      "allowedResourceKeys": [
+        "profile",
+        "effectiveWindowSize",
+        "scale",
+        "theme",
+        "density",
+        "fixture",
+        "evidenceKind",
+        "dynamicRegions",
+        "reviewId"
+      ],
+      "forbiddenLiteralRules": [
+        "raw-local-path",
+        "raw-username",
+        "secret",
+        "preview-text",
+        "terminal-command"
+      ]
     }
+  ],
+  "behaviorPreservationMatrix": [
+    { "id": "navigation", "proof": "AppShellCommandRouteTests or manual keyboard evidence" },
+    { "id": "tabs-session-restore", "proof": "existing App/Core shell startup or session tests" },
+    { "id": "listing-virtualization", "proof": "file-list resource and listing/virtualization regression tests" },
+    { "id": "selection", "proof": "file-list selection mapper tests and selected/focused evidence" },
+    { "id": "filter-search", "proof": "AppShellCommandRouteTests and search/filter tests" },
+    { "id": "context-menu", "proof": "context flyout route checks and existing app-shell tests" },
+    { "id": "file-operations", "proof": "Core/App file-operation tests and operation evidence" },
+    { "id": "drag-drop", "proof": "Core/Windows/App drag/drop tests" },
+    { "id": "preview", "proof": "App/Core preview tests and preview-open evidence" },
+    { "id": "terminal-launch", "proof": "terminal route tests or manual evidence" },
+    { "id": "diagnostics", "proof": "existing diagnostics tests or no-route-change note" },
+    { "id": "persistence", "proof": "existing persistence/session tests and no new theme/density persistence assertions" },
+    { "id": "accessibility-routes", "proof": "accessibility/static XAML tests, keyboard order notes, and accessible-name checks" }
   ]
 }

@@ -37,6 +37,7 @@ internal static partial class UiContractsCli
                 var scopes = ScopeContract.Load(options.ScopesPath ?? DefaultScopesPath(options.ContractPath), failures, optional: options.ScopesPath is null);
                 ValidateTokens(tokenContract, resources, failures);
                 ValidateGovernedResources(tokenContract, scopes, resources, failures);
+                ValidateVisualSidecars(options.VisualRoot, failures);
 
                 if (options.ScopesPath is not null && scopes is not null)
                 {
@@ -70,6 +71,7 @@ internal static partial class UiContractsCli
         string? xamlRoot = null;
         string? scopes = null;
         string? scopeRoot = null;
+        string? visualRoot = null;
 
         for (var index = 0; index < args.Length; index++)
         {
@@ -99,6 +101,9 @@ internal static partial class UiContractsCli
                 case "--scope-root":
                     scopeRoot = ReadValue();
                     break;
+                case "--visual-root":
+                    visualRoot = ReadValue();
+                    break;
                 default:
                     throw new InvalidOperationException($"Unknown option '{option}'.");
             }
@@ -118,12 +123,13 @@ internal static partial class UiContractsCli
             Path.GetFullPath(contract),
             Path.GetFullPath(xamlRoot),
             string.IsNullOrWhiteSpace(scopes) ? null : Path.GetFullPath(scopes),
-            string.IsNullOrWhiteSpace(scopeRoot) ? null : Path.GetFullPath(scopeRoot));
+            string.IsNullOrWhiteSpace(scopeRoot) ? null : Path.GetFullPath(scopeRoot),
+            string.IsNullOrWhiteSpace(visualRoot) ? null : Path.GetFullPath(visualRoot));
     }
 
     private static void WriteUsage()
     {
-        Console.Error.WriteLine("Usage: VeloFile.UiContracts validate-tokens --contract <tokens.v1.json> --xaml-root <resource-root> [--scopes <ui-contract-scopes.json> --scope-root <root>]");
+        Console.Error.WriteLine("Usage: VeloFile.UiContracts validate-tokens --contract <tokens.v1.json> --xaml-root <resource-root> [--scopes <ui-contract-scopes.json> --scope-root <root>] [--visual-root <visual-root>]");
     }
 
     private static void ValidateTokens(TokenContract contract, XamlResourceSet resources, List<string> failures)
@@ -200,6 +206,14 @@ internal static partial class UiContractsCli
         foreach (var resource in resources.AllResources.Where(resource => resource.IsGovernedComponentResource))
         {
             foreach (var failure in FindForbiddenComponentLiterals(resource))
+            {
+                failures.Add(failure);
+            }
+        }
+
+        foreach (var path in resources.GovernedIconPaths)
+        {
+            foreach (var failure in FindForbiddenFixtureIconUsage(path))
             {
                 failures.Add(failure);
             }
@@ -319,7 +333,7 @@ internal static partial class UiContractsCli
 
     private static void ValidateScopes(ScopeContract scopes, string scopeRoot, List<string> failures)
     {
-        foreach (var scope in scopes.Scopes)
+        foreach (var scope in scopes.Scopes.Where(scope => scope.IsActive))
         {
             var scopedTexts = new List<(string Path, string Text)>();
 
@@ -355,6 +369,123 @@ internal static partial class UiContractsCli
                     }
                 }
             }
+        }
+    }
+
+    private static void ValidateVisualSidecars(string? visualRoot, List<string> failures)
+    {
+        if (visualRoot is null)
+        {
+            return;
+        }
+
+        if (!Directory.Exists(visualRoot))
+        {
+            failures.Add($"Visual root not found: {visualRoot}");
+            return;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(visualRoot, "*.json", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            JsonObject sidecar;
+            try
+            {
+                sidecar = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            }
+            catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+            {
+                failures.Add($"sidecar: {path} failed to parse: {ex.Message}");
+                continue;
+            }
+
+            foreach (var field in RequiredSidecarFields)
+            {
+                if (sidecar[field] is null)
+                {
+                    failures.Add($"sidecar: {path} missing required field '{field}'.");
+                }
+            }
+
+            var profile = (string?)sidecar["profile"];
+            if (!string.IsNullOrWhiteSpace(profile))
+            {
+                ValidateProfileSidecar(path, sidecar, profile, failures);
+            }
+
+            if (sidecar["dynamicRegions"] is not JsonArray)
+            {
+                failures.Add($"sidecar: {path} dynamicRegions must be an array.");
+            }
+
+            var serialized = sidecar.ToJsonString();
+            foreach (var pattern in ForbiddenSidecarPrivacyPatterns)
+            {
+                if (serialized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    failures.Add($"sidecar: {path} contains raw local path or private value '{pattern}'.");
+                }
+            }
+
+            if (RawWindowsPathRegex().IsMatch(serialized))
+            {
+                failures.Add($"sidecar: {path} contains raw local path.");
+            }
+        }
+    }
+
+    private static void ValidateProfileSidecar(string path, JsonObject sidecar, string profile, List<string> failures)
+    {
+        var expected = profile switch
+        {
+            "shell-min-900x560-100" => ("900x560", 1.0),
+            "shell-standard-1440x900-100" => ("1440x900", 1.0),
+            "shell-standard-1440x900-200" => ("1440x900", 2.0),
+            _ => ((string?)null, (double?)null)
+        };
+
+        if (expected.Item1 is null)
+        {
+            return;
+        }
+
+        var effectiveWindowSize = (string?)sidecar["effectiveWindowSize"];
+        if (!string.Equals(effectiveWindowSize, expected.Item1, StringComparison.Ordinal))
+        {
+            failures.Add($"sidecar: {path} profile {profile} expected effectiveWindowSize {expected.Item1}, observed {effectiveWindowSize ?? "<missing>"}.");
+        }
+
+        var scale = (double?)sidecar["scale"];
+        if (scale is null || Math.Abs(scale.Value - expected.Item2!.Value) > 0.0001)
+        {
+            failures.Add($"sidecar: {path} profile {profile} expected scale {expected.Item2}, observed {scale?.ToString(CultureInfo.InvariantCulture) ?? "<missing>"}.");
+        }
+    }
+
+    private static IEnumerable<string> FindForbiddenFixtureIconUsage(string path)
+    {
+        var text = File.ReadAllText(path);
+
+        foreach (var forbiddenElement in new[] { "<SymbolIcon", "<PathIcon" })
+        {
+            if (text.Contains(forbiddenElement, StringComparison.Ordinal))
+            {
+                yield return $"forbidden-icon: {forbiddenElement.TrimStart('<')} in {path}. Use raw Path geometry resources inside the governed fixture icon container.";
+            }
+        }
+
+        foreach (Match match in PrivateUseGlyphRegex().Matches(text))
+        {
+            yield return $"forbidden-icon: private-use glyph '{match.Value}' in {path}. Use named VfIconGeometry* vector resources.";
+        }
+
+        foreach (Match match in EllipsizedIconChipRegex().Matches(text))
+        {
+            yield return $"forbidden-icon: ellipsized text chip '{match.Groups["text"].Value}' in {path}. Use a deterministic fixture icon kind.";
+        }
+
+        foreach (Match match in IconLocalSizeRegex().Matches(text))
+        {
+            yield return $"forbidden-icon: local icon size {match.Value} in {path}. Use VfFileListIconContainerStyle or tokenized icon size resources.";
         }
     }
 
@@ -519,7 +650,44 @@ internal static partial class UiContractsCli
     [GeneratedRegex("Property=\"(?<property>Height|MinHeight|Padding|Margin|CornerRadius|FontSize|BorderThickness|Opacity|Foreground|Background)\"\\s+Value=\"(?<value>#[0-9A-Fa-f]{6,8}|\\d+(?:\\.\\d+)?(?:,\\d+(?:\\.\\d+)?){0,3})\"", RegexOptions.CultureInvariant)]
     private static partial Regex ComponentSetterLiteralRegex();
 
-    private sealed record Options(string ContractPath, string XamlRoot, string? ScopesPath, string? ScopeRoot);
+    [GeneratedRegex("Glyph=\"(?:&#xE[0-9A-Fa-f]{3};|\\\\uE[0-9A-Fa-f]{3})\"|FontFamily=\"[^\"]*(?:Segoe MDL2 Assets|Segoe Fluent Icons)[^\"]*\"", RegexOptions.CultureInvariant)]
+    private static partial Regex PrivateUseGlyphRegex();
+
+    [GeneratedRegex("Text=\"(?<text>[A-Za-z0-9]{1,5}\\.\\.\\.)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex EllipsizedIconChipRegex();
+
+    [GeneratedRegex("\\b(?:Width|Height)=\"\\d+(?:\\.\\d+)?\"", RegexOptions.CultureInvariant)]
+    private static partial Regex IconLocalSizeRegex();
+
+    [GeneratedRegex("[A-Za-z]:\\\\(?:Users|Data|Temp|Windows|Program Files)\\\\", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RawWindowsPathRegex();
+
+    private static readonly string[] RequiredSidecarFields =
+    [
+        "profile",
+        "effectiveWindowSize",
+        "scale",
+        "theme",
+        "density",
+        "fixture",
+        "evidenceKind",
+        "dynamicRegions",
+        "reviewId"
+    ];
+
+    private static readonly string[] ForbiddenSidecarPrivacyPatterns =
+    [
+        "C:\\Users",
+        "\\Users\\",
+        "xiongxianfei",
+        "20260428-velofile",
+        "secret",
+        "clipboard",
+        "terminalCommand",
+        "previewText"
+    ];
+
+    private sealed record Options(string ContractPath, string XamlRoot, string? ScopesPath, string? ScopeRoot, string? VisualRoot);
 
     private sealed record Token(string Id, IReadOnlyList<string> XamlKeys, string Type, string StringValue, bool RequiredInFirstSlice);
 
@@ -563,7 +731,8 @@ internal static partial class UiContractsCli
                     ReadStringArray(scope, "files", path, failures),
                     ReadStringArray(scope, "requiredResourceReferences", path, failures),
                     ReadStringArray(scope, "forbiddenLiteralRules", path, failures),
-                    ReadStringArray(scope, "allowedResourceKeys", path, failures)))
+                    ReadStringArray(scope, "allowedResourceKeys", path, failures),
+                    RequireString(scope, "status", path, failures)))
                 .ToArray();
 
             return new ScopeContract(path, scopes);
@@ -575,7 +744,11 @@ internal static partial class UiContractsCli
         IReadOnlyList<string> Files,
         IReadOnlyList<string> RequiredResourceReferences,
         IReadOnlyList<string> ForbiddenLiteralRules,
-        IReadOnlyList<string> AllowedResourceKeys);
+        IReadOnlyList<string> AllowedResourceKeys,
+        string Status)
+    {
+        public bool IsActive => string.Equals(Status, "active", StringComparison.Ordinal);
+    }
 
     private sealed class TokenContract
     {
@@ -633,11 +806,13 @@ internal static partial class UiContractsCli
     {
         private readonly Dictionary<string, XamlResource> resources;
         private readonly List<string> governedComponentPaths;
+        private readonly List<string> governedIconPaths;
 
-        private XamlResourceSet(Dictionary<string, XamlResource> resources, List<string> governedComponentPaths)
+        private XamlResourceSet(Dictionary<string, XamlResource> resources, List<string> governedComponentPaths, List<string> governedIconPaths)
         {
             this.resources = resources;
             this.governedComponentPaths = governedComponentPaths;
+            this.governedIconPaths = governedIconPaths;
         }
 
         public static XamlResourceSet Load(string root, List<string> failures)
@@ -645,16 +820,22 @@ internal static partial class UiContractsCli
             if (!Directory.Exists(root))
             {
                 failures.Add($"XAML root not found: {root}");
-                return new XamlResourceSet(new Dictionary<string, XamlResource>(StringComparer.Ordinal), []);
+                return new XamlResourceSet(new Dictionary<string, XamlResource>(StringComparer.Ordinal), [], []);
             }
 
             var resources = new Dictionary<string, XamlResource>(StringComparer.Ordinal);
             var governedComponentPaths = new List<string>();
+            var governedIconPaths = new List<string>();
             foreach (var path in Directory.EnumerateFiles(root, "*.xaml", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
             {
                 if (IsGovernedPath(path, "Components"))
                 {
                     governedComponentPaths.Add(path);
+                }
+
+                if (IsGovernedPath(path, "Icons"))
+                {
+                    governedIconPaths.Add(path);
                 }
 
                 XDocument document;
@@ -698,7 +879,7 @@ internal static partial class UiContractsCli
                 }
             }
 
-            return new XamlResourceSet(resources, governedComponentPaths);
+            return new XamlResourceSet(resources, governedComponentPaths, governedIconPaths);
         }
 
         public bool TryGet(string key, out XamlResource? resource)
@@ -709,6 +890,8 @@ internal static partial class UiContractsCli
         public IReadOnlyCollection<XamlResource> AllResources => resources.Values;
 
         public IReadOnlyCollection<string> GovernedComponentPaths => governedComponentPaths;
+
+        public IReadOnlyCollection<string> GovernedIconPaths => governedIconPaths;
 
         public XamlResource Get(string key)
         {
@@ -725,7 +908,7 @@ internal static partial class UiContractsCli
         IReadOnlyList<XamlAttribute> Attributes,
         string? PropertyName)
     {
-        public bool IsGovernedResourceDictionary => IsUnderGovernedRoot("Tokens") || IsUnderGovernedRoot("Components");
+        public bool IsGovernedResourceDictionary => IsUnderGovernedRoot("Tokens") || IsUnderGovernedRoot("Components") || IsUnderGovernedRoot("Icons");
 
         public bool IsGovernedComponentResource => IsUnderGovernedRoot("Components");
 
