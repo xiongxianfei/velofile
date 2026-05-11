@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "scopes": [
+    {
+      "id": "file-list-first-slice",
+      "status": "active",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfFileListRowTemplate",
+        "VfFileListItemContainerStyle",
+        "VfFileListRowHeight",
+        "VfFileListRowNameTextStyle",
+        "VfFileListRowMetadataTextStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    }
+  ]
+}

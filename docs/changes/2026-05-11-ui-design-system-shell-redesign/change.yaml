@@ -1,0 +1,27 @@
+id: 2026-05-11-ui-design-system-shell-redesign
+title: UI design-system and shell redesign
+status: implementation-m1-review-requested
+plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
+spec: specs/ui-design-system-shell-redesign.md
+test_spec: specs/ui-design-system-shell-redesign.test.md
+architecture:
+  - docs/architecture/system/architecture.md
+  - docs/adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md
+milestone:
+  id: M1
+  title: UI Contract Artifacts and Static Validator
+  state: review-requested
+validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
+    result: failed before implementation for expected missing M1 artifacts; passed after implementation
+  - command: dotnet restore VeloFile.sln
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid
+    result: passed
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 9 tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed, 351 tests
+next_stage: code-review M1

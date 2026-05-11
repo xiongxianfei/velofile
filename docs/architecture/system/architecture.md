@@ -2,14 +2,16 @@
 
 ## Lifecycle Metadata
 
-- Status: approved
+- Status: approved; amended 2026-05-11 for UI design-system and shell redesign architecture
 - Scope: canonical baseline architecture for VeloFile V1
-- Related proposal: [V1 Product Direction](../../proposals/2026-05-04-v1-product-direction.md)
-- Related spec: [V1 Product Scope](../../../specs/v1-product-scope.md)
+- Related V1 proposal: [V1 Product Direction](../../proposals/2026-05-04-v1-product-direction.md)
+- Related V1 spec: [V1 Product Scope](../../../specs/v1-product-scope.md)
+- Related UI proposal: [UI Design System and Shell Redesign](../../proposals/2026-05-11-ui-design-system-shell-redesign.md)
+- Related UI spec: [UI Design System and Shell Redesign](../../../specs/ui-design-system-shell-redesign.md)
 - Context diagram: [diagrams/context.mmd](diagrams/context.mmd)
 - Container diagram: [diagrams/container.mmd](diagrams/container.mmd)
 - Component diagram: [diagrams/desktop-app-components.mmd](diagrams/desktop-app-components.mmd)
-- Last updated: 2026-05-04
+- Last updated: 2026-05-11
 
 ## 1. Introduction and Goals
 
@@ -21,6 +23,7 @@ Primary goals:
 - Keep file operations safe by default, especially delete behavior.
 - Use Windows-native integration for file associations, Recycle Bin, drag/drop, thumbnails/icons, long paths, DPI, terminal launch, and MSIX packaging.
 - Keep open-source contribution boundaries visible through explicit services, providers, adapters, diagnostics, and ADRs.
+- Keep visible UI quality governed by repo-owned WinUI design contracts, validation tools, and reviewed evidence rather than external prototype packages.
 - Preserve post-V1 extension points without pre-building out-of-scope features.
 
 ## 2. Architecture Constraints
@@ -30,6 +33,8 @@ Primary goals:
 - V1 ships side by side with Windows File Explorer and does not register as a global Explorer replacement.
 - V1 release builds ship as signed MSIX packages through a documented stable update channel.
 - V1 does not expose OS Shell extension context menu entries or host third-party Shell menu handlers.
+- The UI design system is owned by repository specs, token contracts, XAML resources, validation tools, and accepted evidence; external design packages are reference input only.
+- The first UI redesign slice uses fixed dark and comfortable defaults and does not persist new theme or density preferences.
 - Shell-owned behavior is preferred for Windows-correct copy, move, delete, drag/drop, file association, thumbnail/icon, long-path, and Recycle Bin behavior.
 - Paths, file names, terminal targets, persisted state, and diagnostic inputs are untrusted.
 - Diagnostics are local-only by default. No diagnostics, telemetry, crash reports, paths, filenames, or preview-derived content are uploaded without a separate approved proposal and explicit user opt-in.
@@ -62,6 +67,8 @@ Out of scope for V1:
 The architecture uses a layered Windows desktop app:
 
 - **UI shell** owns WinUI windows, tabs, sidebar, breadcrumb/path bar, file list, preview/details pane, built-in context menu, dialogs, and keyboard flow.
+- **UI design resources** own VeloFile token/resource dictionaries, file-list row presentation resources, focus and density constants, and resource consumption rules inside the WinUI app.
+- **UI contract tooling** owns static validation from repo-owned UI contracts to WinUI resources and scoped literal checks without launching the app.
 - **Application services** own navigation, tabs, search, filtering, commands, session restore, settings, diagnostics, preview orchestration, and benchmark hooks.
 - **Windows integration adapters** wrap Shell COM, Win32, WinRT, drag/drop, terminal launch, file associations, thumbnails/icons, and MSIX/platform behaviors.
 - **Persistence providers** own versioned session state, settings, crash markers, last-action markers, diagnostic logs, benchmark reports, favorites, and recent locations.
@@ -79,12 +86,16 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 
 - **VeloFile desktop app**: WinUI 3 desktop application that hosts UI, commands, search/filter orchestration, preview orchestration, Shell interop adapters, and file-operation orchestration.
 - **Local app data**: versioned JSON and local diagnostic log files for settings, favorites, recent locations, session state, local crash markers, last-action markers, and diagnostics.
+- **UI contract tooling**: solution-included .NET console tooling plus review-gated PowerShell orchestration for validating UI token/scope contracts, checking WinUI resources, and updating reviewed visual baselines.
+- **Visual baseline evidence**: committed PNG screenshots and JSON sidecars under reviewed profiles. Generated current captures and diffs are transient validation output and are not committed.
 - **Benchmark harness**: test executable that creates the deterministic corpus, drives the app process, and emits benchmark reports for release gating.
 - **MSIX package and stable release channel**: signed package and release metadata for side-by-side install, stable update channel documentation, versioning policy, update cadence expectation, and rollback/uninstall instructions.
 
 ### Desktop App Components
 
 - **UI shell**: visual shell for windows, tabs, file list, sidebar, breadcrumb, preview/details, command surfaces, and accessibility.
+- **UI design resources**: checked-in WinUI `ResourceDictionary` files for VeloFile-owned colors, brushes, typography, spacing, sizing, radius, density, focus, state, motion, and first-slice file-list component resources.
+- **UI test fixture host**: Debug/test-only app launch path that renders hardcoded deterministic visual fixture states when the fixture flag, environment guard, and allowlist all pass.
 - **Command layer**: built-in context menu, keyboard shortcuts, command availability, clipboard commands, Open/Open With, and terminal command routing.
 - **Session service**: tab lifecycle, history, active tab, path navigation, invalid/missing path states, crash recovery flow, and restore orchestration.
 - **Persistence service**: versioned session state, settings, favorites, recent locations capped at 20, terminal choice, visibility settings, crash markers, last-action markers, and atomic local writes.
@@ -111,6 +122,11 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 | R73-R83 | WinUI App Shell; File Listing Service; Windows Integration Layer; Persistence Service |
 | R84-R89 | Diagnostics Service; Benchmark Harness and Corpus Generator |
 | Performance P1-P16 | Benchmark Harness and Corpus Generator; all hot-path services |
+| UI redesign R1-R14 | UI Shell; UI Design Resources; File Listing Service |
+| UI redesign R15-R47 | UI Contract Tooling; UI Design Resources; WinUI App Shell |
+| UI redesign R48-R61 | UI Shell; UI Design Resources; File Listing Service |
+| UI redesign R62-R79 | UI Test Fixture Host; UI Contract Tooling; Visual Baseline Evidence |
+| UI redesign R80-R84 | Architecture Decisions; UI Design Resources; Visual Baseline Evidence |
 
 ## 6. Runtime View
 
@@ -167,6 +183,20 @@ Terminal discovery is lazy or background and never blocks app launch. Terminal l
 
 Last-action markers are written around high-level workflows and retain only the latest marker per marker category needed for crash attribution. Crash markers are local and retain at most the latest 10 markers. Diagnostic logs use the allowed-field and redaction contract in section 8 and never upload by default. Diagnostic retention failure must not block app launch, navigation, preview, search, or file operations. Benchmark runs drive the app process against a generated corpus and produce median, p95, p99, environment, and release-gating output.
 
+### UI Contract Validation and Visual Fixtures
+
+First-slice UI validation starts from repo-owned contracts, not from `hifi-design/`. The UI contract tool reads `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, and governed XAML resource dictionaries as static artifacts. It validates required token keys, resource types, directly comparable values, color-to-brush relationships, duplicate governed keys, and first-slice literal rules without launching the app or depending on the WinUI runtime.
+
+The first file-list visual evidence uses a Debug/test-only fixture route:
+
+1. App startup parses `--test-ui-fixture`.
+2. Release or production builds reject the flag with a nonzero exit before showing normal or fixture UI.
+3. Debug/test builds reject the flag with a nonzero exit unless `VELOFILE_ENABLE_TEST_UI_FIXTURES=1` is present.
+4. The fixture registry accepts only hardcoded allowlisted names and never accepts arbitrary fixture data paths in the first slice.
+5. Allowed fixtures render deterministic app-shell or view-model states for reviewed screenshots.
+
+Visual baseline updates are explicit maintainer actions. Normal CI may generate current screenshots and diffs, but must not mutate committed baselines. The baseline update script copies reviewed current outputs into `tests/visual/baselines/` only when a review id is supplied and current screenshots exist.
+
 ## 7. Deployment View
 
 V1 deployment is a signed MSIX package installed side by side with File Explorer. The package uses a documented stable update channel with release source, signing identity, versioning policy, update cadence expectation, and rollback/uninstall instructions.
@@ -177,6 +207,14 @@ Runtime storage:
 - Diagnostics: local app data, retained for at most 30 days or 50 MB total, whichever limit is reached first. Individual log files rotate at or before 5 MB. Crash markers retain at most the latest 10 markers. Last-action markers retain only the latest marker per category needed for crash attribution. Oldest diagnostics are deleted or overwritten first when limits are reached.
 - Benchmark corpus: generated deterministically outside the application package in a user-selected or test-controlled workspace.
 
+Validation and repository evidence:
+
+- UI token and scope contracts live under `docs/ui/`.
+- WinUI token and component resources live in the app resource tree and are merged into the application resource dictionaries.
+- UI contract tooling lives under `tools/` and is included in `VeloFile.sln`; it has no dependency on the app runtime for static validation.
+- First-slice committed visual baselines live under `tests/visual/baselines/winui/<profile>/` with JSON sidecars.
+- Generated visual outputs under `tests/visual/current/` and `tests/visual/diffs/` are transient and ignored by Git.
+
 Rollback is uninstalling the MSIX. VeloFile does not own global Explorer replacement behavior or system file associations, so uninstall does not require system repair.
 
 ## 8. Cross-Cutting Concepts
@@ -184,6 +222,8 @@ Rollback is uninstalling the MSIX. VeloFile does not own global Explorer replace
 ### Responsiveness
 
 The UI thread must not perform slow file enumeration, preview decoding, thumbnail loading, recursive search, file operations, terminal discovery, or benchmark work. Hot-path surfaces render first viewport state first, then enrich.
+
+File-list visual resources must preserve virtualization and stable row height. First-slice row presentation may change XAML resources, templates, and styles, but must not add synchronous filesystem, thumbnail, preview, or metadata work to row rendering.
 
 ### Safety
 
@@ -233,6 +273,16 @@ File paths, file names, settings, session files, and diagnostics are untrusted. 
 
 Every V1 workflow has a keyboard path. Focus state stays visible. Destructive dialogs state consequences. Loading, unsupported, failed, and empty states are distinct.
 
+### UI Design Contracts
+
+`hifi-design/` is reference input only. Production UI authority flows from the accepted spec into `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, checked-in WinUI resources, validation evidence, and recorded design deviations.
+
+New token and component resource dictionaries are held to strict tokenized-literal rules. Legacy XAML outside the active first-slice scope is not globally cleaned up by this architecture; literal enforcement expands region by region as specs approve more shell surfaces.
+
+Theme and density are not persisted by the first slice. Any future persisted theme or density setting must update the spec, persistence architecture, migration expectations, and tests before implementation.
+
+Visual evidence is not release proof for filesystem integration by itself. First-slice deterministic fixtures prove row presentation stability and reviewability; real listing, thumbnail, search, operation, drag/drop, and preview behavior still require existing V1 integration, adapter, corpus, or manual evidence as appropriate.
+
 ## 9. Architecture Decisions
 
 Durable decisions are recorded in ADRs:
@@ -245,6 +295,7 @@ Durable decisions are recorded in ADRs:
 - [ADR 0006: Session Restore Persistence](../../adr/0006-session-restore-persistence.md)
 - [ADR 0007: Explorer Parity Policy](../../adr/0007-explorer-parity-policy.md)
 - [ADR 0008: Diagnostics and Preview Triage](../../adr/0008-diagnostics-and-preview-triage.md)
+- [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
 
 ## 10. Quality Requirements
 
@@ -259,6 +310,9 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 | QS-SESSION-RECOVERY-01 | Session crash recovery | App crashes or loses power during a session/settings write. | Canonical file, same-directory temp file, and last-known-good combinations generated by fault-injection tests. | App starts without a crash loop, reads canonical if valid, otherwise recovers last-known-good, otherwise launches safe defaults. Missing restored paths remain visible with recoverable missing-location state. | 100% of fault-injection cases produce old-valid, new-valid, last-known-good, or safe-default state; fallback diagnostic event is logged locally; no missing-path tab is silently skipped. |
 | QS-DIAG-PRIV-01 | Diagnostics privacy | Preview, persistence, search, or file-operation failure occurs on a path containing username, sensitive filename, or document title. | Local diagnostics enabled with default privacy settings. | App records only allowed redacted fields, stores logs locally, applies rotation/retention, and does not upload data. | Automated redaction tests find zero raw paths, filenames, usernames, search queries, clipboard contents, or file contents in logs/exports by default; logs retain at most 30 days or 50 MB; no network upload occurs. |
 | QS-MSIX-ROLLBACK-01 | Release rollback | User needs to uninstall, roll back, or continue after a bad V1 release. | Signed MSIX side-by-side install on supported Windows version. | VeloFile can be uninstalled or rolled back using documented stable-channel instructions, Explorer remains available, global Explorer replacement and system file association ownership are not used, and older/newer local state is ignored or migrated without blocking launch. | Manual release test verifies install/update/uninstall/rollback instructions; Explorer file management remains available after uninstall; app starts with migrated, ignored, or safe-default local state after version change. |
+| QS-UI-CONTRACT-01 | UI design-system conformance | A contributor changes first-slice tokens, file-list resources, or governed XAML. | Local validation or CI on Windows/.NET. | Static UI contract validation fails fast for missing token keys, wrong comparable values, duplicate governed keys, and forbidden first-slice literals without launching the app. | 100% of governed first-slice token and scope contract violations produce nonzero validation with actionable file/key/scope output. |
+| QS-UI-FIXTURE-01 | Fixture safety | A process starts the app with `--test-ui-fixture`. | Release build, Debug without environment guard, Debug with guard, and unknown fixture names. | Only allowed Debug/test launches with `VELOFILE_ENABLE_TEST_UI_FIXTURES=1` and a hardcoded fixture name render fixture UI; all other fixture requests exit nonzero before rendering normal or fixture UI. | Production/Release, missing guard, and unknown fixture cases all fail nonzero; allowed case renders deterministic fixture state. |
+| QS-UI-VISUAL-01 | Visual evidence reviewability | A maintainer updates first-slice screenshot baselines. | Reviewed current screenshots and sidecars for the approved profile. | Baseline mutation happens only through the review-gated command with a review id; normal CI never mutates committed baselines. | Missing review id or missing current screenshots exits nonzero; committed baselines have matching JSON sidecars and generated current/diff outputs remain uncommitted. |
 
 ## 11. Risks and Technical Debt
 
@@ -269,6 +323,9 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - Benchmark numbers are only meaningful after corpus/harness exist. Mitigation: no public performance claims before harness and corpus.
 - V1 excludes OS shell menu integration, which may disappoint users needing extension commands. Mitigation: explicit docs and post-V1 ADR/proposal gate.
 - Diagnostics may accidentally reveal sensitive path data. Mitigation: allowed/prohibited diagnostic field contract, path classification by default, non-reversible per-installation fingerprints only when needed, local retention limits, and redacted export defaults.
+- UI contract tooling may drift from app resources if it is treated as an orphan script. Mitigation: include the .NET tool in `VeloFile.sln`, validate static artifacts deterministically, and keep PowerShell responsible only for orchestration and baseline approval.
+- Deterministic visual fixtures may be mistaken for product integration evidence. Mitigation: classify first-slice screenshots as row-presentation evidence and keep V1 integration/corpus/manual evidence requirements for real filesystem and Windows behavior.
+- New visual styling may hurt virtualization or accessibility. Mitigation: keep the first slice to named resources/templates/styles, preserve row height stability, keep focus visible, and forbid synchronous filesystem or preview work during row rendering.
 
 ## 12. Glossary
 
@@ -277,18 +334,22 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - **Compatibility corpus**: generated or fixed test data for Windows behavior parity.
 - **Provider**: component that supplies content or data behind a stable application boundary, such as preview or metadata.
 - **Shell-owned behavior**: behavior delegated to Windows Shell APIs instead of reimplemented in VeloFile.
+- **UI contract tooling**: static validation and review-support tooling that checks repo-owned UI contracts against WinUI resources and visual evidence metadata.
+- **Visual baseline evidence**: reviewed screenshots and JSON sidecars used to compare first-slice UI presentation over time.
 - **V1**: first public release scope defined by the approved V1 product scope spec.
 
 ## Next Artifacts
 
-- `plan-review` for the V1 product scope execution plan.
-- `specs/v1-product-scope.test.md` after plan review.
-- Implementation after plan review and test-spec approval.
+- Plan and test-spec artifacts for the UI design-system and shell redesign.
 
 ## Follow-on Artifacts
 
 - [V1 Product Scope Execution Plan](../../plans/2026-05-04-v1-product-scope.md)
+- [UI Design System and Shell Redesign Proposal](../../proposals/2026-05-11-ui-design-system-shell-redesign.md)
+- [UI Design System and Shell Redesign Spec](../../../specs/ui-design-system-shell-redesign.md)
+- [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
+- Architecture review for the UI design-system update completed on 2026-05-11 with status `approved` and no material findings.
 
 ## Readiness
 
-Approved by `architecture-review` and ready for `plan-review` plus `test-spec`. No open architecture questions block execution planning.
+Approved by `architecture-review` for the UI design-system and shell redesign update. No open architecture questions block execution planning.

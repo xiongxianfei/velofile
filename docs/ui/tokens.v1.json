@@ -1,0 +1,503 @@
+{
+  "version": 1,
+  "theme": "dark",
+  "density": "comfortable",
+  "tokens": [
+    {
+      "id": "VfColor.Surface.App",
+      "xamlKeys": ["VfColorSurfaceApp", "VfBrushSurfaceApp"],
+      "type": "ColorAndBrush",
+      "value": "#181A1E",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Chrome",
+      "xamlKeys": ["VfColorSurfaceChrome", "VfBrushSurfaceChrome"],
+      "type": "ColorAndBrush",
+      "value": "#14161A",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Sidebar",
+      "xamlKeys": ["VfColorSurfaceSidebar", "VfBrushSurfaceSidebar"],
+      "type": "ColorAndBrush",
+      "value": "#1C1E23",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Content",
+      "xamlKeys": ["VfColorSurfaceContent", "VfBrushSurfaceContent"],
+      "type": "ColorAndBrush",
+      "value": "#202329",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Elevated",
+      "xamlKeys": ["VfColorSurfaceElevated", "VfBrushSurfaceElevated"],
+      "type": "ColorAndBrush",
+      "value": "#282C33",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Hover",
+      "xamlKeys": ["VfColorSurfaceHover", "VfBrushSurfaceHover"],
+      "type": "ColorAndBrush",
+      "value": "#2E333B",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Selected",
+      "xamlKeys": ["VfColorSurfaceSelected", "VfBrushSurfaceSelected"],
+      "type": "ColorAndBrush",
+      "value": "#343A44",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Surface.Input",
+      "xamlKeys": ["VfColorSurfaceInput", "VfBrushSurfaceInput"],
+      "type": "ColorAndBrush",
+      "value": "#16181C",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Border.Subtle",
+      "xamlKeys": ["VfColorBorderSubtle", "VfBrushBorderSubtle"],
+      "type": "ColorAndBrush",
+      "value": "#2A2E35",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Border.Default",
+      "xamlKeys": ["VfColorBorderDefault", "VfBrushBorderDefault"],
+      "type": "ColorAndBrush",
+      "value": "#3A404A",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Border.Strong",
+      "xamlKeys": ["VfColorBorderStrong", "VfBrushBorderStrong"],
+      "type": "ColorAndBrush",
+      "value": "#586170",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Text.Primary",
+      "xamlKeys": ["VfColorTextPrimary", "VfBrushTextPrimary"],
+      "type": "ColorAndBrush",
+      "value": "#F2F4F8",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Text.Secondary",
+      "xamlKeys": ["VfColorTextSecondary", "VfBrushTextSecondary"],
+      "type": "ColorAndBrush",
+      "value": "#D3D8E0",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Text.Muted",
+      "xamlKeys": ["VfColorTextMuted", "VfBrushTextMuted"],
+      "type": "ColorAndBrush",
+      "value": "#9AA3AE",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Text.Faint",
+      "xamlKeys": ["VfColorTextFaint", "VfBrushTextFaint"],
+      "type": "ColorAndBrush",
+      "value": "#747E8C",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Accent",
+      "xamlKeys": ["VfColorAccent", "VfBrushAccent"],
+      "type": "ColorAndBrush",
+      "value": "#9BE15D",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Accent.Soft",
+      "xamlKeys": ["VfColorAccentSoft", "VfBrushAccentSoft"],
+      "type": "ColorAndBrush",
+      "value": "#9BE15D24",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Accent.Line",
+      "xamlKeys": ["VfColorAccentLine", "VfBrushAccentLine"],
+      "type": "ColorAndBrush",
+      "value": "#9BE15D66",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Accent.OnAccent",
+      "xamlKeys": ["VfColorAccentOnAccent", "VfBrushAccentOnAccent"],
+      "type": "ColorAndBrush",
+      "value": "#10240E",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Danger",
+      "xamlKeys": ["VfColorDanger", "VfBrushDanger"],
+      "type": "ColorAndBrush",
+      "value": "#FF7768",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Danger.Soft",
+      "xamlKeys": ["VfColorDangerSoft", "VfBrushDangerSoft"],
+      "type": "ColorAndBrush",
+      "value": "#FF776824",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Warning",
+      "xamlKeys": ["VfColorWarning", "VfBrushWarning"],
+      "type": "ColorAndBrush",
+      "value": "#FFD166",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfColor.Success",
+      "xamlKeys": ["VfColorSuccess", "VfBrushSuccess"],
+      "type": "ColorAndBrush",
+      "value": "#82E084",
+      "category": "color",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfFont.Ui",
+      "xamlKeys": ["VfFontUi"],
+      "type": "FontFamily",
+      "value": "Segoe UI Variable, Segoe UI, system-ui, sans-serif",
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfFont.Mono",
+      "xamlKeys": ["VfFontMono"],
+      "type": "FontFamily",
+      "value": "Cascadia Mono, Consolas, monospace",
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Size.Xs",
+      "xamlKeys": ["VfTextSizeXs"],
+      "type": "Double",
+      "value": 10,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Size.Sm",
+      "xamlKeys": ["VfTextSizeSm"],
+      "type": "Double",
+      "value": 11,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Size.Base",
+      "xamlKeys": ["VfTextSizeBase"],
+      "type": "Double",
+      "value": 12.5,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Size.Md",
+      "xamlKeys": ["VfTextSizeMd"],
+      "type": "Double",
+      "value": 13,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Size.Lg",
+      "xamlKeys": ["VfTextSizeLg"],
+      "type": "Double",
+      "value": 14,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Weight.Regular",
+      "xamlKeys": ["VfTextWeightRegular"],
+      "type": "Double",
+      "value": 400,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Weight.Medium",
+      "xamlKeys": ["VfTextWeightMedium"],
+      "type": "Double",
+      "value": 500,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfText.Weight.Semibold",
+      "xamlKeys": ["VfTextWeightSemibold"],
+      "type": "Double",
+      "value": 600,
+      "category": "typography",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.1",
+      "xamlKeys": ["VfSpace1"],
+      "type": "Double",
+      "value": 4,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.2",
+      "xamlKeys": ["VfSpace2"],
+      "type": "Double",
+      "value": 8,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.3",
+      "xamlKeys": ["VfSpace3"],
+      "type": "Double",
+      "value": 12,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.4",
+      "xamlKeys": ["VfSpace4"],
+      "type": "Double",
+      "value": 16,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.5",
+      "xamlKeys": ["VfSpace5"],
+      "type": "Double",
+      "value": 24,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSpace.6",
+      "xamlKeys": ["VfSpace6"],
+      "type": "Double",
+      "value": 32,
+      "category": "spacing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfRadius.Sm",
+      "xamlKeys": ["VfRadiusSm"],
+      "type": "CornerRadius",
+      "value": "4",
+      "category": "radius",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfRadius.Base",
+      "xamlKeys": ["VfRadiusBase"],
+      "type": "CornerRadius",
+      "value": "6",
+      "category": "radius",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfRadius.Lg",
+      "xamlKeys": ["VfRadiusLg"],
+      "type": "CornerRadius",
+      "value": "10",
+      "category": "radius",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.TitlebarHeight",
+      "xamlKeys": ["VfSizeTitlebarHeight"],
+      "type": "Double",
+      "value": 40,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.ToolbarHeight",
+      "xamlKeys": ["VfSizeToolbarHeight"],
+      "type": "Double",
+      "value": 44,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.BreadcrumbHeight",
+      "xamlKeys": ["VfSizeBreadcrumbHeight"],
+      "type": "Double",
+      "value": 36,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.StatusbarHeight",
+      "xamlKeys": ["VfSizeStatusbarHeight"],
+      "type": "Double",
+      "value": 26,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.SidebarWidth",
+      "xamlKeys": ["VfSizeSidebarWidth"],
+      "type": "Double",
+      "value": 240,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.SidebarMinWidth",
+      "xamlKeys": ["VfSizeSidebarMinWidth"],
+      "type": "Double",
+      "value": 200,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.PreviewPaneWidth",
+      "xamlKeys": ["VfSizePreviewPaneWidth"],
+      "type": "Double",
+      "value": 300,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.IconSm",
+      "xamlKeys": ["VfSizeIconSm"],
+      "type": "Double",
+      "value": 14,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfSize.IconMd",
+      "xamlKeys": ["VfSizeIconMd"],
+      "type": "Double",
+      "value": 16,
+      "category": "sizing",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfDensity.Current",
+      "xamlKeys": ["VfDensityCurrent"],
+      "type": "String",
+      "value": "comfortable",
+      "category": "density",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfDensity.RowHeight",
+      "xamlKeys": ["VfDensityRowHeight", "VfFileListRowHeight"],
+      "type": "Double",
+      "value": 30,
+      "category": "density",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfDensity.RowPaddingX",
+      "xamlKeys": ["VfDensityRowPaddingX"],
+      "type": "Double",
+      "value": 12,
+      "category": "density",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfDensity.RowPaddingY",
+      "xamlKeys": ["VfDensityRowPaddingY"],
+      "type": "Double",
+      "value": 6,
+      "category": "density",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfFocus.Thickness",
+      "xamlKeys": ["VfFocusThickness"],
+      "type": "Double",
+      "value": 2,
+      "category": "focus",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfFocus.Inset",
+      "xamlKeys": ["VfFocusInset"],
+      "type": "Double",
+      "value": 1,
+      "category": "focus",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfFocus.Color",
+      "xamlKeys": ["VfFocusBrush"],
+      "type": "BrushReference",
+      "value": "VfColor.Accent.Line",
+      "category": "focus",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfState.HiddenOpacity",
+      "xamlKeys": ["VfStateHiddenOpacity"],
+      "type": "Double",
+      "value": 0.68,
+      "category": "state",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfState.DisabledOpacity",
+      "xamlKeys": ["VfStateDisabledOpacity"],
+      "type": "Double",
+      "value": 0.46,
+      "category": "state",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfMotion.FastMs",
+      "xamlKeys": ["VfMotionFastMs"],
+      "type": "Double",
+      "value": 120,
+      "category": "motion",
+      "requiredInFirstSlice": true
+    },
+    {
+      "id": "VfMotion.BaseMs",
+      "xamlKeys": ["VfMotionBaseMs"],
+      "type": "Double",
+      "value": 160,
+      "category": "motion",
+      "requiredInFirstSlice": true
+    }
+  ]
+}
