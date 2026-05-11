@@ -227,4 +227,4 @@ Observed risks and maintenance pressure points:
 - Should `VeloFile.Corpus` split into smaller command modules after V1 closeout to reduce release-evidence drift risk?
 - Should the stale status wording in `specs/v1-product-scope.test.md` be corrected as documentation hygiene in a separate change?
 
-Recommended next skill: use `pr` for PR handoff after successful final verification. Use `architecture` before making structural changes to any risk area above.
+Recommended next skill: use `learn` if maintainers want to capture post-V1 workflow lessons. Use `architecture` before making structural changes to any risk area above.

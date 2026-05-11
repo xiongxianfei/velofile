@@ -2,7 +2,7 @@
 
 ## Status
 
-active
+done
 
 This plan has passed `plan-review` and has an active test spec. Implementation starts at M1.
 
@@ -1204,6 +1204,10 @@ Each milestone must update validation notes with the commands actually run and a
   - `git diff --check HEAD~4..HEAD` passed.
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ReleasePackagingContractTests` passed 12 App release packaging contract tests after replacing warning-producing boolean ordering assertions with MSTest comparison assertions.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed local broad validation: .NET info, restore, Debug build with 0 warnings and 0 errors, and 342 tests across Core, App, Windows, and Corpus assemblies.
+- V1 post-merge closeout evidence:
+  - GitHub PR #1 merged into `main` on 2026-05-11.
+  - Hosted GitHub Actions `ci` completed successfully for PR #1.
+  - Local `main` was synced with `origin/main` before lifecycle closeout.
 
 ## Outcome and Retrospective
 
@@ -1211,4 +1215,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, and M16 implem
 
 ## Readiness
 
-M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation passed on rerun, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice has passed code review and verify. Branch hygiene records local Codex tooling as ignored local state, aligns tracked governance/vision/project-map artifacts, and final local verification passed. The branch is ready for the `pr` stage; hosted CI and release-owner manual signed MSIX/accessibility checklist evidence remain downstream publication gates.
+M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation passed on rerun, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice passed code review, verify, PR handoff, hosted CI, and merge. This plan is closed as done. Release-owner manual signed MSIX/accessibility checklist evidence remains a downstream publication gate.

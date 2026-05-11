@@ -1,0 +1,17 @@
+id: 2026-05-11-v1-post-merge-closeout
+title: Close V1 plan after merged PR
+status: implemented
+milestone: V1
+requirements:
+  - v1-lifecycle-closeout
+files:
+  - docs/plan.md
+  - docs/plans/2026-05-04-v1-product-scope.md
+  - docs/project-map.md
+validation:
+  - command: gh pr view 1 --repo xiongxianfei/velofile --json number,state,mergedAt,mergeCommit,url,headRefName,baseRefName,statusCheckRollup
+    result: passed; PR #1 state was MERGED and hosted ci concluded SUCCESS
+notes:
+  - PR #1 merged into main on 2026-05-11 after hosted CI succeeded.
+  - The V1 product scope plan moved from Active to Done in the plan index and the plan body.
+  - Release-owner manual signed MSIX and accessibility checklist evidence remains a downstream publication gate, not an active implementation-plan blocker.
