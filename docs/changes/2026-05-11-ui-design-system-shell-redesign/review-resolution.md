@@ -2,7 +2,7 @@
 
 ## Status
 
-resolved-awaiting-review
+closed
 
 ## Pending findings
 
