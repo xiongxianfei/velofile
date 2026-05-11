@@ -2,7 +2,7 @@
 
 ## Status
 
-closed
+open
 
 ## Pending findings
 
@@ -30,3 +30,13 @@ closed
 - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid` passed.
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 tests.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 356 tests passed.
+
+## Pending M2 findings
+
+### CR-M2-001
+
+- Source: [code-review-r2](reviews/code-review-r2.md)
+- Status: pending
+- Required outcome: The M2 file-list row resources must either govern selected/focused row visuals through named first-slice resources, or explicitly record and verify a scoped Windows-native/system-focus decision that proves the default WinUI selected/focused visuals satisfy R54, A11Y1, and A11Y2 while preserving high-contrast/system behavior.
+- Resolution: pending
+- Evidence: pending

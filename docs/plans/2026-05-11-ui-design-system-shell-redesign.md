@@ -97,7 +97,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M2. WinUI Token Resources and File-List Row Redesign
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add first-slice WinUI resource dictionaries and consume named file-list row resources from `MainWindow.xaml` without changing file-list behavior.
 - Requirements: R9-R14, R26-R35, R48-R61, A11Y1-A11Y7, P1-P4, AC4, AC7, AC14.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `tests/VeloFile.App.Tests/`.
@@ -265,7 +265,7 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Progress
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
-- [ ] M2. WinUI Token Resources and File-List Row Redesign - review-requested
+- [ ] M2. WinUI Token Resources and File-List Row Redesign - resolution-needed
 - [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
@@ -273,13 +273,13 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Current Handoff Summary
 
 Current milestone: M2. WinUI Token Resources and File-List Row Redesign
-Current milestone state: review-requested
+Current milestone state: resolution-needed
 Last reviewed milestone: M1
-Review status: rerun `code-review` clean-with-notes; no required-change findings remain for M1
+Review status: M2 `code-review` changes-requested; CR-M2-001 pending
 Remaining in-scope implementation milestones: M2, M3, M4
-Next stage: `code-review` M2
+Next stage: `review-resolution` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M2 awaits code review, and M3-M4 remain planned.
+Reason final closeout is or is not ready: M2 has a pending review finding, and M3-M4 remain planned.
 
 ## Decision Log
 
@@ -354,6 +354,10 @@ Rerun code review closed M1 with status `clean-with-notes`; no required-change f
 
 M2 added checked-in WinUI token dictionaries, the first file-list component resource dictionary, and scoped `MainWindow.xaml` references to `VfFileListRowTemplate` and `VfFileListItemContainerStyle`. Existing file-list command, selection, drag/drop, context-menu, row opacity, thumbnail, and metadata bindings remain routed through the same app state; M2 did not add fixture mode, screenshot baselines, a custom row control, or new behavior/persistence.
 
+M2 code review R2 requested changes:
+
+- CR-M2-001: file-list selected/focused states are not governed by first-slice resources. Pending resolution in `review-resolution` M2.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M2 code review. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and M2 requires review-resolution. Final closeout is not ready.
