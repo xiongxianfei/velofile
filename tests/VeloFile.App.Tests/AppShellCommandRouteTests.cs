@@ -176,6 +176,41 @@ public sealed class AppShellCommandRouteTests
     }
 
     [TestMethod]
+    public async Task QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins()
+    {
+        var clipboard = new CollectingClipboardTextWriter();
+        var source = new FakeFolderEntrySource();
+        var dispatcher = new QueuedShellDispatcher();
+        var oldItem = Item(@"C:\Old\old.txt", "old.txt");
+        var newItem = Item(@"C:\New\new.txt", "new.txt");
+        source.SetEntries(@"C:\Old", oldItem);
+        source.SetEntries(@"C:\New", newItem);
+        var viewModel = CreateViewModel(
+            clipboard,
+            initialPath: @"C:\Old",
+            listingSource: source,
+            shellDispatcher: dispatcher,
+            existingPaths: [@"C:\Old", @"C:\New"]);
+        await WaitUntilAsync(() => dispatcher.PendingCount == 1);
+        Assert.AreEqual(0, viewModel.FileItems.Count);
+
+        var navigation = viewModel.SubmitPath(@"C:\New");
+
+        Assert.IsTrue(navigation.Accepted);
+        await WaitUntilAsync(() => dispatcher.PendingCount == 2);
+
+        dispatcher.RunLast();
+        CollectionAssert.AreEqual(new[] { "new.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        Assert.AreEqual(@"C:\New", viewModel.ActivePath);
+
+        dispatcher.RunNext();
+        CollectionAssert.AreEqual(new[] { "new.txt" }, viewModel.FileItems.Select(item => item.Name).ToArray());
+        CollectionAssert.DoesNotContain(viewModel.FileItems.Select(item => item.Name).ToArray(), "old.txt");
+        Assert.AreEqual(@"C:\New", viewModel.ActivePath);
+        Assert.IsFalse(viewModel.PathEntryErrorVisible);
+    }
+
+    [TestMethod]
     public async Task Active_tab_switch_replaces_visible_file_items_for_that_tab()
     {
         var clipboard = new CollectingClipboardTextWriter();
@@ -1565,7 +1600,8 @@ public sealed class AppShellCommandRouteTests
         FakeFolderEntrySource? searchSource = null,
         IRecursiveSearchService? searchService = null,
         IFileOperationAdapter? operationAdapter = null,
-        IReadOnlyList<string>? existingPaths = null)
+        IReadOnlyList<string>? existingPaths = null,
+        IShellDispatcher? shellDispatcher = null)
     {
         var workspace = NavigationWorkspace.Create(initialPath);
         var sidebar = SidebarStateService.Create(
@@ -1595,7 +1631,14 @@ public sealed class AppShellCommandRouteTests
             : new RecursiveSearchService(searchSource);
 
         var operationService = operationAdapter is null ? null : new FileOperationService(operationAdapter);
-        return new AppShellViewModel(startupState, clipboardWriter, coordinator, searchService, operationService, viewportItemCount: 100);
+        return new AppShellViewModel(
+            startupState,
+            clipboardWriter,
+            coordinator,
+            searchService,
+            operationService,
+            shellDispatcher: shellDispatcher,
+            viewportItemCount: 100);
     }
 
     private static ListedFileItem Item(
@@ -1780,6 +1823,33 @@ public sealed class AppShellCommandRouteTests
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return entry;
             }
+        }
+    }
+
+    private sealed class QueuedShellDispatcher : IShellDispatcher
+    {
+        private readonly List<Action> _actions = [];
+
+        public int PendingCount => _actions.Count;
+
+        public void Post(Action action)
+        {
+            _actions.Add(action);
+        }
+
+        public void RunNext()
+        {
+            var action = _actions[0];
+            _actions.RemoveAt(0);
+            action();
+        }
+
+        public void RunLast()
+        {
+            var lastIndex = _actions.Count - 1;
+            var action = _actions[lastIndex];
+            _actions.RemoveAt(lastIndex);
+            action();
         }
     }
 

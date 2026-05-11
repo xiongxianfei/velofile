@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "scopes": [
+    {
+      "id": "file-list-first-slice",
+      "status": "active",
+      "files": [
+        "src/VeloFile.App/MainWindow.xaml",
+        "src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfFileListRowTemplate",
+        "VfFileListItemContainerStyle",
+        "VfFileListRowHeight",
+        "VfFileListRowNameTextStyle",
+        "VfFileListRowMetadataTextStyle"
+      ],
+      "allowedResourceKeys": [
+        "VfFileListRowTemplate",
+        "VfFileListItemContainerStyle",
+        "VfFileListRowNameTextStyle",
+        "VfFileListRowMetadataTextStyle",
+        "VfFileListRowPadding",
+        "VfFileListRowBackground",
+        "VfFileListRowHoverBackground",
+        "VfFileListRowSelectedBackground",
+        "VfFileListRowFocusedBorderBrush",
+        "VfFileListRowFocusedBorderThickness",
+        "VfFileListRowSelectedFocusedBorderBrush",
+        "VfFileListRowSelectedFocusedBorderThickness",
+        "VfFileListRowHiddenOpacity",
+        "VfFileListRowProtectedOpacity",
+        "VfFileListRowOpacityConverter"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness"
+      ]
+    }
+  ]
+}

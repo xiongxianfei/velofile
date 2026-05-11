@@ -1,0 +1,13 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <!-- ui-contract-scope:file-list-first-slice:start -->
+    <ListView
+        ItemTemplate="{StaticResource VfFileListRowTemplate}"
+        ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}">
+      <ListViewItem Height="30" Padding="12,6" Background="#343A44" BorderThickness="2" />
+    </ListView>
+    <!-- ui-contract-scope:file-list-first-slice:end -->
+  </Grid>
+</Window>

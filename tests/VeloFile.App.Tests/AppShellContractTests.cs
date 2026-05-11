@@ -61,6 +61,36 @@ public sealed class AppShellContractTests
     }
 
     [TestMethod]
+    public void Main_window_icon_buttons_use_raw_vectors()
+    {
+        var xaml = File.ReadAllText(FindRepoRoot().Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+
+        Assert.IsFalse(xaml.Contains("<SymbolIcon", StringComparison.Ordinal), "MainWindow icon buttons must not depend on SymbolIcon font glyph resolution.");
+        Assert.IsFalse(xaml.Contains("<PathIcon", StringComparison.Ordinal), "MainWindow icon buttons must not depend on icon controls.");
+
+        foreach (var automationName in new[]
+        {
+            "Previous tab",
+            "Next tab",
+            "New tab",
+            "Duplicate tab",
+            "Close tab",
+            "Reopen closed tab",
+            "Back",
+            "Forward",
+            "Parent folder",
+            "Refresh"
+        })
+        {
+            var button = ExtractButtonBlock(xaml, $"AutomationProperties.Name=\"{automationName}\"");
+            StringAssert.Contains(button, "<Viewbox");
+            StringAssert.Contains(button, "<Path");
+            StringAssert.Contains(button, "Data=\"");
+            Assert.IsFalse(button.Contains("Icon", StringComparison.Ordinal), $"{automationName} must not depend on icon controls or icon font glyph resolution.");
+        }
+    }
+
+    [TestMethod]
     public void App_launch_uses_composition_root_instead_of_hardcoded_main_window_state()
     {
         var repoRoot = FindRepoRoot();
@@ -254,14 +284,16 @@ public sealed class AppShellContractTests
     {
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
+        var fileListResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
         var app = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
         var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
         var normalizedComposition = composition.Replace("\r\n", "\n", StringComparison.Ordinal);
 
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
-        StringAssert.Contains(xaml, "Text=\"{Binding ThumbnailDisplayText}\"");
-        StringAssert.Contains(xaml, "Opacity=\"{Binding RowOpacity}\"");
+        StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
+        StringAssert.Contains(fileListResources, "Text=\"{Binding ThumbnailDisplayText}\"");
+        StringAssert.Contains(fileListResources, "Opacity=\"{Binding Converter={StaticResource VfFileListRowOpacityConverter}}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
         StringAssert.Contains(codeBehind, "ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue))");
@@ -292,7 +324,7 @@ public sealed class AppShellContractTests
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
 
         StringAssert.Contains(xaml, "x:Name=\"FileListSurface\"");
-        StringAssert.Contains(xaml, "<ListView.ItemTemplate>");
+        StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
         Assert.IsFalse(xaml.Contains("<ListViewItem Content=", StringComparison.Ordinal));
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(codeBehind, "FileListSelectionMapper.ToListedFileItems(FileListSurface.SelectedItems, ViewModel.VisibleItems)");
@@ -476,5 +508,19 @@ public sealed class AppShellContractTests
 
         Assert.Fail("Could not find repository root from test output directory.");
         throw new InvalidOperationException("Could not find repository root from test output directory.");
+    }
+
+    private static string ExtractButtonBlock(string xaml, string marker)
+    {
+        var markerIndex = xaml.IndexOf(marker, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, markerIndex, $"Could not find button marker: {marker}");
+
+        var startIndex = xaml.LastIndexOf("<Button", markerIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, startIndex, $"Could not find button start for marker: {marker}");
+
+        var endIndex = xaml.IndexOf("</Button>", markerIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, endIndex, $"Could not find button end for marker: {marker}");
+
+        return xaml[startIndex..(endIndex + "</Button>".Length)];
     }
 }

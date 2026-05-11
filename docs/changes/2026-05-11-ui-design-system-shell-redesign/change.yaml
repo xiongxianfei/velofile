@@ -1,0 +1,225 @@
+id: 2026-05-11-ui-design-system-shell-redesign
+title: UI design-system and shell redesign
+status: branch-ready
+plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
+spec: specs/ui-design-system-shell-redesign.md
+test_spec: specs/ui-design-system-shell-redesign.test.md
+architecture:
+  - docs/architecture/system/architecture.md
+  - docs/adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md
+milestone:
+  id: M5
+  title: Lifecycle Closeout and Regression Verification
+  state: closed
+review:
+  stage: code-review
+  status: clean-with-notes
+  record:
+  findings: []
+  resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
+validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
+    result: failed before implementation for expected missing M1 artifacts; passed after implementation
+  - command: dotnet restore VeloFile.sln
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid
+    result: passed
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 9 tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed, 351 tests
+review_resolution_validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
+    result: passed, 14 tests
+  - command: dotnet restore VeloFile.sln
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid
+    result: passed
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed, 356 tests
+rerun_review_validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 tests
+m2_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests.App_resources_merge"
+    result: failed before implementation for expected missing first-slice resource dictionaries
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~FileListResourceContractTests"
+    result: passed, 6 tests
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources
+    result: passed
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"
+    result: passed; App tests 19 passed, Corpus UI contract tests 14 passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: first attempt timed out at tool limit while tests continued; rerun passed with build success, UI contract validation pass, and 362 tests
+m2_review:
+  stage: code-review
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r2.md
+  findings:
+    - CR-M2-001
+  resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
+m2_review_resolution_validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests
+    result: passed, 8 app tests
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 corpus UI contract tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 364 tests
+m2_rerun_review:
+  stage: code-review
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r3.md
+  findings:
+    - CR-M2-002
+  resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
+m2_cr_m2_002_review_resolution_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests
+    result: failed before implementation for expected missing opacity selector; passed after implementation with 11 app tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: first attempt failed for missing allowed converter resource; passed after adding VfFileListRowOpacityConverter to the file-list scope
+  - command: dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests
+    result: passed, 11 app tests
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 corpus UI contract tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+    result: passed, 18 app tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 367 tests
+m2_final_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests
+      result: passed, 11 app tests
+    - command: git diff --check
+      result: passed
+m3_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"
+    result: failed before implementation for expected missing fixture launch and registry files; passed after implementation with 12 app tests
+  - command: dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"
+    result: passed; App fixture tests 12 passed, Corpus UI contract tests 14 passed, Core/Windows projects had no matching tests
+  - command: dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release
+    result: passed with 0 warnings and 0 errors
+  - command: rg "fixture-data|C:\\Users|xiongxianfei|20260428-velofile|--test-ui-fixture|VELOFILE_ENABLE_TEST_UI_FIXTURES" src\VeloFile.App tests\VeloFile.App.Tests docs -n
+    result: found only expected source, test, and documentation references; deterministic fixture rows do not use local user/workspace paths
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 379 tests
+  - command: manual or scripted process-level GUI launch checks
+    result: not run; covered by static startup wiring tests and launch gate unit tests in this slice
+m3_review_resolution_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Fixture|UiContracts"
+    result: failed before resolution for missing presentation-state code paths; passed after resolution with 15 app tests
+  - command: dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"
+    result: passed; App fixture tests 15 passed, Corpus UI contract tests 14 passed, Core/Windows projects had no matching tests
+  - command: dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release
+    result: passed with 0 warnings and 0 errors
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 382 tests
+m3_rerun_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: review of tracked diff and validation evidence
+      result: passed; no required-change findings remain for M3
+m4_validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Visual|UiContracts"
+    result: failed before implementation for expected missing visual baseline profile, gitignore entries, and baseline update script; passed after implementation with 18 corpus tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "UiFixtureLaunchTests|UiFixtureRegistryTests"
+    result: passed after fixture-launch hardening; 16 app fixture tests passed
+  - command: dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
+    result: passed before guarded fixture screenshot capture
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile dark-comfortable-1440x900-100 -ReviewId m4-local-review
+    result: passed and updated 9 WinUI baseline screenshots
+  - command: dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts"
+    result: passed; App tests 2 passed, Corpus tests 18 passed, Core/Windows projects had no matching tests
+  - command: git status --short -- tests\visual\current tests\visual\diffs
+    result: no output; generated visual outputs remain ignored
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: first run hit the 5-minute tool timeout; rerun with longer timeout passed with build success, UI contract validation pass, and 387 tests
+m4_review_resolution_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins
+    result: failed before fix because stale old listing rows overwrote the newer path; passed after dispatcher-time active-result guard
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellCommandRouteTests
+    result: passed; 60 app command-route tests
+  - command: dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts|QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins"
+    result: passed; App tests 3 passed, Corpus tests 18 passed, Core/Windows projects had no matching tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 388 tests
+m4_rerun_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: review of tracked diff and validation evidence
+      result: passed; CR-M4-001 resolved and no required-change findings remain for M4
+explain_change:
+  stage: explain-change
+  status: complete
+  artifact: docs/changes/2026-05-11-ui-design-system-shell-redesign/explain-change.md
+verify:
+  stage: verify
+  status: branch-ready
+  commands:
+    - command: dotnet --info
+      result: passed; SDK 10.0.203 on Windows 10.0.26200
+    - command: dotnet restore VeloFile.sln
+      result: passed; all projects up to date
+    - command: dotnet build VeloFile.sln -c Debug
+      result: passed with 0 warnings and 0 errors
+    - command: dotnet test VeloFile.sln -c Debug
+      result: first run hit the 5-minute tool timeout before a final result; rerun with longer timeout passed with 389 tests across App, Core, Corpus, and Windows test projects
+    - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+      result: passed; build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 389 tests passed
+    - command: git status --short -- tests\visual\current tests\visual\diffs
+      result: passed; no generated visual outputs reported
+    - command: git diff --check
+      result: passed
+  ci_status: local validation passed after the shell icon bugfix review; hosted GitHub CI not observed in this stage
+post_verify_bugfix:
+  issue: shell icon buttons rendered garbled glyph text when SymbolIcon font glyphs did not resolve.
+  root_cause: shell toolbar buttons used SymbolIcon glyphs, which depend on icon font/private-use glyph resolution.
+  fix: replace all MainWindow shell icon-control elements with raw vector Path shapes inside Viewbox elements.
+  files:
+    - src/VeloFile.App/MainWindow.xaml
+    - tests/VeloFile.App.Tests/AppShellContractTests.cs
+  validation:
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors
+      result: passed
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+      result: passed, 19 tests
+    - command: dotnet build VeloFile.sln -c Debug
+      result: passed with 0 warnings and 0 errors
+    - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
+      result: no matches
+post_verify_bugfix_review:
+  stage: code-review
+  status: clean-with-notes
+  findings: []
+  validation:
+    - command: review of tracked shell icon bugfix diff and validation evidence
+      result: passed; no required-change findings remain for the shell icon bugfix
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+      result: passed; 19 tests
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors
+      result: passed; 1 test
+    - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
+      result: no matches
+next_stage: pr

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "scopes": [
+    {
+      "id": "file-list-first-slice",
+      "status": "active",
+      "files": [
+        "MainWindow.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfFileListRowTemplate",
+        "VfFileListItemContainerStyle"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-focus-thickness"
+      ]
+    }
+  ]
+}
