@@ -9,9 +9,10 @@ architecture:
   - docs/adr/0010-shell-visual-coherence-contracts.md
 review:
   stage: code-review
-  status: inconclusive-no-implementation-surface
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r1.md
-  findings: []
+  status: review-resolution-applied
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r2.md
+  findings:
+    - CR-001
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md

@@ -34,6 +34,22 @@ The approved spec requires shell-wide token/scope validation, governed fixture i
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed after rerunning with a longer timeout.
 
+## CR-001 Resolution
+
+Code review found that governed fixture icon validation rejected icon controls, glyphs, text chips, and local sizes, but not raw local icon colors. The resolution keeps the change inside M1's contract-validation boundary:
+
+- added direct tests for `Fill="#FFFFFF"` and `Color="#FFFFFF"` in governed icon resources;
+- added a valid resource-reference icon fixture;
+- added checked valid/invalid icon fixture files;
+- extended the validator to reject raw local icon color literals for `Fill`, `Stroke`, `Foreground`, `Background`, `Color`, and `BorderBrush` in `Resources/Icons`.
+
+Additional validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"` passed: 6 passed.
+- `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests` passed: 6 passed.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 20 passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed.
+
 ## Deferred By Design
 
 - M1 does not create shell surface, command band, sidebar, status, preview, or icon production resources.

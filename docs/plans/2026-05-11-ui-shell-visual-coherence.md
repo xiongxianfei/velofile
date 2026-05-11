@@ -465,12 +465,12 @@ No data migration is expected. Rollback is per governed region by reverting that
 
 Current milestone: M1. Shell Contract and Validator Extension
 Current milestone state: review-requested
-Last reviewed milestone: none
-Review status: plan-review approved after PR-001 review-resolution
+Last reviewed milestone: M1
+Review status: review-resolution applied for CR-001; code-review rerun needed
 Remaining in-scope implementation milestones: M1-M8
-Next stage: `code-review` M1
+Next stage: `code-review` M1 rerun
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 is implemented but not code-reviewed or closed, and M2-M8 have not started.
+Reason final closeout is or is not ready: M1 is implemented but not closed by code review, and M2-M8 have not started.
 
 ## Decision Log
 
@@ -515,6 +515,18 @@ M1 implementation validation:
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
   - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed after rerunning with a longer timeout; the first 5-minute attempt timed out before completion.
+
+CR-001 review-resolution validation:
+
+- Added direct local icon color literal coverage for governed fixture icons.
+- Validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"`: 6 passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid\Resources`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\invalid\fixture-icon-local-color\Resources`: failed as expected and included `forbidden-fixture-icon-color`, `Fill`, `#FFFFFF`, and the governed icon file path.
+  - `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests`: 6 passed.
+  - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: 20 passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
 
 ## Outcome and Retrospective
 

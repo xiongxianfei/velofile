@@ -99,6 +99,94 @@ public sealed class ShellVisualCoherenceContractTests
     }
 
     [TestMethod]
+    public void Ui_contract_tool_rejects_fixture_icon_fill_color_literal()
+    {
+        var repoRoot = FindRepoRoot();
+        using var scratch = ScratchWorkspace.CreateFromValidFixtures(repoRoot);
+        var iconsRoot = Path.Combine(scratch.Root, "Resources", "Icons");
+        Directory.CreateDirectory(iconsRoot);
+        File.Copy(
+            Path.Combine(repoRoot.FullName, "tests", "fixtures", "ui-contracts", "invalid", "fixture-icon-local-color", "Resources", "Icons", "VeloFile.FixtureIcons.xaml"),
+            Path.Combine(iconsRoot, "VeloFile.FixtureIcons.xaml"),
+            overwrite: true);
+
+        var result = RunTool(
+            repoRoot,
+            "validate-tokens",
+            "--contract",
+            Path.Combine(repoRoot.FullName, "docs", "ui", "tokens.v1.json"),
+            "--xaml-root",
+            Path.Combine(scratch.Root, "Resources"));
+
+        Assert.AreNotEqual(0, result.ExitCode, result.AllOutput);
+        StringAssert.Contains(result.AllOutput, "forbidden-fixture-icon-color");
+        StringAssert.Contains(result.AllOutput, "Fill");
+        StringAssert.Contains(result.AllOutput, "#FFFFFF");
+        StringAssert.Contains(result.AllOutput, "VeloFile.FixtureIcons.xaml");
+    }
+
+    [TestMethod]
+    public void Ui_contract_tool_rejects_fixture_icon_solid_color_brush_literal()
+    {
+        var repoRoot = FindRepoRoot();
+        using var scratch = ScratchWorkspace.CreateFromValidFixtures(repoRoot);
+        var iconsRoot = Path.Combine(scratch.Root, "Resources", "Icons");
+        Directory.CreateDirectory(iconsRoot);
+        File.WriteAllText(
+            Path.Combine(iconsRoot, "VeloFile.FixtureIcons.xaml"),
+            """
+            <ResourceDictionary
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+              <SolidColorBrush Color="#FFFFFF" />
+            </ResourceDictionary>
+            """);
+
+        var result = RunTool(
+            repoRoot,
+            "validate-tokens",
+            "--contract",
+            Path.Combine(repoRoot.FullName, "docs", "ui", "tokens.v1.json"),
+            "--xaml-root",
+            Path.Combine(scratch.Root, "Resources"));
+
+        Assert.AreNotEqual(0, result.ExitCode, result.AllOutput);
+        StringAssert.Contains(result.AllOutput, "forbidden-fixture-icon-color");
+        StringAssert.Contains(result.AllOutput, "Color");
+        StringAssert.Contains(result.AllOutput, "#FFFFFF");
+    }
+
+    [TestMethod]
+    public void Ui_contract_tool_allows_fixture_icon_color_resource_reference()
+    {
+        var repoRoot = FindRepoRoot();
+        using var scratch = ScratchWorkspace.CreateFromValidFixtures(repoRoot);
+        var iconsRoot = Path.Combine(scratch.Root, "Resources", "Icons");
+        Directory.CreateDirectory(iconsRoot);
+        File.WriteAllText(
+            Path.Combine(iconsRoot, "VeloFile.FixtureIcons.xaml"),
+            """
+            <ResourceDictionary
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+              <Path Data="M 0,0 L 1,0 L 1,1 Z" Fill="{StaticResource VfIconForegroundBrush}" />
+              <Path Data="M 0,0 L 1,0 L 1,1 Z" Stroke="{ThemeResource VfIconStrokeBrush}" />
+            </ResourceDictionary>
+            """);
+
+        var result = RunTool(
+            repoRoot,
+            "validate-tokens",
+            "--contract",
+            Path.Combine(repoRoot.FullName, "docs", "ui", "tokens.v1.json"),
+            "--xaml-root",
+            Path.Combine(scratch.Root, "Resources"));
+
+        AssertCommandSucceeded(result);
+        Assert.IsFalse(result.AllOutput.Contains("forbidden-fixture-icon-color", StringComparison.Ordinal), result.AllOutput);
+    }
+
+    [TestMethod]
     public void Ui_contract_tool_validates_full_shell_visual_sidecars()
     {
         var repoRoot = FindRepoRoot();

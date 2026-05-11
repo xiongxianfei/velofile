@@ -487,6 +487,13 @@ internal static partial class UiContractsCli
         {
             yield return $"forbidden-icon: local icon size {match.Value} in {path}. Use VfFileListIconContainerStyle or tokenized icon size resources.";
         }
+
+        foreach (Match match in IconLocalColorRegex().Matches(text))
+        {
+            var attribute = match.Groups["attribute"].Value;
+            var value = match.Groups["value"].Value;
+            yield return $"forbidden-fixture-icon-color: {attribute}=\"{value}\" in {path} uses a local color literal. Governed fixture icons must use VeloFile icon color resources or an accepted design deviation.";
+        }
     }
 
     private static IEnumerable<string> FindForbiddenComponentLiterals(XamlResource resource)
@@ -658,6 +665,9 @@ internal static partial class UiContractsCli
 
     [GeneratedRegex("\\b(?:Width|Height)=\"\\d+(?:\\.\\d+)?\"", RegexOptions.CultureInvariant)]
     private static partial Regex IconLocalSizeRegex();
+
+    [GeneratedRegex("\\b(?<attribute>Fill|Stroke|Foreground|Background|Color|BorderBrush)=\"(?<value>#[0-9A-Fa-f]{3,4}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|White|Black|Red|Transparent)\"", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex IconLocalColorRegex();
 
     [GeneratedRegex("[A-Za-z]:\\\\(?:Users|Data|Temp|Windows|Program Files)\\\\", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RawWindowsPathRegex();
