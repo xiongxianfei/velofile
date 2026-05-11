@@ -10,13 +10,14 @@ architecture:
 review:
   stage: code-review
   status: blocked
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r5.md
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r6.md
   findings:
     - CR-002
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r3.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r4.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r5.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
   milestone: M2

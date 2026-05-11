@@ -8,3 +8,4 @@
 | [code-review-r3](reviews/code-review-r3.md) | code-review | M1 | clean-with-notes | none |
 | [code-review-r4](reviews/code-review-r4.md) | code-review | M2 | changes-requested | CR-002 |
 | [code-review-r5](reviews/code-review-r5.md) | code-review | M2 | blocked | CR-002 |
+| [code-review-r6](reviews/code-review-r6.md) | code-review | M2 | blocked | CR-002 |
