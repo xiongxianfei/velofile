@@ -147,4 +147,4 @@ Validation for the addendum:
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 - `rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml` returned no matches.
 
-This post-verify code change supersedes the prior branch-ready state until code review and final verification are rerun. The next stage is `code-review` for the tab icon bugfix.
+This post-verify code change superseded the prior branch-ready state until code review and final verification were rerun. The shell icon bugfix is now reviewed and renewed final verification has passed.

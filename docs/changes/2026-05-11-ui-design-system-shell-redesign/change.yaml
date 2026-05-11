@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: verify-needed
+status: branch-ready
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,7 +10,7 @@ architecture:
 milestone:
   id: M5
   title: Lifecycle Closeout and Regression Verification
-  state: verify-needed
+  state: closed
 review:
   stage: code-review
   status: clean-with-notes
@@ -176,7 +176,7 @@ explain_change:
   artifact: docs/changes/2026-05-11-ui-design-system-shell-redesign/explain-change.md
 verify:
   stage: verify
-  status: superseded-by-post-verify-bugfix
+  status: branch-ready
   commands:
     - command: dotnet --info
       result: passed; SDK 10.0.203 on Windows 10.0.26200
@@ -185,14 +185,14 @@ verify:
     - command: dotnet build VeloFile.sln -c Debug
       result: passed with 0 warnings and 0 errors
     - command: dotnet test VeloFile.sln -c Debug
-      result: passed; 388 tests passed across App, Core, Corpus, and Windows test projects
+      result: first run hit the 5-minute tool timeout before a final result; rerun with longer timeout passed with 389 tests across App, Core, Corpus, and Windows test projects
     - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-      result: passed; build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 388 tests passed
+      result: passed; build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 389 tests passed
     - command: git status --short -- tests\visual\current tests\visual\diffs
       result: passed; no generated visual outputs reported
     - command: git diff --check
       result: passed
-  ci_status: local validation passed before the later tab icon bugfix; hosted GitHub CI not observed in this stage
+  ci_status: local validation passed after the shell icon bugfix review; hosted GitHub CI not observed in this stage
 post_verify_bugfix:
   issue: shell icon buttons rendered garbled glyph text when SymbolIcon font glyphs did not resolve.
   root_cause: shell toolbar buttons used SymbolIcon glyphs, which depend on icon font/private-use glyph resolution.
@@ -222,4 +222,4 @@ post_verify_bugfix_review:
       result: passed; 1 test
     - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
       result: no matches
-next_stage: verify
+next_stage: pr

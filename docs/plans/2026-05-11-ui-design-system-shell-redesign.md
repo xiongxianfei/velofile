@@ -268,18 +268,18 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
-- [ ] M5. Lifecycle Closeout and Regression Verification - shell icon bugfix reviewed; renewed verify needed
+- [x] M5. Lifecycle Closeout and Regression Verification - closed after renewed post-bugfix verify
 
 ## Current Handoff Summary
 
 Current milestone: M5. Lifecycle Closeout and Regression Verification
-Current milestone state: verify-needed
+Current milestone state: closed
 Last reviewed milestone: M5 post-verify shell icon bugfix
 Review status: clean-with-notes; shell icon bugfix has no required-change findings
 Remaining in-scope implementation milestones: none
-Next stage: `verify`
-Final closeout readiness: not branch-ready after post-verify bugfix
-Reason final closeout is or is not ready: M1-M4 remain closed and the shell icon bugfix has passed code-review, but final verification must be rerun before PR handoff. Hosted GitHub CI was not observed in this stage.
+Next stage: `pr`
+Final closeout readiness: branch-ready for PR handoff
+Reason final closeout is or is not ready: M1-M5 are closed, the shell icon bugfix has passed code-review, and renewed local final verification passed after the bugfix. Hosted GitHub CI was not observed in this stage.
 
 ## Decision Log
 
@@ -466,7 +466,7 @@ Post-verify shell icon bugfix:
 - Fix: replace all `MainWindow.xaml` shell icon-control content with raw vector `Path` shapes inside `Viewbox` elements while preserving click handlers, tooltips, automation names, keyboard accelerators, and command routing.
 - Regression test: `Main_window_icon_buttons_use_raw_vectors` fails if any `SymbolIcon` or `PathIcon` returns to `MainWindow.xaml`, and checks all shell icon buttons use raw vector content.
 - Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors; `rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml` returned no matches.
-- Handoff impact: the prior branch-ready state is superseded by this post-verify shell icon bugfix until code-review and final verification are rerun.
+- Handoff impact: the prior branch-ready state was superseded by this post-verify shell icon bugfix until code-review and final verification were rerun.
 
 Post-verify shell icon bugfix code-review:
 
@@ -475,6 +475,18 @@ Post-verify shell icon bugfix code-review:
 - Review evidence: all `MainWindow.xaml` shell icon buttons use raw vector `Path` shapes inside `Viewbox` elements, `SymbolIcon` and `PathIcon` are absent from `MainWindow.xaml`, and `Main_window_icon_buttons_use_raw_vectors` covers all affected shell buttons.
 - Handoff impact: ready for renewed final verification before PR handoff.
 
+Renewed post-bugfix final verify result:
+
+- Status: branch-ready for PR handoff.
+- `dotnet --info` passed: SDK 10.0.203 on Windows 10.0.26200.
+- `dotnet restore VeloFile.sln` passed: all projects up to date.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- First `dotnet test VeloFile.sln -c Debug` run hit the 5-minute tool timeout before a final result; rerun with a longer timeout passed with 389 tests: App 138, Core 168, Corpus 31, and Windows 52.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 389 tests passed.
+- `git status --short -- tests\visual\current tests\visual\diffs` produced no output.
+- `git diff --check` passed.
+- Hosted GitHub CI was not observed during local verify.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for renewed `verify` after the shell icon bugfix review.
+See Current Handoff Summary. This plan is active and branch-ready for `pr` handoff. Hosted GitHub CI was not observed during local verify.
