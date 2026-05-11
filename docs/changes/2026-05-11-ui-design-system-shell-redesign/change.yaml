@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: review-resolution-m2-review-requested
+status: review-resolution-m2-required
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,14 +10,13 @@ architecture:
 milestone:
   id: M2
   title: WinUI Token Resources and File-List Row Redesign
-  state: review-requested
+  state: resolution-needed
 review:
   stage: code-review
-  status: clean-with-notes-after-resolution
-  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r1.md
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r3.md
   findings:
-    - CR-M1-001
-    - CR-M1-002
+    - CR-M2-002
   resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
 validation:
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
@@ -81,4 +80,11 @@ m2_review_resolution_validation:
     result: passed, 14 corpus UI contract tests
   - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: passed with build success, UI contract validation pass, and 364 tests
-next_stage: rerun code-review M2
+m2_rerun_review:
+  stage: code-review
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r3.md
+  findings:
+    - CR-M2-002
+  resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
+next_stage: review-resolution M2

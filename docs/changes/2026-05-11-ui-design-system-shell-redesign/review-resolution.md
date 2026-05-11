@@ -2,7 +2,7 @@
 
 ## Status
 
-M2 resolved; awaiting rerun code-review
+M2 requires review-resolution for CR-M2-002
 
 ## Pending findings
 
@@ -48,3 +48,12 @@ M2 resolved; awaiting rerun code-review
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 364 tests passed.
+
+## Pending M2 rerun findings
+
+### CR-M2-002
+
+- Source: [code-review-r3](reviews/code-review-r3.md)
+- Status: open
+- Required outcome: Hidden/protected file-list row styling must be governed by the accepted first-slice resources, or the implementation must record an explicit accepted deviation explaining why the row-view-model opacity remains the production authority.
+- Safe resolution path: Keep the fix inside M2 file-list row resources/tests. Make the hidden/protected opacity path consume the named state resource without adding fixture mode, screenshots, a custom row control, or a new selection/listing behavior model. Add a targeted `FileListResourceContractTests` assertion that hidden/protected styling resolves from named resources and that the stale `0.58` hardcoded visual value cannot remain the rendered first-slice hidden/protected state.

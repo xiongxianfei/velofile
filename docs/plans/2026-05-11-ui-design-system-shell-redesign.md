@@ -97,7 +97,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M2. WinUI Token Resources and File-List Row Redesign
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add first-slice WinUI resource dictionaries and consume named file-list row resources from `MainWindow.xaml` without changing file-list behavior.
 - Requirements: R9-R14, R26-R35, R48-R61, A11Y1-A11Y7, P1-P4, AC4, AC7, AC14.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `tests/VeloFile.App.Tests/`.
@@ -265,7 +265,7 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Progress
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
-- [ ] M2. WinUI Token Resources and File-List Row Redesign - review-requested
+- [ ] M2. WinUI Token Resources and File-List Row Redesign - resolution-needed
 - [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
@@ -273,13 +273,13 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Current Handoff Summary
 
 Current milestone: M2. WinUI Token Resources and File-List Row Redesign
-Current milestone state: review-requested
-Last reviewed milestone: M1
-Review status: M2 `code-review` changes-requested; CR-M2-001 resolved and awaiting rerun review
+Current milestone state: resolution-needed
+Last reviewed milestone: M2
+Review status: M2 rerun `code-review` changes-requested; CR-M2-001 resolved, CR-M2-002 open
 Remaining in-scope implementation milestones: M2, M3, M4
-Next stage: rerun `code-review` M2
+Next stage: `review-resolution` M2 for CR-M2-002
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M2 awaits rerun code review, and M3-M4 remain planned.
+Reason final closeout is or is not ready: M2 requires review-resolution for CR-M2-002, and M3-M4 remain planned.
 
 ## Decision Log
 
@@ -369,4 +369,4 @@ M2 review-resolution validation:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for rerun M2 code review. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and requires M2 review-resolution for CR-M2-002. Final closeout is not ready.
