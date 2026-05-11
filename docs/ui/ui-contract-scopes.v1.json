@@ -15,6 +15,12 @@
         "VfFileListRowNameTextStyle",
         "VfFileListRowMetadataTextStyle"
       ],
+      "allowedResourceKeys": [
+        "VfFileListRowTemplate",
+        "VfFileListItemContainerStyle",
+        "VfFileListRowNameTextStyle",
+        "VfFileListRowMetadataTextStyle"
+      ],
       "forbiddenLiteralRules": [
         "inline-color",
         "inline-row-height",

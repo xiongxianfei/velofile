@@ -12,5 +12,7 @@
     </Grid>
   </DataTemplate>
   <Style x:Key="VfFileListRowNameTextStyle" TargetType="TextBlock" />
-  <Style x:Key="VfFileListRowMetadataTextStyle" TargetType="TextBlock" />
+  <Style x:Key="VfFileListRowMetadataTextStyle" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="#FF00FF" />
+  </Style>
 </ResourceDictionary>

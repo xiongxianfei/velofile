@@ -274,12 +274,12 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 Current milestone: M1. UI Contract Artifacts and Static Validator
 Current milestone state: review-requested
-Last reviewed milestone: none
-Review status: implementation completed and awaiting `code-review` for M1
+Last reviewed milestone: M1
+Review status: `code-review` R1 changes-requested; findings CR-M1-001 and CR-M1-002 resolved and awaiting rerun `code-review`
 Remaining in-scope implementation milestones: M1, M2, M3, M4
-Next stage: `code-review` M1
+Next stage: rerun `code-review` M1
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 is awaiting code review and M2-M4 remain planned.
+Reason final closeout is or is not ready: M1 requires rerun code review and M2-M4 remain planned.
 
 ## Decision Log
 
@@ -315,10 +315,24 @@ M1 validation:
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 9 tests passed.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 351 tests passed.
 
+M1 review-resolution validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts` passed: 14 tests passed.
+- `dotnet restore VeloFile.sln` passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid` passed.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 tests passed.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 356 tests passed.
+
 ## Outcome and Retrospective
 
 M1 added the repo-owned UI token contract, first active UI contract scope, design-deviation policy document, static validation tool, controlled valid/invalid XAML fixtures, and focused contract/tool tests. No production UI behavior was changed.
 
+Code review R1 requested changes for M1:
+
+- CR-M1-001: extra first-slice resources are not validated. Resolved by default governed-resource key validation for `Resources/Tokens` and `Resources/Components`.
+- CR-M1-002: strict tokenized-literal rules are not enforced for new token/component resource dictionaries. Resolved by default governed component literal checks and expanded invalid fixtures.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M1 `code-review`. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for rerun M1 `code-review`. Final closeout is not ready.

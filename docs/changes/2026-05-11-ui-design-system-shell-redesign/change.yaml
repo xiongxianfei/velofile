@@ -11,6 +11,14 @@ milestone:
   id: M1
   title: UI Contract Artifacts and Static Validator
   state: review-requested
+review:
+  stage: code-review
+  status: changes-requested
+  record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r1.md
+  findings:
+    - CR-M1-001
+    - CR-M1-002
+  resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
 validation:
   - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
     result: failed before implementation for expected missing M1 artifacts; passed after implementation
@@ -24,4 +32,17 @@ validation:
     result: passed, 9 tests
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: passed, 351 tests
-next_stage: code-review M1
+review_resolution_validation:
+  - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter UiContracts
+    result: passed, 14 tests
+  - command: dotnet restore VeloFile.sln
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid
+    result: passed
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 tests
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed, 356 tests
+next_stage: rerun code-review M1

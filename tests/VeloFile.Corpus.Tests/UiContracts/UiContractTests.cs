@@ -125,6 +125,33 @@ public sealed class UiContractTests
     }
 
     [TestMethod]
+    [DataRow("extra-resource", "extra-resource", "VfFileListUnapprovedGap")]
+    [DataRow("component-inline-color", "forbidden-literal", "#FF00FF")]
+    [DataRow("component-inline-row-height", "forbidden-literal", "MinHeight")]
+    [DataRow("component-inline-padding", "forbidden-literal", "Padding")]
+    [DataRow("token-undocumented-color", "extra-resource", "VfColorRandomAccent")]
+    public void Ui_contract_tool_rejects_governed_resource_drift_by_default(
+        string fixtureName,
+        string expectedRule,
+        string expectedOutput)
+    {
+        var repoRoot = FindRepoRoot();
+
+        var result = RunTool(
+            repoRoot,
+            "validate-tokens",
+            "--contract",
+            Path.Combine(repoRoot.FullName, "docs", "ui", "tokens.v1.json"),
+            "--xaml-root",
+            Path.Combine(repoRoot.FullName, "tests", "fixtures", "ui-contracts", "invalid", fixtureName));
+
+        Assert.AreNotEqual(0, result.ExitCode, result.AllOutput);
+        StringAssert.Contains(result.AllOutput, expectedRule);
+        StringAssert.Contains(result.AllOutput, expectedOutput);
+        StringAssert.Contains(result.AllOutput, fixtureName);
+    }
+
+    [TestMethod]
     public void Ui_contract_tool_enforces_targeted_scope_literals_without_blocking_legacy_literals()
     {
         var repoRoot = FindRepoRoot();

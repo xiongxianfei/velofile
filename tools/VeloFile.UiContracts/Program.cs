@@ -34,11 +34,13 @@ internal static partial class UiContractsCli
             if (tokenContract is not null)
             {
                 var resources = XamlResourceSet.Load(options.XamlRoot, failures);
+                var scopes = ScopeContract.Load(options.ScopesPath ?? DefaultScopesPath(options.ContractPath), failures, optional: options.ScopesPath is null);
                 ValidateTokens(tokenContract, resources, failures);
+                ValidateGovernedResources(tokenContract, scopes, resources, failures);
 
-                if (options.ScopesPath is not null)
+                if (options.ScopesPath is not null && scopes is not null)
                 {
-                    ValidateScopes(options.ScopesPath, options.ScopeRoot ?? options.XamlRoot, failures);
+                    ValidateScopes(scopes, options.ScopeRoot ?? options.XamlRoot, failures);
                 }
             }
 
@@ -171,6 +173,48 @@ internal static partial class UiContractsCli
         }
     }
 
+    private static void ValidateGovernedResources(TokenContract contract, ScopeContract? scopes, XamlResourceSet resources, List<string> failures)
+    {
+        var allowedKeys = new HashSet<string>(contract.Tokens.SelectMany(token => token.XamlKeys), StringComparer.Ordinal);
+        if (scopes is not null)
+        {
+            foreach (var key in scopes.AllowedResourceKeys)
+            {
+                allowedKeys.Add(key);
+            }
+        }
+
+        foreach (var resource in resources.AllResources.Where(resource => resource.IsGovernedResourceDictionary))
+        {
+            if (!resource.Key.StartsWith("Vf", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!allowedKeys.Contains(resource.Key))
+            {
+                failures.Add($"extra-resource: {resource.Key} in {resource.Path} is not declared by {contract.Path} or {scopes?.Path ?? "the UI contract scopes file"}. Declare it in the token contract/scope file or remove it.");
+            }
+        }
+
+        foreach (var resource in resources.AllResources.Where(resource => resource.IsGovernedComponentResource))
+        {
+            foreach (var failure in FindForbiddenComponentLiterals(resource))
+            {
+                failures.Add(failure);
+            }
+        }
+
+        foreach (var path in resources.GovernedComponentPaths)
+        {
+            var text = File.ReadAllText(path);
+            foreach (Match match in ComponentSetterLiteralRegex().Matches(text))
+            {
+                failures.Add($"forbidden-literal: {match.Groups["property"].Value}=\"{match.Groups["value"].Value}\" in {path}. Use a declared token resource or declare an allowed exception in docs/ui/ui-contract-scopes.v1.json.");
+            }
+        }
+    }
+
     private static void ValidateColorAndBrush(Token token, XamlResourceSet resources, List<string> failures)
     {
         if (token.XamlKeys.Count < 2)
@@ -273,56 +317,108 @@ internal static partial class UiContractsCli
             : $"{token.Id}: key '{resource.Key}' expected value {token.StringValue}, observed {resource.Value} at {resource.Path}.";
     }
 
-    private static void ValidateScopes(string scopesPath, string scopeRoot, List<string> failures)
+    private static void ValidateScopes(ScopeContract scopes, string scopeRoot, List<string> failures)
     {
-        if (!File.Exists(scopesPath))
+        foreach (var scope in scopes.Scopes)
         {
-            failures.Add($"Scope file not found: {scopesPath}");
-            return;
-        }
-
-        var scopesJson = JsonNode.Parse(File.ReadAllText(scopesPath))!.AsObject();
-        foreach (var scopeNode in scopesJson["scopes"]!.AsArray().Select(scope => scope!.AsObject()))
-        {
-            var id = RequireString(scopeNode, "id", scopesPath, failures);
-            var files = ReadStringArray(scopeNode, "files", scopesPath, failures);
-            var requiredReferences = ReadStringArray(scopeNode, "requiredResourceReferences", scopesPath, failures);
-            var forbiddenRules = ReadStringArray(scopeNode, "forbiddenLiteralRules", scopesPath, failures);
             var scopedTexts = new List<(string Path, string Text)>();
 
-            foreach (var relativePath in files)
+            foreach (var relativePath in scope.Files)
             {
                 var path = Path.GetFullPath(Path.Combine(scopeRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
                 if (!File.Exists(path))
                 {
-                    failures.Add($"{id}: scope file not found: {path}");
+                    failures.Add($"{scope.Id}: scope file not found: {path}");
                     continue;
                 }
 
                 var text = File.ReadAllText(path);
-                scopedTexts.Add((path, ExtractScopeText(text, id)));
+                scopedTexts.Add((path, ExtractScopeText(text, scope.Id)));
             }
 
             var combinedScopeText = string.Join(Environment.NewLine, scopedTexts.Select(item => item.Text));
-            foreach (var requiredReference in requiredReferences)
+            foreach (var requiredReference in scope.RequiredResourceReferences)
             {
                 if (!combinedScopeText.Contains(requiredReference, StringComparison.Ordinal))
                 {
-                    failures.Add($"{id}: required resource reference '{requiredReference}' missing from governed scope files.");
+                    failures.Add($"{scope.Id}: required resource reference '{requiredReference}' missing from governed scope files.");
                 }
             }
 
             foreach (var scopedText in scopedTexts)
             {
-                foreach (var rule in forbiddenRules)
+                foreach (var rule in scope.ForbiddenLiteralRules)
                 {
-                    foreach (var failure in FindForbiddenLiterals(rule, scopedText.Text, scopedText.Path, id))
+                    foreach (var failure in FindForbiddenLiterals(rule, scopedText.Text, scopedText.Path, scope.Id))
                     {
                         failures.Add(failure);
                     }
                 }
             }
         }
+    }
+
+    private static IEnumerable<string> FindForbiddenComponentLiterals(XamlResource resource)
+    {
+        foreach (var attribute in resource.Attributes)
+        {
+            if (IsResourceReference(attribute.Value))
+            {
+                continue;
+            }
+
+            if (attribute.Name is "Color" && HexColorRegex().IsMatch(attribute.Value))
+            {
+                yield return $"forbidden-literal: {attribute.Name}=\"{attribute.Value}\" in {resource.Path}. Use a declared token resource or declare an allowed exception in docs/ui/ui-contract-scopes.v1.json.";
+            }
+
+            if (attribute.Name is "Value" && IsForbiddenComponentProperty(resource, attribute.Value))
+            {
+                yield return $"forbidden-literal: {resource.PropertyName ?? attribute.Name}=\"{attribute.Value}\" in {resource.Path}. Use a declared token resource or declare an allowed exception in docs/ui/ui-contract-scopes.v1.json.";
+            }
+
+            if (IsForbiddenAttributeName(attribute.Name) && IsRawLiteral(attribute.Value))
+            {
+                yield return $"forbidden-literal: {attribute.Name}=\"{attribute.Value}\" in {resource.Path}. Use a declared token resource or declare an allowed exception in docs/ui/ui-contract-scopes.v1.json.";
+            }
+        }
+    }
+
+    private static bool IsForbiddenComponentProperty(XamlResource resource, string value)
+    {
+        return resource.PropertyName is "Height" or "MinHeight" or "Padding" or "Margin" or "CornerRadius" or "FontSize" or "BorderThickness" or "Opacity" or "Foreground" or "Background"
+            && IsRawLiteral(value);
+    }
+
+    private static bool IsForbiddenAttributeName(string name)
+    {
+        return name is "Height" or "MinHeight" or "Padding" or "Margin" or "CornerRadius" or "FontSize" or "BorderThickness" or "Opacity" or "Foreground" or "Background" or "SelectionHighlightColor";
+    }
+
+    private static bool IsRawLiteral(string value)
+    {
+        return HexColorRegex().IsMatch(value)
+            || NumericLiteralRegex().IsMatch(value)
+            || ThicknessLiteralRegex().IsMatch(value);
+    }
+
+    private static bool IsResourceReference(string value)
+    {
+        var trimmed = value.Trim();
+        return trimmed.StartsWith("{StaticResource ", StringComparison.Ordinal)
+            || trimmed.StartsWith("{ThemeResource ", StringComparison.Ordinal);
+    }
+
+    private static string? DefaultScopesPath(string contractPath)
+    {
+        var directory = Path.GetDirectoryName(contractPath);
+        if (directory is null)
+        {
+            return null;
+        }
+
+        var path = Path.Combine(directory, "ui-contract-scopes.v1.json");
+        return File.Exists(path) ? path : null;
     }
 
     private static string ExtractScopeText(string text, string scopeId)
@@ -414,16 +510,82 @@ internal static partial class UiContractsCli
     [GeneratedRegex("\\b(?:BorderThickness|FocusVisualPrimaryThickness|FocusVisualSecondaryThickness)=\"\\d+(?:\\.\\d+)?\"", RegexOptions.CultureInvariant)]
     private static partial Regex FocusThicknessRegex();
 
+    [GeneratedRegex("^\\d+(?:\\.\\d+)?$", RegexOptions.CultureInvariant)]
+    private static partial Regex NumericLiteralRegex();
+
+    [GeneratedRegex("^\\d+(?:\\.\\d+)?(?:,\\d+(?:\\.\\d+)?){1,3}$", RegexOptions.CultureInvariant)]
+    private static partial Regex ThicknessLiteralRegex();
+
+    [GeneratedRegex("Property=\"(?<property>Height|MinHeight|Padding|Margin|CornerRadius|FontSize|BorderThickness|Opacity|Foreground|Background)\"\\s+Value=\"(?<value>#[0-9A-Fa-f]{6,8}|\\d+(?:\\.\\d+)?(?:,\\d+(?:\\.\\d+)?){0,3})\"", RegexOptions.CultureInvariant)]
+    private static partial Regex ComponentSetterLiteralRegex();
+
     private sealed record Options(string ContractPath, string XamlRoot, string? ScopesPath, string? ScopeRoot);
 
     private sealed record Token(string Id, IReadOnlyList<string> XamlKeys, string Type, string StringValue, bool RequiredInFirstSlice);
 
+    private sealed class ScopeContract
+    {
+        private ScopeContract(string path, IReadOnlyList<Scope> scopes)
+        {
+            Path = path;
+            Scopes = scopes;
+            AllowedResourceKeys = scopes.SelectMany(scope => scope.AllowedResourceKeys).ToArray();
+        }
+
+        public string Path { get; }
+
+        public IReadOnlyList<Scope> Scopes { get; }
+
+        public IReadOnlyList<string> AllowedResourceKeys { get; }
+
+        public static ScopeContract? Load(string? path, List<string> failures, bool optional)
+        {
+            if (path is null)
+            {
+                return null;
+            }
+
+            if (!File.Exists(path))
+            {
+                if (!optional)
+                {
+                    failures.Add($"Scope file not found: {path}");
+                }
+
+                return null;
+            }
+
+            var scopesJson = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            var scopes = scopesJson["scopes"]!.AsArray()
+                .Select(scope => scope!.AsObject())
+                .Select(scope => new Scope(
+                    RequireString(scope, "id", path, failures),
+                    ReadStringArray(scope, "files", path, failures),
+                    ReadStringArray(scope, "requiredResourceReferences", path, failures),
+                    ReadStringArray(scope, "forbiddenLiteralRules", path, failures),
+                    ReadStringArray(scope, "allowedResourceKeys", path, failures)))
+                .ToArray();
+
+            return new ScopeContract(path, scopes);
+        }
+    }
+
+    private sealed record Scope(
+        string Id,
+        IReadOnlyList<string> Files,
+        IReadOnlyList<string> RequiredResourceReferences,
+        IReadOnlyList<string> ForbiddenLiteralRules,
+        IReadOnlyList<string> AllowedResourceKeys);
+
     private sealed class TokenContract
     {
-        private TokenContract(IReadOnlyList<Token> tokens)
+        private TokenContract(string path, IReadOnlyList<Token> tokens)
         {
+            Path = path;
             Tokens = tokens;
         }
+
+        public string Path { get; }
 
         public IReadOnlyList<Token> Tokens { get; }
 
@@ -453,7 +615,7 @@ internal static partial class UiContractsCli
                 tokens.Add(new Token(id, xamlKeys, type, ValueToInvariantString(valueNode), required));
             }
 
-            return new TokenContract(tokens);
+            return new TokenContract(path, tokens);
         }
 
         private static string ValueToInvariantString(JsonNode value)
@@ -470,10 +632,12 @@ internal static partial class UiContractsCli
     private sealed class XamlResourceSet
     {
         private readonly Dictionary<string, XamlResource> resources;
+        private readonly List<string> governedComponentPaths;
 
-        private XamlResourceSet(Dictionary<string, XamlResource> resources)
+        private XamlResourceSet(Dictionary<string, XamlResource> resources, List<string> governedComponentPaths)
         {
             this.resources = resources;
+            this.governedComponentPaths = governedComponentPaths;
         }
 
         public static XamlResourceSet Load(string root, List<string> failures)
@@ -481,12 +645,18 @@ internal static partial class UiContractsCli
             if (!Directory.Exists(root))
             {
                 failures.Add($"XAML root not found: {root}");
-                return new XamlResourceSet(new Dictionary<string, XamlResource>(StringComparer.Ordinal));
+                return new XamlResourceSet(new Dictionary<string, XamlResource>(StringComparer.Ordinal), []);
             }
 
             var resources = new Dictionary<string, XamlResource>(StringComparer.Ordinal);
+            var governedComponentPaths = new List<string>();
             foreach (var path in Directory.EnumerateFiles(root, "*.xaml", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
             {
+                if (IsGovernedPath(path, "Components"))
+                {
+                    governedComponentPaths.Add(path);
+                }
+
                 XDocument document;
                 try
                 {
@@ -511,7 +681,12 @@ internal static partial class UiContractsCli
                         element.Name.LocalName,
                         element.Value.Trim(),
                         (string?)element.Attribute("Color"),
-                        path);
+                        path,
+                        element.Attributes()
+                            .Where(attribute => !attribute.IsNamespaceDeclaration && attribute.Name != XamlNamespace + "Key")
+                            .Select(attribute => new XamlAttribute(attribute.Name.LocalName, attribute.Value))
+                            .ToArray(),
+                        (string?)element.Attribute("Property"));
 
                     if (resources.TryGetValue(key, out var existing))
                     {
@@ -523,7 +698,7 @@ internal static partial class UiContractsCli
                 }
             }
 
-            return new XamlResourceSet(resources);
+            return new XamlResourceSet(resources, governedComponentPaths);
         }
 
         public bool TryGet(string key, out XamlResource? resource)
@@ -531,11 +706,41 @@ internal static partial class UiContractsCli
             return resources.TryGetValue(key, out resource);
         }
 
+        public IReadOnlyCollection<XamlResource> AllResources => resources.Values;
+
+        public IReadOnlyCollection<string> GovernedComponentPaths => governedComponentPaths;
+
         public XamlResource Get(string key)
         {
             return resources[key];
         }
     }
 
-    private sealed record XamlResource(string Key, string TypeName, string Value, string? ColorAttribute, string Path);
+    private sealed record XamlResource(
+        string Key,
+        string TypeName,
+        string Value,
+        string? ColorAttribute,
+        string Path,
+        IReadOnlyList<XamlAttribute> Attributes,
+        string? PropertyName)
+    {
+        public bool IsGovernedResourceDictionary => IsUnderGovernedRoot("Tokens") || IsUnderGovernedRoot("Components");
+
+        public bool IsGovernedComponentResource => IsUnderGovernedRoot("Components");
+
+        private bool IsUnderGovernedRoot(string segment)
+        {
+            return IsGovernedPath(Path, segment);
+        }
+    }
+
+    private static bool IsGovernedPath(string path, string segment)
+    {
+        var parts = path.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        return parts.Any(part => string.Equals(part, "Resources", StringComparison.Ordinal))
+            && parts.Any(part => string.Equals(part, segment, StringComparison.Ordinal));
+    }
+
+    private sealed record XamlAttribute(string Name, string Value);
 }

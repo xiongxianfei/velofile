@@ -13,4 +13,5 @@
   </DataTemplate>
   <Style x:Key="VfFileListRowNameTextStyle" TargetType="TextBlock" />
   <Style x:Key="VfFileListRowMetadataTextStyle" TargetType="TextBlock" />
+  <x:Double x:Key="VfFileListUnapprovedGap">7</x:Double>
 </ResourceDictionary>
