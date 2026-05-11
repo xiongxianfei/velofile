@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: code-review-m2-changes-requested
+status: review-resolution-m2-review-requested
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,7 +10,7 @@ architecture:
 milestone:
   id: M2
   title: WinUI Token Resources and File-List Row Redesign
-  state: resolution-needed
+  state: review-requested
 review:
   stage: code-review
   status: clean-with-notes-after-resolution
@@ -70,4 +70,15 @@ m2_review:
   findings:
     - CR-M2-001
   resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
-next_stage: review-resolution M2
+m2_review_resolution_validation:
+  - command: dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests
+    result: passed, 8 app tests
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: passed
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 corpus UI contract tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 364 tests
+next_stage: rerun code-review M2

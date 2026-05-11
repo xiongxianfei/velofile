@@ -58,6 +58,56 @@ public sealed class FileListResourceContractTests
     }
 
     [TestMethod]
+    public void File_list_item_style_consumes_named_selection_and_focus_resources()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var mainWindowXaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
+        var fileListRegion = ExtractScopeRegion(mainWindowXaml, "file-list-first-slice");
+
+        foreach (var requiredResource in new[]
+        {
+            "x:Key=\"VfFileListRowBackground\"",
+            "x:Key=\"VfFileListRowHoverBackground\"",
+            "x:Key=\"VfFileListRowSelectedBackground\"",
+            "x:Key=\"VfFileListRowFocusedBorderBrush\"",
+            "x:Key=\"VfFileListRowFocusedBorderThickness\"",
+            "x:Key=\"VfFileListRowSelectedFocusedBorderBrush\"",
+            "x:Key=\"VfFileListRowSelectedFocusedBorderThickness\"",
+            "x:Key=\"VfFileListRowHiddenOpacity\"",
+            "x:Key=\"VfFileListRowProtectedOpacity\""
+        })
+        {
+            StringAssert.Contains(xaml, requiredResource);
+        }
+
+        StringAssert.Contains(fileListRegion, "x:Key=\"ListViewItemBackgroundSelected\"");
+        StringAssert.Contains(fileListRegion, "Source={StaticResource VfFileListRowSelectedBackground}");
+        StringAssert.Contains(xaml, "Color=\"{StaticResource VfColorSurfaceSelected}\"");
+        StringAssert.Contains(xaml, "Color=\"{StaticResource VfColorAccentLine}\"");
+        StringAssert.Contains(xaml, "Value=\"{StaticResource VfFileListRowFocusedBorderBrush}\"");
+        StringAssert.Contains(xaml, "Value=\"{StaticResource VfFileListRowFocusedBorderThickness}\"");
+    }
+
+    [TestMethod]
+    public void File_list_selected_and_focused_states_are_not_text_color_only()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var mainWindowXaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
+        var fileListRegion = ExtractScopeRegion(mainWindowXaml, "file-list-first-slice");
+
+        StringAssert.Contains(fileListRegion, "ListViewItemBackgroundSelected");
+        StringAssert.Contains(xaml, "VfFileListRowSelectedBackground");
+        StringAssert.Contains(xaml, "FocusVisualPrimaryBrush");
+        StringAssert.Contains(xaml, "VfFileListRowFocusedBorderBrush");
+        StringAssert.Contains(xaml, "FocusVisualPrimaryThickness");
+        StringAssert.Contains(xaml, "VfFileListRowFocusedBorderThickness");
+        Assert.IsFalse(
+            xaml.Contains("ForegroundSelected", StringComparison.Ordinal)
+                && !xaml.Contains("BackgroundSelected", StringComparison.Ordinal),
+            "Selected row distinction must not rely only on text color.");
+    }
+
+    [TestMethod]
     public void Main_window_file_list_consumes_named_row_resources_in_scoped_region()
     {
         var xaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");

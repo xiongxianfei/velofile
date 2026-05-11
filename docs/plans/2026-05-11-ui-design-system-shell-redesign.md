@@ -97,7 +97,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M2. WinUI Token Resources and File-List Row Redesign
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: Add first-slice WinUI resource dictionaries and consume named file-list row resources from `MainWindow.xaml` without changing file-list behavior.
 - Requirements: R9-R14, R26-R35, R48-R61, A11Y1-A11Y7, P1-P4, AC4, AC7, AC14.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `tests/VeloFile.App.Tests/`.
@@ -265,7 +265,7 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Progress
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
-- [ ] M2. WinUI Token Resources and File-List Row Redesign - resolution-needed
+- [ ] M2. WinUI Token Resources and File-List Row Redesign - review-requested
 - [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
@@ -273,13 +273,13 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Current Handoff Summary
 
 Current milestone: M2. WinUI Token Resources and File-List Row Redesign
-Current milestone state: resolution-needed
+Current milestone state: review-requested
 Last reviewed milestone: M1
-Review status: M2 `code-review` changes-requested; CR-M2-001 pending
+Review status: M2 `code-review` changes-requested; CR-M2-001 resolved and awaiting rerun review
 Remaining in-scope implementation milestones: M2, M3, M4
-Next stage: `review-resolution` M2
+Next stage: rerun `code-review` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M2 has a pending review finding, and M3-M4 remain planned.
+Reason final closeout is or is not ready: M2 awaits rerun code review, and M3-M4 remain planned.
 
 ## Decision Log
 
@@ -298,6 +298,7 @@ Reason final closeout is or is not ready: M2 has a pending review finding, and M
 - The first UI contract test run failed as expected because `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `docs/ui/design-deviations.md`, and `tools/VeloFile.UiContracts` did not exist yet.
 - Initial scope validation was too broad: it scanned all of `MainWindow.xaml` and required every resource reference in every scoped file. The validator now aggregates required references across scoped files and scans explicit `ui-contract-scope:<id>` marker regions when they exist.
 - Existing app-shell contract tests expected file-row thumbnail and opacity bindings directly in `MainWindow.xaml`; M2 updated those tests to follow the extracted `VeloFile.FileList.xaml` component resource instead.
+- WinUI accepted `FocusVisualPrimary*` and `FocusVisualSecondary*` setters on `ListViewItem`, but rejected `Style.Resources` in the M2 component style. The resolution scopes `ListViewItemBackground*` resource overrides inside `FileListSurface.Resources` instead.
 
 ## Validation Notes
 
@@ -356,8 +357,16 @@ M2 added checked-in WinUI token dictionaries, the first file-list component reso
 
 M2 code review R2 requested changes:
 
-- CR-M2-001: file-list selected/focused states are not governed by first-slice resources. Pending resolution in `review-resolution` M2.
+- CR-M2-001: file-list selected/focused states are not governed by first-slice resources. Resolved by named row state resources, focus visual setters, scoped file-list selected/hover background resources, and focused static tests.
+
+M2 review-resolution validation:
+
+- `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests` passed: 8 app tests passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 364 tests passed.
 
 ## Readiness
 
-See Current Handoff Summary. This plan is active and M2 requires review-resolution. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for rerun M2 code review. Final closeout is not ready.

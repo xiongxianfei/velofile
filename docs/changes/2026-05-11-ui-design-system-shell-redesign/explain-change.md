@@ -43,6 +43,8 @@ M2 introduces the first production WinUI resources and moves file-list row prese
 - Replaced the inline `FileListSurface` row template in `MainWindow.xaml` with `ItemTemplate="{StaticResource VfFileListRowTemplate}"` and `ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}"`.
 - Added explicit `ui-contract-scope:file-list-first-slice` markers around the redesigned file-list region.
 - Updated static app-shell tests to follow the extracted file-list component resource.
+- In M2 review-resolution, added named row state resources for selected, hover, focused, selected-focused, hidden, and protected row states.
+- In M2 review-resolution, scoped `ListViewItemBackground*` selected/hover resource mappings to `FileListSurface.Resources` and wired focus visuals through named row focus resources.
 
 ## Why it changed
 
@@ -61,3 +63,4 @@ M2 does not add fixture mode, screenshot baselines, runtime theme/density switch
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
 - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"` passed.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed on rerun with build success, UI contract validation pass, and 362 tests.
+- M2 review-resolution validation passed with `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests`, scoped UI contract validation, `dotnet build VeloFile.sln -c Debug`, `dotnet test VeloFile.sln -c Debug --filter UiContracts`, and `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`.

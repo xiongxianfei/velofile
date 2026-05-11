@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+M2 resolved; awaiting rerun code-review
 
 ## Pending findings
 
@@ -36,7 +36,15 @@ open
 ### CR-M2-001
 
 - Source: [code-review-r2](reviews/code-review-r2.md)
-- Status: pending
+- Status: resolved
 - Required outcome: The M2 file-list row resources must either govern selected/focused row visuals through named first-slice resources, or explicitly record and verify a scoped Windows-native/system-focus decision that proves the default WinUI selected/focused visuals satisfy R54, A11Y1, and A11Y2 while preserving high-contrast/system behavior.
-- Resolution: pending
-- Evidence: pending
+- Resolution: `VeloFile.FileList.xaml` now defines named row background, hover, selected, focused-border, selected-focused-border, and hidden/protected opacity resources. `VfFileListItemContainerStyle` consumes named focus brush/thickness resources through `FocusVisualPrimary*` and `FocusVisualSecondary*` setters. The scoped `FileListSurface.Resources` maps WinUI `ListViewItemBackground*` selected/hover keys to VeloFile token colors for the file-list region without changing selection behavior or adding a custom row control.
+- Evidence: Added static app-shell tests that assert named selection/focus resources exist, focus setters consume those resources, selected row styling uses background resources rather than text color only, and no custom row control or behavior model is introduced.
+
+## M2 review-resolution validation
+
+- `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests` passed: 8 app tests passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 364 tests passed.

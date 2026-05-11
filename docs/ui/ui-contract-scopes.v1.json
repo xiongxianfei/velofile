@@ -20,7 +20,16 @@
         "VfFileListItemContainerStyle",
         "VfFileListRowNameTextStyle",
         "VfFileListRowMetadataTextStyle",
-        "VfFileListRowPadding"
+        "VfFileListRowPadding",
+        "VfFileListRowBackground",
+        "VfFileListRowHoverBackground",
+        "VfFileListRowSelectedBackground",
+        "VfFileListRowFocusedBorderBrush",
+        "VfFileListRowFocusedBorderThickness",
+        "VfFileListRowSelectedFocusedBorderBrush",
+        "VfFileListRowSelectedFocusedBorderThickness",
+        "VfFileListRowHiddenOpacity",
+        "VfFileListRowProtectedOpacity"
       ],
       "forbiddenLiteralRules": [
         "inline-color",

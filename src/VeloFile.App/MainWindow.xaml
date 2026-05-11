@@ -341,6 +341,14 @@
                 SelectionMode="Extended"
                 SelectionChanged="FileListSurface_SelectionChanged"
                 AutomationProperties.Name="Files">
+                <ListView.Resources>
+                    <SolidColorBrush x:Key="ListViewItemBackground" Color="{Binding Color, Source={StaticResource VfFileListRowBackground}}" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowHoverBackground}}" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                </ListView.Resources>
                 <ListView.ContextFlyout>
                     <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
                         <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
