@@ -134,16 +134,17 @@ All implementation milestones M1-M4 are closed. `explain-change` was completed b
 
 ## Post-Verify Bugfix Addendum
 
-After local final verification, the Previous tab and Next tab buttons were reported as rendering garbled icon text. The bug was caused by those two buttons using `SymbolIcon Symbol="Back"` and `SymbolIcon Symbol="Forward"`, which depend on icon-font/private-use glyph resolution. If that font path fails, the UI can show garbled text instead of arrows.
+After local final verification, shell icon buttons were reported as rendering garbled icon text. The bug was caused by shell toolbar buttons using `SymbolIcon` glyphs, which depend on icon-font/private-use glyph resolution. If that font path fails, the UI can show garbled text instead of icons.
 
-The fix is intentionally narrow: only the two tab-switch buttons in `MainWindow.xaml` now use raw vector `Path` chevrons inside `Viewbox` elements. This avoids both icon font glyph lookup and icon-control rendering. Click handlers, tooltips, automation names, keyboard accelerators, tab-switch routing, and the rest of the shell icons are unchanged.
+The fix is intentionally scoped to `MainWindow.xaml` icon buttons: all shell `SymbolIcon`/icon-control content was replaced with raw vector `Path` shapes inside `Viewbox` elements. This avoids both icon font glyph lookup and icon-control rendering. Click handlers, tooltips, automation names, keyboard accelerators, and command routing are unchanged.
 
-Regression coverage was tightened in `AppShellContractTests.Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons`. The test failed against the insufficient `PathIcon` version because the buttons still used icon controls; it passed after the raw vector fix.
+Regression coverage was tightened in `AppShellContractTests.Main_window_icon_buttons_use_raw_vectors`. The test fails if any `SymbolIcon` or `PathIcon` returns to `MainWindow.xaml` and checks that all shell icon buttons use raw vector content.
 
 Validation for the addendum:
 
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons` failed against the insufficient `PathIcon` version and passed after the raw vector fix.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors` passed.
 - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests.
 - `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml` returned no matches.
 
 This post-verify code change supersedes the prior branch-ready state until code review and final verification are rerun. The next stage is `code-review` for the tab icon bugfix.

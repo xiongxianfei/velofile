@@ -117,28 +117,48 @@
                         ToolTipService.ToolTip="New tab"
                         Click="NewTabButton_Click"
                         AutomationProperties.Name="New tab">
-                        <SymbolIcon Symbol="Add" />
+                        <Viewbox Width="16" Height="16">
+                            <Path
+                                Data="M 10,4 L 14,4 L 14,10 L 20,10 L 20,14 L 14,14 L 14,20 L 10,20 L 10,14 L 4,14 L 4,10 L 10,10 Z"
+                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Stretch="Uniform" />
+                        </Viewbox>
                     </Button>
                     <Button
                         Width="36"
                         ToolTipService.ToolTip="Duplicate tab"
                         Click="DuplicateTabButton_Click"
                         AutomationProperties.Name="Duplicate tab">
-                        <SymbolIcon Symbol="Copy" />
+                        <Viewbox Width="16" Height="16">
+                            <Path
+                                Data="M 7,3 L 19,3 L 19,15 L 17,15 L 17,5 L 7,5 Z M 5,7 L 15,7 L 15,19 L 5,19 Z M 7,9 L 7,17 L 13,17 L 13,9 Z"
+                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Stretch="Uniform" />
+                        </Viewbox>
                     </Button>
                     <Button
                         Width="36"
                         ToolTipService.ToolTip="Close tab"
                         Click="CloseTabButton_Click"
                         AutomationProperties.Name="Close tab">
-                        <SymbolIcon Symbol="Cancel" />
+                        <Viewbox Width="16" Height="16">
+                            <Path
+                                Data="M 6.2,4.8 L 12,10.6 L 17.8,4.8 L 19.2,6.2 L 13.4,12 L 19.2,17.8 L 17.8,19.2 L 12,13.4 L 6.2,19.2 L 4.8,17.8 L 10.6,12 L 4.8,6.2 Z"
+                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Stretch="Uniform" />
+                        </Viewbox>
                     </Button>
                     <Button
                         Width="36"
                         ToolTipService.ToolTip="Reopen closed tab"
                         Click="ReopenClosedTabButton_Click"
                         AutomationProperties.Name="Reopen closed tab">
-                        <SymbolIcon Symbol="Refresh" />
+                        <Viewbox Width="16" Height="16">
+                            <Path
+                                Data="M 18.7,7.1 C 17.2,5.2 14.8,4 12,4 C 7.6,4 4,7.2 4,11.2 C 4,15.6 7.6,19 12,19 C 15.4,19 18.3,16.9 19.4,13.9 L 17.3,13.9 C 16.4,15.8 14.4,17 12,17 C 8.7,17 6,14.5 6,11.2 C 6,8.4 8.7,6 12,6 C 14.2,6 16.1,6.9 17.2,8.4 L 14,8.4 L 14,10.4 L 20,10.4 L 20,4.4 L 18,4.4 L 18,7.1 Z"
+                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Stretch="Uniform" />
+                        </Viewbox>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -161,16 +181,36 @@
                 VerticalAlignment="Center"
                 Spacing="4">
                 <Button Width="36" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
-                    <SymbolIcon Symbol="Back" />
+                    <Viewbox Width="16" Height="16">
+                        <Path
+                            Data="M 12.7,4.3 L 5,12 L 12.7,19.7 L 14.1,18.3 L 7.8,12 L 14.1,5.7 Z"
+                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Stretch="Uniform" />
+                    </Viewbox>
                 </Button>
                 <Button Width="36" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
-                    <SymbolIcon Symbol="Forward" />
+                    <Viewbox Width="16" Height="16">
+                        <Path
+                            Data="M 7.3,4.3 L 15,12 L 7.3,19.7 L 5.9,18.3 L 12.2,12 L 5.9,5.7 Z"
+                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Stretch="Uniform" />
+                    </Viewbox>
                 </Button>
                 <Button Width="36" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
-                    <SymbolIcon Symbol="Up" />
+                    <Viewbox Width="16" Height="16">
+                        <Path
+                            Data="M 12,5 L 19.7,12.7 L 18.3,14.1 L 13,8.8 L 13,20 L 11,20 L 11,8.8 L 5.7,14.1 L 4.3,12.7 Z"
+                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Stretch="Uniform" />
+                    </Viewbox>
                 </Button>
                 <Button Width="36" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
-                    <SymbolIcon Symbol="Refresh" />
+                    <Viewbox Width="16" Height="16">
+                        <Path
+                            Data="M 18.7,7.1 C 17.2,5.2 14.8,4 12,4 C 7.6,4 4,7.2 4,11.2 C 4,15.6 7.6,19 12,19 C 15.4,19 18.3,16.9 19.4,13.9 L 17.3,13.9 C 16.4,15.8 14.4,17 12,17 C 8.7,17 6,14.5 6,11.2 C 6,8.4 8.7,6 12,6 C 14.2,6 16.1,6.9 17.2,8.4 L 14,8.4 L 14,10.4 L 20,10.4 L 20,4.4 L 18,4.4 L 18,7.1 Z"
+                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Stretch="Uniform" />
+                    </Viewbox>
                 </Button>
             </StackPanel>
 

@@ -194,17 +194,19 @@ verify:
       result: passed
   ci_status: local validation passed before the later tab icon bugfix; hosted GitHub CI not observed in this stage
 post_verify_bugfix:
-  issue: Previous tab and Next tab icons rendered garbled glyph text when SymbolIcon font glyphs did not resolve.
-  root_cause: tab-switch buttons used SymbolIcon Back/Forward glyphs, which depend on icon font/private-use glyph resolution.
-  fix: replace the two tab-switch icon-control elements with raw vector Path chevrons inside Viewbox elements.
+  issue: shell icon buttons rendered garbled glyph text when SymbolIcon font glyphs did not resolve.
+  root_cause: shell toolbar buttons used SymbolIcon glyphs, which depend on icon font/private-use glyph resolution.
+  fix: replace all MainWindow shell icon-control elements with raw vector Path shapes inside Viewbox elements.
   files:
     - src/VeloFile.App/MainWindow.xaml
     - tests/VeloFile.App.Tests/AppShellContractTests.cs
   validation:
-    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_previous_and_next_tab_buttons_use_raw_vector_chevrons
-      result: failed against the insufficient PathIcon version, then passed after the raw vector fix
+    - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors
+      result: passed
     - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
       result: passed, 19 tests
     - command: dotnet build VeloFile.sln -c Debug
       result: passed with 0 warnings and 0 errors
+    - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
+      result: no matches
 next_stage: code-review tab icon bugfix
