@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: m4-resolution-needed
+status: m4-review-requested
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,10 +10,10 @@ architecture:
 milestone:
   id: M4
   title: Visual Baseline Evidence and Baseline Update Workflow
-  state: resolution-needed
+  state: review-requested
 review:
-  stage: code-review
-  status: changes-requested
+  stage: review-resolution
+  status: resolved
   record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r5.md
   findings:
     - CR-M4-001
@@ -155,4 +155,13 @@ m4_validation:
     result: no output; generated visual outputs remain ignored
   - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
     result: first run hit the 5-minute tool timeout; rerun with longer timeout passed with build success, UI contract validation pass, and 387 tests
-next_stage: review-resolution M4
+m4_review_resolution_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins
+    result: failed before fix because stale old listing rows overwrote the newer path; passed after dispatcher-time active-result guard
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellCommandRouteTests
+    result: passed; 60 app command-route tests
+  - command: dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts|QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins"
+    result: passed; App tests 3 passed, Corpus tests 18 passed, Core/Windows projects had no matching tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 388 tests
+next_stage: code-review M4

@@ -9,9 +9,11 @@ All recorded M1 and M2 findings resolved. CR-M3-001 has been resolved and M3 is 
 ### CR-M4-001
 
 - Source: [code-review-r5](reviews/code-review-r5.md)
-- Status: open
+- Status: resolved
 - Required outcome: Listing results must still be validated against the current active listing request/tab at the point they mutate visible rows on the UI dispatcher. A stale completed listing must not be able to replace rows after the user navigates, switches tabs, closes tabs, or refreshes into a newer request.
 - Safe resolution path: Keep the fix narrow in `AppShellViewModel` and app tests. Recheck `IsActiveListingResult(result)` inside the posted callback immediately before `ApplyListingState(result.State)`, or otherwise carry a request token that is checked on the UI dispatcher before mutation. Add a focused regression test with a queued test dispatcher proving a completed old listing does not apply after a newer navigation/request wins. Do not broaden M4 into a selection system, screenshot harness, or production UI redesign.
+- Resolution: `CompleteListingAsync` now rechecks `IsActiveListingResult(result)` inside the dispatcher callback immediately before `ApplyListingState(result.State)`. The queued callback becomes a no-op if a newer active request/tab wins before the dispatcher processes the old completion.
+- Evidence: Added `QueuedListingCompletion_DoesNotApplyAfterNewerNavigationWins`, which uses a queued shell dispatcher to prove a stale old listing callback cannot overwrite the visible `C:\New` rows after the newer navigation result is applied.
 
 ### CR-M3-001
 

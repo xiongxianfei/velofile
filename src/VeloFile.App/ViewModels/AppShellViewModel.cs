@@ -1075,7 +1075,15 @@ public sealed class AppShellViewModel
             return;
         }
 
-        _shellDispatcher.Post(() => ApplyListingState(result.State));
+        _shellDispatcher.Post(() =>
+        {
+            if (!IsActiveListingResult(result))
+            {
+                return;
+            }
+
+            ApplyListingState(result.State);
+        });
     }
 
     private bool IsActiveListingResult(FolderListingLoadResult result)
