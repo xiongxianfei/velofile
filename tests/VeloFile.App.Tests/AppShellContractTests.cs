@@ -263,7 +263,7 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
         StringAssert.Contains(fileListResources, "Text=\"{Binding ThumbnailDisplayText}\"");
-        StringAssert.Contains(fileListResources, "Opacity=\"{Binding RowOpacity}\"");
+        StringAssert.Contains(fileListResources, "Opacity=\"{Binding Converter={StaticResource VfFileListRowOpacityConverter}}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");
         StringAssert.Contains(codeBehind, "ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue))");

@@ -2,7 +2,7 @@
 
 ## Status
 
-M2 requires review-resolution for CR-M2-002
+M2 resolved; awaiting rerun code-review
 
 ## Pending findings
 
@@ -54,6 +54,18 @@ M2 requires review-resolution for CR-M2-002
 ### CR-M2-002
 
 - Source: [code-review-r3](reviews/code-review-r3.md)
-- Status: open
+- Status: resolved
 - Required outcome: Hidden/protected file-list row styling must be governed by the accepted first-slice resources, or the implementation must record an explicit accepted deviation explaining why the row-view-model opacity remains the production authority.
-- Safe resolution path: Keep the fix inside M2 file-list row resources/tests. Make the hidden/protected opacity path consume the named state resource without adding fixture mode, screenshots, a custom row control, or a new selection/listing behavior model. Add a targeted `FileListResourceContractTests` assertion that hidden/protected styling resolves from named resources and that the stale `0.58` hardcoded visual value cannot remain the rendered first-slice hidden/protected state.
+- Resolution: `FileListRowViewModel` now exposes semantic visibility state (`IsHidden`, `IsProtectedOperatingSystemFile`, and `VisibilityKind`) instead of a rendered opacity value. `VeloFile.FileList.xaml` aliases hidden/protected row opacity resources to `VfStateHiddenOpacity`, adds `VfFileListRowOpacityConverter`, and binds row opacity through that converter so the rendered path resolves named resources rather than the old `RowOpacity` value.
+- Evidence: Added static/resource tests that reject `Opacity="{Binding RowOpacity}"`, reject the stale `0.58` literal in the rendered path, assert hidden/protected opacity resources resolve from the accepted state token, and assert the selector maps semantic hidden/protected rows to `VfFileListRowHiddenOpacity` / `VfFileListRowProtectedOpacity`.
+
+## M2 CR-M2-002 review-resolution validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests` failed before implementation for the expected missing opacity selector.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests` passed: 11 app tests passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests` passed: 11 app tests passed.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed: 18 app tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 367 tests passed.

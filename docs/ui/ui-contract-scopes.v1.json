@@ -29,7 +29,8 @@
         "VfFileListRowSelectedFocusedBorderBrush",
         "VfFileListRowSelectedFocusedBorderThickness",
         "VfFileListRowHiddenOpacity",
-        "VfFileListRowProtectedOpacity"
+        "VfFileListRowProtectedOpacity",
+        "VfFileListRowOpacityConverter"
       ],
       "forbiddenLiteralRules": [
         "inline-color",

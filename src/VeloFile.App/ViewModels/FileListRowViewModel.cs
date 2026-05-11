@@ -29,9 +29,29 @@ public sealed class FileListRowViewModel : IFileListRowItem, INotifyPropertyChan
 
     public DateTimeOffset? LastWriteTimeUtc => FileItem.LastWriteTimeUtc;
 
+    public bool IsHidden => FileItem.IsHidden;
+
+    public bool IsProtectedOperatingSystemFile => FileItem.IsProtectedOperatingSystemFile;
+
     public bool IsVisuallyDimmed => FileItem.IsVisuallyDimmed;
 
-    public double RowOpacity => IsVisuallyDimmed ? 0.58 : 1.0;
+    public FileListRowVisibilityKind VisibilityKind
+    {
+        get
+        {
+            if (IsProtectedOperatingSystemFile)
+            {
+                return FileListRowVisibilityKind.ProtectedSystem;
+            }
+
+            if (IsHidden || IsVisuallyDimmed)
+            {
+                return FileListRowVisibilityKind.Hidden;
+            }
+
+            return FileListRowVisibilityKind.Normal;
+        }
+    }
 
     public ThumbnailStatus ThumbnailStatus => Thumbnail.Status;
 
@@ -58,8 +78,10 @@ public sealed class FileListRowViewModel : IFileListRowItem, INotifyPropertyChan
             OnPropertyChanged(nameof(DisplayName));
             OnPropertyChanged(nameof(Kind));
             OnPropertyChanged(nameof(LastWriteTimeUtc));
+            OnPropertyChanged(nameof(IsHidden));
+            OnPropertyChanged(nameof(IsProtectedOperatingSystemFile));
             OnPropertyChanged(nameof(IsVisuallyDimmed));
-            OnPropertyChanged(nameof(RowOpacity));
+            OnPropertyChanged(nameof(VisibilityKind));
             OnPropertyChanged(nameof(ThumbnailDisplayText));
         }
 

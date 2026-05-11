@@ -45,10 +45,11 @@ M2 introduces the first production WinUI resources and moves file-list row prese
 - Updated static app-shell tests to follow the extracted file-list component resource.
 - In M2 review-resolution, added named row state resources for selected, hover, focused, selected-focused, hidden, and protected row states.
 - In M2 review-resolution, scoped `ListViewItemBackground*` selected/hover resource mappings to `FileListSurface.Resources` and wired focus visuals through named row focus resources.
+- In the second M2 review-resolution, removed the rendered `RowOpacity` path from the file-list row template, added semantic visibility state to `FileListRowViewModel`, and added an App-layer opacity converter that resolves hidden/protected row opacity from named VeloFile resources.
 
 ## Why it changed
 
-The approved M2 slice requires production WinUI resources to conform to the repo-owned token contract and requires file-list rows to consume named resources. Extracting only the row template and item-container style gives reviewable design-system ownership while preserving the existing command, selection, context-menu, drag/drop, thumbnail, metadata, and dimmed-row state paths.
+The approved M2 slice requires production WinUI resources to conform to the repo-owned token contract and requires file-list rows to consume named resources. Extracting only the row template and item-container style gives reviewable design-system ownership while preserving the existing command, selection, context-menu, drag/drop, thumbnail, metadata, and semantic dimmed-row state paths.
 
 ## Boundaries preserved
 
@@ -64,3 +65,4 @@ M2 does not add fixture mode, screenshot baselines, runtime theme/density switch
 - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"` passed.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed on rerun with build success, UI contract validation pass, and 362 tests.
 - M2 review-resolution validation passed with `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests`, scoped UI contract validation, `dotnet build VeloFile.sln -c Debug`, `dotnet test VeloFile.sln -c Debug --filter UiContracts`, and `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`.
+- CR-M2-002 review-resolution validation passed with focused file-list contract tests, `dotnet build VeloFile.sln -c Debug`, scoped UI contract validation, `dotnet test VeloFile.sln -c Debug --filter UiContracts`, `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests`, and `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`.

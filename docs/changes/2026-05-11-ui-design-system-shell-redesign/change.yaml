@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: review-resolution-m2-required
+status: review-resolution-m2-review-requested
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -10,10 +10,10 @@ architecture:
 milestone:
   id: M2
   title: WinUI Token Resources and File-List Row Redesign
-  state: resolution-needed
+  state: review-requested
 review:
   stage: code-review
-  status: changes-requested
+  status: resolved-awaiting-rerun
   record: docs/changes/2026-05-11-ui-design-system-shell-redesign/reviews/code-review-r3.md
   findings:
     - CR-M2-002
@@ -87,4 +87,19 @@ m2_rerun_review:
   findings:
     - CR-M2-002
   resolution: docs/changes/2026-05-11-ui-design-system-shell-redesign/review-resolution.md
-next_stage: review-resolution M2
+m2_cr_m2_002_review_resolution_validation:
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests
+    result: failed before implementation for expected missing opacity selector; passed after implementation with 11 app tests
+  - command: dotnet build VeloFile.sln -c Debug
+    result: passed with 0 warnings and 0 errors
+  - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    result: first attempt failed for missing allowed converter resource; passed after adding VfFileListRowOpacityConverter to the file-list scope
+  - command: dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests
+    result: passed, 11 app tests
+  - command: dotnet test VeloFile.sln -c Debug --filter UiContracts
+    result: passed, 14 corpus UI contract tests
+  - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests
+    result: passed, 18 app tests
+  - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed with build success, UI contract validation pass, and 367 tests
+next_stage: rerun code-review M2

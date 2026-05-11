@@ -130,7 +130,6 @@ public sealed class FileListResourceContractTests
 
         foreach (var requiredBinding in new[]
         {
-            "Opacity=\"{Binding RowOpacity}\"",
             "Text=\"{Binding ThumbnailDisplayText}\"",
             "Text=\"{Binding DisplayName}\"",
             "Text=\"{Binding Kind}\"",
@@ -145,6 +144,60 @@ public sealed class FileListResourceContractTests
         StringAssert.Contains(mainWindowXaml, "SelectionMode=\"Extended\"");
         StringAssert.Contains(mainWindowXaml, "SelectionChanged=\"FileListSurface_SelectionChanged\"");
         StringAssert.Contains(mainWindowXaml, "DoubleTapped=\"FileListSurface_DoubleTapped\"");
+    }
+
+    [TestMethod]
+    public void File_list_row_template_does_not_bind_hidden_protected_opacity_to_view_model_literal()
+    {
+        var fileListXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var fileListRowViewModel = ReadRepoFile("src", "VeloFile.App", "ViewModels", "FileListRowViewModel.cs");
+
+        Assert.IsFalse(fileListXaml.Contains("Opacity=\"{Binding RowOpacity}\"", StringComparison.Ordinal));
+        Assert.IsFalse(fileListXaml.Contains("0.58", StringComparison.Ordinal));
+        Assert.IsFalse(fileListRowViewModel.Contains("0.58", StringComparison.Ordinal));
+        StringAssert.Contains(fileListXaml, "Opacity=\"{Binding Converter={StaticResource VfFileListRowOpacityConverter}}\"");
+        StringAssert.Contains(fileListXaml, "x:Key=\"VfFileListRowOpacityConverter\"");
+        StringAssert.Contains(fileListXaml, "HiddenOpacity=\"{StaticResource VfFileListRowHiddenOpacity}\"");
+        StringAssert.Contains(fileListXaml, "ProtectedOpacity=\"{StaticResource VfFileListRowProtectedOpacity}\"");
+    }
+
+    [TestMethod]
+    public void Hidden_protected_opacity_resources_resolve_from_state_tokens()
+    {
+        var fileListXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var stateXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Tokens", "VeloFile.State.xaml");
+        var tokenContract = ReadRepoFile("docs", "ui", "tokens.v1.json");
+
+        StringAssert.Contains(stateXaml, "x:Key=\"VfStateHiddenOpacity\">0.68</x:Double>");
+        StringAssert.Contains(tokenContract, "\"id\": \"VfState.HiddenOpacity\"");
+        StringAssert.Contains(tokenContract, "\"value\": 0.68");
+        StringAssert.Contains(fileListXaml, "x:Key=\"VfFileListRowHiddenOpacity\" ResourceKey=\"VfStateHiddenOpacity\"");
+        StringAssert.Contains(fileListXaml, "x:Key=\"VfFileListRowProtectedOpacity\" ResourceKey=\"VfStateHiddenOpacity\"");
+    }
+
+    [TestMethod]
+    public void File_list_row_template_consumes_hidden_protected_opacity_resources()
+    {
+        var fileListXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var selectorSource = ReadRepoFile("src", "VeloFile.App", "ViewModels", "FileListRowOpacityResourceSelector.cs");
+
+        StringAssert.Contains(fileListXaml, "VfFileListRowOpacityConverter");
+        StringAssert.Contains(selectorSource, "VfFileListRowHiddenOpacity");
+        StringAssert.Contains(selectorSource, "VfFileListRowProtectedOpacity");
+
+        var hidden = new FileListRowViewModel(
+            CreateItem(isHidden: true, isProtectedOperatingSystemFile: false, isVisuallyDimmed: true),
+            ThumbnailState.GenericIcon(ThumbnailArtifact.GenericIcon("TXT"), "fixture"));
+        var protectedSystem = new FileListRowViewModel(
+            CreateItem(isHidden: true, isProtectedOperatingSystemFile: true, isVisuallyDimmed: true),
+            ThumbnailState.GenericIcon(ThumbnailArtifact.GenericIcon("SYS"), "fixture"));
+        var normal = new FileListRowViewModel(
+            CreateItem(isHidden: false, isProtectedOperatingSystemFile: false, isVisuallyDimmed: false),
+            ThumbnailState.NotLoaded);
+
+        Assert.AreEqual("VfFileListRowHiddenOpacity", FileListRowOpacityResourceSelector.GetOpacityResourceKey(hidden));
+        Assert.AreEqual("VfFileListRowProtectedOpacity", FileListRowOpacityResourceSelector.GetOpacityResourceKey(protectedSystem));
+        Assert.IsNull(FileListRowOpacityResourceSelector.GetOpacityResourceKey(normal));
     }
 
     [TestMethod]
@@ -165,21 +218,23 @@ public sealed class FileListResourceContractTests
     }
 
     [TestMethod]
-    public void File_list_row_view_model_keeps_dimmed_and_thumbnail_state_inputs_available()
+    public void File_list_row_view_model_keeps_semantic_visibility_and_thumbnail_state_inputs_available()
     {
         var hidden = new FileListRowViewModel(
             CreateItem(isHidden: true, isProtectedOperatingSystemFile: false, isVisuallyDimmed: true),
             ThumbnailState.GenericIcon(ThumbnailArtifact.GenericIcon("TXT"), "fixture"));
 
+        Assert.IsTrue(hidden.IsHidden);
+        Assert.IsFalse(hidden.IsProtectedOperatingSystemFile);
         Assert.IsTrue(hidden.IsVisuallyDimmed);
-        Assert.IsLessThan(1.0, hidden.RowOpacity);
+        Assert.AreEqual(FileListRowVisibilityKind.Hidden, hidden.VisibilityKind);
         Assert.AreEqual("TXT", hidden.ThumbnailDisplayText);
 
         var directory = new FileListRowViewModel(
             CreateItem(isHidden: false, isProtectedOperatingSystemFile: false, isVisuallyDimmed: false, kind: FileSystemEntryKind.Directory),
             ThumbnailState.NotLoaded);
 
-        Assert.AreEqual(1.0, directory.RowOpacity);
+        Assert.AreEqual(FileListRowVisibilityKind.Normal, directory.VisibilityKind);
         Assert.AreEqual("DIR", directory.ThumbnailDisplayText);
     }
 

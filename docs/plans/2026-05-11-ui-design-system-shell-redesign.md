@@ -97,7 +97,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M2. WinUI Token Resources and File-List Row Redesign
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: Add first-slice WinUI resource dictionaries and consume named file-list row resources from `MainWindow.xaml` without changing file-list behavior.
 - Requirements: R9-R14, R26-R35, R48-R61, A11Y1-A11Y7, P1-P4, AC4, AC7, AC14.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `tests/VeloFile.App.Tests/`.
@@ -265,7 +265,7 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Progress
 
 - [x] M1. UI Contract Artifacts and Static Validator - closed
-- [ ] M2. WinUI Token Resources and File-List Row Redesign - resolution-needed
+- [ ] M2. WinUI Token Resources and File-List Row Redesign - review-requested
 - [ ] M3. Guarded Test Fixture Mode and Deterministic File-List States - planned
 - [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
@@ -273,13 +273,13 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 ## Current Handoff Summary
 
 Current milestone: M2. WinUI Token Resources and File-List Row Redesign
-Current milestone state: resolution-needed
+Current milestone state: review-requested
 Last reviewed milestone: M2
-Review status: M2 rerun `code-review` changes-requested; CR-M2-001 resolved, CR-M2-002 open
+Review status: M2 rerun `code-review` changes-requested; CR-M2-001 and CR-M2-002 resolved and awaiting rerun review
 Remaining in-scope implementation milestones: M2, M3, M4
-Next stage: `review-resolution` M2 for CR-M2-002
+Next stage: rerun `code-review` M2
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M2 requires review-resolution for CR-M2-002, and M3-M4 remain planned.
+Reason final closeout is or is not ready: M2 awaits rerun code review, and M3-M4 remain planned.
 
 ## Decision Log
 
@@ -367,6 +367,17 @@ M2 review-resolution validation:
 - `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 364 tests passed.
 
+M2 CR-M2-002 review-resolution validation:
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests` failed before implementation for the expected missing opacity selector.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter FileListResourceContractTests` passed: 11 app tests passed.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed after adding `VfFileListRowOpacityConverter` to the file-list scope.
+- `dotnet test VeloFile.sln -c Debug --filter FileListResourceContractTests` passed: 11 app tests passed.
+- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 14 corpus UI contract tests passed.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed: 18 app tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 367 tests passed.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and requires M2 review-resolution for CR-M2-002. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for rerun M2 code review. Final closeout is not ready.
