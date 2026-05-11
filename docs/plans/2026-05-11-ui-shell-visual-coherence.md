@@ -563,6 +563,10 @@ CR-002 review-resolution attempt:
   - `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests`: passed after rerun; the first parallel attempt hit a transient file lock.
   - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: passed.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 142/Windows 52/Corpus 37 tests passed.
+- Later implement-stage attempt to unblock CR-002:
+  - Launched `src\VeloFile.App\bin\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` and confirmed the app exposes a visible `VeloFile` window.
+  - Attempted a local desktop screenshot capture, but the desktop reported `150%` scale rather than the required `100%` profile, and the first capture targeted the foreground browser instead of VeloFile.
+  - Discarded the invalid generated current screenshot/sidecar outputs.
 - M2 remains `resolution-needed`; it cannot return to code review until automated screenshot evidence or an observed manual full-shell visual-review note exists for `shell-default` at `shell-standard-1440x900-100`.
 
 ## Outcome and Retrospective
