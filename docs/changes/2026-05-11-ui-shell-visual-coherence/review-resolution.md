@@ -8,7 +8,7 @@ blocked; CR-002 unresolved until accepted M2 full-shell visual evidence exists
 
 ### CR-002: M2 visual evidence note does not record an actual full-shell visual review
 
-- Source reviews: [code-review-r4](reviews/code-review-r4.md), [code-review-r5](reviews/code-review-r5.md), [code-review-r6](reviews/code-review-r6.md)
+- Source reviews: [code-review-r4](reviews/code-review-r4.md), [code-review-r5](reviews/code-review-r5.md), [code-review-r6](reviews/code-review-r6.md), [code-review-r7](reviews/code-review-r7.md)
 - Status: blocked; visual evidence unavailable in this tool session
 - Required outcome: before M2 can close, record actual `shell-default` full-shell visual evidence for `shell-standard-1440x900-100` through an automated/current screenshot, a manual screenshot review, or a manual visual-review note that records an observed whole-shell review result. Any accepted mismatch must be recorded in `docs/ui/design-deviations.md`.
 - Resolution plan:
