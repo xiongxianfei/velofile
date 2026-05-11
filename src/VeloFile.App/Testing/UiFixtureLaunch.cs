@@ -227,9 +227,24 @@ public static class UiFixtureLaunchGate
 
     public static UiFixtureLaunchResult FromCurrentProcess(string? arguments)
     {
-        return Evaluate(
-            UiFixtureLaunchParser.ParseCommandLine(arguments),
+        return EvaluateCurrentProcessArguments(
+            arguments,
+            Environment.GetCommandLineArgs().Skip(1).ToArray(),
             new UiFixtureLaunchContext(IsDebugOrTestBuild: IsDebugOrTestBuild(), Environment.GetEnvironmentVariable(EnableEnvironmentVariable)));
+    }
+
+    public static UiFixtureLaunchResult EvaluateCurrentProcessArguments(
+        string? activationArguments,
+        IReadOnlyList<string> processArguments,
+        UiFixtureLaunchContext context)
+    {
+        var request = UiFixtureLaunchParser.ParseCommandLine(activationArguments);
+        if (!request.IsRequested && processArguments.Count > 0)
+        {
+            request = UiFixtureLaunchParser.Parse(processArguments);
+        }
+
+        return Evaluate(request, context);
     }
 
     private static UiFixtureLaunchResult Reject(UiFixtureLaunchRequest request, string reasonCode)

@@ -141,9 +141,9 @@ public static class UiFixtureRegistry
         };
     }
 
-    public static UiFixtureShellState CreateFileListV1ShellState()
+    public static UiFixtureShellState CreateFileListV1ShellState(IShellDispatcher? shellDispatcher = null)
     {
-        return CreateShellState(CreateFileListV1Definition());
+        return CreateShellState(CreateFileListV1Definition(), shellDispatcher);
     }
 
     public static AppShellViewModel CreateFileListV1ViewModel()
@@ -151,9 +151,9 @@ public static class UiFixtureRegistry
         return CreateFileListV1ShellState().ViewModel;
     }
 
-    public static UiFixtureShellState CreateEmptyFolderShellState()
+    public static UiFixtureShellState CreateEmptyFolderShellState(IShellDispatcher? shellDispatcher = null)
     {
-        return CreateShellState(new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", [], UiFixturePresentationState.Empty));
+        return CreateShellState(new UiFixtureDefinition(EmptyFolderName, "dark", "comfortable", "1440x900", [], UiFixturePresentationState.Empty), shellDispatcher);
     }
 
     public static AppShellViewModel CreateEmptyFolderViewModel()
@@ -161,11 +161,11 @@ public static class UiFixtureRegistry
         return CreateEmptyFolderShellState().ViewModel;
     }
 
-    public static UiFixtureShellState CreateShellState(string fixtureName)
+    public static UiFixtureShellState CreateShellState(string fixtureName, IShellDispatcher? shellDispatcher = null)
     {
         var fixture = GetFixture(fixtureName)
             ?? throw new ArgumentException("Fixture name is not allowlisted.", nameof(fixtureName));
-        return CreateShellState(fixture);
+        return CreateShellState(fixture, shellDispatcher);
     }
 
     public static AppShellViewModel CreateViewModel(string fixtureName)
@@ -173,7 +173,7 @@ public static class UiFixtureRegistry
         return CreateShellState(fixtureName).ViewModel;
     }
 
-    private static UiFixtureShellState CreateShellState(UiFixtureDefinition fixture)
+    private static UiFixtureShellState CreateShellState(UiFixtureDefinition fixture, IShellDispatcher? shellDispatcher)
     {
         var workspace = NavigationWorkspace.Create(FixtureRoot);
         var sidebar = SidebarStateService.Create(
@@ -209,6 +209,7 @@ public static class UiFixtureRegistry
             startupState,
             listingCoordinator: listingCoordinator,
             thumbnailController: thumbnailController,
+            shellDispatcher: shellDispatcher,
             viewportItemCount: 100);
 
         return new UiFixtureShellState(viewModel, fixture.PresentationState);

@@ -158,7 +158,7 @@ The existing test layout is MSTest under `tests/`. App tests currently use linke
 
 ### M4. Visual Baseline Evidence and Baseline Update Workflow
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add the reviewed visual baseline storage, generated-output ignore rules, metadata sidecars, and review-gated baseline update workflow for the first file-list profile.
 - Requirements: R69-R79, O3-O4, AC8-AC10, ADR 0009.
 - Files/components likely touched: `tests/visual/baselines/winui/dark-comfortable-1440x900-100/`, `tests/visual/current/`, `tests/visual/diffs/`, `.gitignore`, `scripts/update-ui-baselines.ps1`, `tests/VeloFile.Corpus.Tests/` or script validation tests, docs under `docs/ui/` if needed.
@@ -267,19 +267,19 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M1. UI Contract Artifacts and Static Validator - closed
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
-- [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - planned
+- [ ] M4. Visual Baseline Evidence and Baseline Update Workflow - review-requested
 - [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
 
 ## Current Handoff Summary
 
 Current milestone: M4. Visual Baseline Evidence and Baseline Update Workflow
-Current milestone state: planned
+Current milestone state: review-requested
 Last reviewed milestone: M3
 Review status: M3 rerun code-review clean-with-notes; no required-change findings remain for M3
 Remaining in-scope implementation milestones: M4
-Next stage: `implement` M4
+Next stage: `code-review` M4
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M4 remains planned.
+Reason final closeout is or is not ready: M4 awaits code-review.
 
 ## Decision Log
 
@@ -414,6 +414,20 @@ M3 rerun code-review result:
 - No required-change findings remain for M3.
 - M3 is closed and the next implementation milestone is M4.
 
+M4 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Visual|UiContracts"` failed before implementation for the expected missing visual baseline profile, missing `.gitignore` entries, and missing `scripts/update-ui-baselines.ps1`.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Visual|UiContracts"` passed after implementation: 18 corpus tests passed.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "UiFixtureLaunchTests|UiFixtureRegistryTests"` passed after fixture-launch hardening: 16 app fixture tests passed.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed before guarded fixture screenshot capture.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile dark-comfortable-1440x900-100 -ReviewId m4-local-review` passed and updated 9 WinUI baseline screenshots.
+- `dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts"` passed: App tests 2 passed, Corpus tests 18 passed, and Core/Windows projects had no matching tests.
+- `git status --short -- tests\visual\current tests\visual\diffs` produced no output, confirming generated visual outputs remain untracked/ignored.
+- First `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` run hit the 5-minute tool timeout; rerun with a longer timeout passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 387 tests passed.
+- Real WinUI fixture screenshots were captured locally from guarded fixture launches for `file-list-v1` and `file-list-empty-folder`; a visual sanity check caught an initial wrong-window capture, so the final committed baselines were regenerated from the actual VeloFile fixture windows with generated `tests/visual/current/` files ignored.
+
+M4 added `.gitignore` entries for generated visual outputs, a review-gated baseline update script, nine committed `dark-comfortable-1440x900-100` WinUI baseline PNGs with JSON sidecars, corpus tests for visual inventory, sidecar safety, generated-output ignore rules, script guardrails, and narrow fixture-launch reliability fixes needed for deterministic local screenshot capture.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for M4 implementation. Final closeout is not ready.
+See Current Handoff Summary. This plan is active and ready for M4 code-review. Final closeout is not ready.

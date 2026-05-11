@@ -128,15 +128,9 @@ public static class AppCompositionRoot
 
     public static UiFixtureShellState CreateFixtureShellState(string fixtureName, IShellDispatcher? shellDispatcher = null)
     {
-        var viewModel = string.Equals(fixtureName, UiFixtureRegistry.FileListV1Name, StringComparison.Ordinal)
-            ? UiFixtureRegistry.CreateFileListV1ShellState()
-            : UiFixtureRegistry.CreateShellState(fixtureName);
-        if (shellDispatcher is not null)
-        {
-            viewModel.ViewModel.SetShellDispatcher(shellDispatcher);
-        }
-
-        return viewModel;
+        return string.Equals(fixtureName, UiFixtureRegistry.FileListV1Name, StringComparison.Ordinal)
+            ? UiFixtureRegistry.CreateFileListV1ShellState(shellDispatcher)
+            : UiFixtureRegistry.CreateShellState(fixtureName, shellDispatcher);
     }
 
     public static IWindowPlacementApplier CreateWindowPlacementApplier()

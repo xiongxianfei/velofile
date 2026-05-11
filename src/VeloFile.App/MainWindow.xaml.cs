@@ -35,7 +35,7 @@ public sealed partial class MainWindow : Window
     private bool _fixturePresentationApplied;
     private int _fixturePresentationAttempts;
     private int _previewArtifactVersion;
-    private const int MaxFixturePresentationAttempts = 8;
+    private const int MaxFixturePresentationAttempts = 30;
 
     public MainWindow(AppShellViewModel viewModel)
         : this(viewModel, new WinUiWindowPlacementApplier(), fixturePresentationState: null)
@@ -845,7 +845,14 @@ public sealed partial class MainWindow : Window
     {
         if (_fixturePresentationAttempts++ < MaxFixturePresentationAttempts)
         {
-            DispatcherQueue.TryEnqueue(ApplyUiFixturePresentationState);
+            var retryTimer = DispatcherQueue.CreateTimer();
+            retryTimer.Interval = TimeSpan.FromMilliseconds(100);
+            retryTimer.Tick += (_, _) =>
+            {
+                retryTimer.Stop();
+                ApplyUiFixturePresentationState();
+            };
+            retryTimer.Start();
             return;
         }
 

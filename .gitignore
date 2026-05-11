@@ -5,6 +5,8 @@ obj/
 .codex/
 TestResults/
 artifacts/
+tests/visual/current/
+tests/visual/diffs/
 *.user
 *.suo
 *.rsuser

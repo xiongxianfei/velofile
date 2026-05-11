@@ -12,7 +12,7 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| [2026-05-11 UI design-system and shell redesign](plans/2026-05-11-ui-design-system-shell-redesign.md) | Implement the first UI design-system slice: repo-owned tokens, WinUI resources, file-list row redesign, fixture mode, and visual evidence. | active | `implement` M4 |
+| [2026-05-11 UI design-system and shell redesign](plans/2026-05-11-ui-design-system-shell-redesign.md) | Implement the first UI design-system slice: repo-owned tokens, WinUI resources, file-list row redesign, fixture mode, and visual evidence. | active | `code-review` M4 |
 
 ## Blocked
 

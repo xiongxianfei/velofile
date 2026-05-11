@@ -1,0 +1,16 @@
+﻿{
+    "appVersion":  "1.0.0-dev",
+    "osBuild":  "Microsoft Windows NT 10.0.26200.0",
+    "windowsAppSdk":  "local-debug",
+    "scale":  1.0,
+    "viewport":  "1440x900",
+    "theme":  "dark",
+    "density":  "comfortable",
+    "screen":  "file-list-hidden-protected",
+    "fixture":  "file-list-v1",
+    "dynamicRegions":  [
+
+                       ],
+    "reviewId":  "m4-local-review",
+    "updatedAtUtc":  "2026-05-11T15:42:44.9356519+00:00"
+}

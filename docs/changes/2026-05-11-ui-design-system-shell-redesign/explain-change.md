@@ -108,3 +108,35 @@ Resolution validation:
 - `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed.
 - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed with build success, UI contract validation pass, and 382 tests.
+
+# M4 Change Explanation
+
+M4 adds the first reviewed visual baseline evidence and the maintainer-only baseline update workflow.
+
+## What changed
+
+- Added `.gitignore` entries for generated `tests/visual/current/` and `tests/visual/diffs/` outputs.
+- Added `scripts/update-ui-baselines.ps1` with required `-ReviewId`, profile selection, optional `-AllReviewed`, sidecar update, and no CI-side mutation behavior.
+- Added nine committed WinUI baseline PNGs and JSON sidecars under `tests/visual/baselines/winui/dark-comfortable-1440x900-100/`.
+- Added corpus tests for baseline inventory, sidecar safety, generated-output ignore rules, missing-review/missing-current failures, and reviewed baseline copy behavior.
+- Hardened the test-only fixture launch path so unpackaged WinUI launches can read process arguments when activation arguments are empty, and so fixture listing/presentation is dispatched safely before screenshot capture.
+
+## Why it changed
+
+The approved M4 slice requires screenshot evidence to be reviewable but not a hard pixel-diff gate. The script keeps baseline mutation deliberate and traceable through a review ID, while generated current/diff output remains untracked.
+
+## Boundaries preserved
+
+M4 does not add hard-gated pixel comparison, a visual diff helper, Appium/WinAppDriver, `DebugUiTest`, generated disk-backed fixtures, user-visible production UI behavior changes, or normal-CI baseline mutation.
+
+The committed screenshots were captured from guarded local fixture launches using the deterministic `file-list-v1` and `file-list-empty-folder` fixture states. Current capture outputs remain ignored and are not committed.
+
+## Validation
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Visual|UiContracts"` failed before implementation for the expected missing visual baseline profile, `.gitignore` entries, and baseline update script, then passed after implementation with 18 corpus tests.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "UiFixtureLaunchTests|UiFixtureRegistryTests"` passed after the fixture-launch hardening.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed before process-level screenshot capture.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile dark-comfortable-1440x900-100 -ReviewId m4-local-review` passed and updated 9 WinUI baseline screenshots.
+- `dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts"` passed.
+- `git status --short -- tests\visual\current tests\visual\diffs` produced no output.
+- First `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` run hit the 5-minute tool timeout; rerun with a longer timeout passed with build success, UI contract validation pass, and 387 tests.

@@ -104,6 +104,30 @@ public sealed class UiFixtureLaunchTests
     }
 
     [TestMethod]
+    public void Current_process_fixture_launch_uses_process_arguments_when_activation_arguments_are_empty()
+    {
+        var result = UiFixtureLaunchGate.EvaluateCurrentProcessArguments(
+            activationArguments: null,
+            processArguments:
+            [
+                "--test-ui-fixture",
+                "file-list-v1",
+                "--theme",
+                "dark",
+                "--density",
+                "comfortable",
+                "--viewport",
+                "1440x900"
+            ],
+            new UiFixtureLaunchContext(IsDebugOrTestBuild: true, EnableEnvironmentValue: "1"));
+
+        Assert.AreEqual(UiFixtureLaunchStatus.Accepted, result.Status);
+        Assert.AreEqual("file-list-v1", result.FixtureName);
+        Assert.IsTrue(result.ShouldLaunchFixture);
+        Assert.IsFalse(result.ShouldLaunchNormalApp);
+    }
+
+    [TestMethod]
     public void Fixture_parser_rejects_arbitrary_data_paths_and_unknown_arguments()
     {
         foreach (var args in new[]
@@ -130,7 +154,7 @@ public sealed class UiFixtureLaunchTests
         StringAssert.Contains(appSource, "UiFixtureLaunchGate.FromCurrentProcess");
         StringAssert.Contains(appSource, "Environment.Exit");
         StringAssert.Contains(appSource, "CreateFixtureShellState");
-        StringAssert.Contains(compositionRoot, "UiFixtureRegistry.CreateFileListV1ShellState");
+        StringAssert.Contains(compositionRoot, "UiFixtureRegistry.CreateFileListV1ShellState(shellDispatcher)");
     }
 
     private static string ReadRepoFile(params string[] relativePath)
