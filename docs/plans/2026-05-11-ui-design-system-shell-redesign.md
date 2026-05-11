@@ -268,7 +268,7 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
-- [ ] M5. Lifecycle Closeout and Regression Verification - tab icon bugfix pending code-review
+- [ ] M5. Lifecycle Closeout and Regression Verification - shell icon bugfix pending code-review
 
 ## Current Handoff Summary
 
@@ -277,9 +277,9 @@ Current milestone state: bugfix-code-review-needed
 Last reviewed milestone: M4
 Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
 Remaining in-scope implementation milestones: none
-Next stage: `code-review` tab icon bugfix
+Next stage: `code-review` shell icon bugfix
 Final closeout readiness: not branch-ready after post-verify bugfix
-Reason final closeout is or is not ready: M1-M4 remain closed, but the Previous/Next tab icon bugfix was applied after final verify and needs code-review plus renewed final verification before PR handoff. Hosted GitHub CI was not observed in this stage.
+Reason final closeout is or is not ready: M1-M4 remain closed, but the shell icon bugfix was applied after final verify and needs code-review plus renewed final verification before PR handoff. Hosted GitHub CI was not observed in this stage.
 
 ## Decision Log
 
@@ -459,15 +459,15 @@ Final verify result:
 - `git diff --check` passed.
 - Hosted GitHub CI was not observed during local verify.
 
-Post-verify tab icon bugfix:
+Post-verify shell icon bugfix:
 
 - Bug: shell icon buttons rendered garbled glyph text when their `SymbolIcon` font glyphs did not resolve.
 - Root cause: the shell toolbar buttons depended on `SymbolIcon` private-use glyph font resolution.
 - Fix: replace all `MainWindow.xaml` shell icon-control content with raw vector `Path` shapes inside `Viewbox` elements while preserving click handlers, tooltips, automation names, keyboard accelerators, and command routing.
 - Regression test: `Main_window_icon_buttons_use_raw_vectors` fails if any `SymbolIcon` or `PathIcon` returns to `MainWindow.xaml`, and checks all shell icon buttons use raw vector content.
 - Validation: `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter Main_window_icon_buttons_use_raw_vectors` passed; `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContractTests` passed with 19 tests; `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors; `rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml` returned no matches.
-- Handoff impact: the prior branch-ready state is superseded by this post-verify bugfix until code-review and final verification are rerun.
+- Handoff impact: the prior branch-ready state is superseded by this post-verify shell icon bugfix until code-review and final verification are rerun.
 
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for `code-review` of the tab icon bugfix. Final verification must be rerun after review.
+See Current Handoff Summary. This plan is active and ready for `code-review` of the shell icon bugfix. Final verification must be rerun after review.

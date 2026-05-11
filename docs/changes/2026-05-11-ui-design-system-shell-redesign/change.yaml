@@ -209,4 +209,4 @@ post_verify_bugfix:
       result: passed with 0 warnings and 0 errors
     - command: rg -n "<SymbolIcon|<PathIcon" src\VeloFile.App\MainWindow.xaml
       result: no matches
-next_stage: code-review tab icon bugfix
+next_stage: code-review shell icon bugfix
