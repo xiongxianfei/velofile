@@ -8,6 +8,7 @@ requirements:
 files:
   - docs/plan.md
   - docs/plans/2026-05-04-v1-product-scope.md
+  - docs/project-map.md
   - VISION.md
 validation:
   - command: pwsh -NoProfile -Command '$vision = Get-Content -Raw VISION.md; $words = ([regex]::Matches($vision, "\b\S+\b")).Count; if ($words -gt 900) { throw "VISION.md exceeds 900 words: $words" }; $required = @("Pitch","What makes this different","Who it is for","Who it is not for","What it commits to","What it refuses to be","What would prove this wrong"); foreach ($heading in $required) { if ($vision -notmatch "## $([regex]::Escape($heading))") { throw "Missing VISION section: $heading" } }'
@@ -18,7 +19,12 @@ validation:
     result: passed with line-ending normalization warnings only
   - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
     result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed during final verification
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    result: passed local broad validation during final verification with 0 build warnings/errors and 342 tests across Core, App, Windows, and Corpus assemblies
 notes:
   - M16 was already recorded as implemented, reviewed, and verified in outcome/readiness notes; this change fixes the stale unchecked progress item.
-  - V1 verified remains unchecked until the final verify stage reruns after branch-hygiene changes.
+  - V1 verification is now checked after the final verify stage reran on the branch-hygiene state.
   - The VISION.md edit is editorial: it removes a stale architecture open question that no longer reflects the implemented WinUI/Core/Windows boundary.
+  - The project map now matches the current test counts, CI script scope, and post-verify handoff stage.

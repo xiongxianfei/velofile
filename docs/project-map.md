@@ -164,8 +164,8 @@ Tooling boundaries:
 
 Observed MSTest coverage at refresh time:
 
-- [tests/VeloFile.Core.Tests](../tests/VeloFile.Core.Tests): 155 test methods. Covers listing, search, operations, preview controller policy, thumbnails, persistence, diagnostics, terminal, keyboard commands, shell state, release artifact logic, and corpus report contracts that can be tested without Windows-specific adapters.
-- [tests/VeloFile.App.Tests](../tests/VeloFile.App.Tests): 105 test methods. Covers app-shell view-model behavior, drag/drop route proof, PDF preview navigation shell state, thumbnail dispatcher marshaling, terminal routing, associations, persistence integration seams, and shell accessibility/static contract checks through linked source seams.
+- [tests/VeloFile.Core.Tests](../tests/VeloFile.Core.Tests): 168 test methods. Covers listing, search, operations, preview controller policy, thumbnails, persistence, diagnostics, terminal, keyboard commands, shell state, release artifact logic, and corpus report contracts that can be tested without Windows-specific adapters.
+- [tests/VeloFile.App.Tests](../tests/VeloFile.App.Tests): 109 test methods. Covers app-shell view-model behavior, drag/drop route proof, PDF preview navigation shell state, thumbnail dispatcher marshaling, terminal routing, associations, persistence integration seams, release workflow contracts, and shell accessibility/static contract checks through linked source seams.
 - [tests/VeloFile.Windows.Tests](../tests/VeloFile.Windows.Tests): 52 test methods. Covers Windows adapter behavior for drag/drop projection, file operations, preview image/PDF boundaries, package scripting contracts, terminal discovery, DPI helpers, and association boundaries.
 - [tests/VeloFile.Corpus.Tests](../tests/VeloFile.Corpus.Tests): 13 test methods. Covers corpus script isolation, report shape, release evidence classification, and tooling drift checks.
 - [tests/validation](../tests/validation): PowerShell validation tests for script and corpus isolation behavior.
@@ -178,7 +178,7 @@ CI:
 
 - [.github/workflows/ci.yml](../.github/workflows/ci.yml) runs on `windows-latest`.
 - It installs .NET SDK 10.x, restores, builds, and invokes [scripts/ci.ps1](../scripts/ci.ps1).
-- `scripts/ci.ps1` runs restore, build, tests, PowerShell validation, release verification with `-SkipPublish`, and corpus smoke checks.
+- `scripts/ci.ps1` runs `dotnet --info`, solution restore, Debug build, and all solution tests. Release verification and corpus smoke wrappers remain separate focused commands.
 
 Release:
 
@@ -227,4 +227,4 @@ Observed risks and maintenance pressure points:
 - Should `VeloFile.Corpus` split into smaller command modules after V1 closeout to reduce release-evidence drift risk?
 - Should the stale status wording in `specs/v1-product-scope.test.md` be corrected as documentation hygiene in a separate change?
 
-Recommended next skill: use `verify` before PR handoff or branch cleanup. Use `architecture` before making structural changes to any risk area above.
+Recommended next skill: use `pr` for PR handoff after successful final verification. Use `architecture` before making structural changes to any risk area above.
