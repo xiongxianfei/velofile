@@ -9,11 +9,13 @@ Optimize for correctness, explicitness, small reviewable diffs, and alignment wi
 When instructions conflict, follow this order:
 
 1. Direct user request
-2. Approved feature spec in `specs/`
-3. Matching test spec in `specs/`
-4. Active execution plan file in `docs/plans/`
-5. `docs/workflows.md`
-6. This file
+2. `CONSTITUTION.md`
+3. Approved feature spec in `specs/`
+4. Matching test spec in `specs/`
+5. Approved architecture docs and ADRs under `docs/architecture/` and `docs/adr/`
+6. Active execution plan file in `docs/plans/` and the index in `docs/plan.md`
+7. Stage skills under `.codex/skills/`
+8. This file
 
 Do not silently blend conflicting higher-priority instructions. Call out the conflict, explain the impact, and follow the highest-priority source that already implies the answer.
 
@@ -24,7 +26,7 @@ Do not silently blend conflicting higher-priority instructions. Call out the con
 - Preserve user changes unless explicitly asked to revert them.
 - When behavior changes, update the relevant spec, test spec, docs, or examples in the same change when this repository uses them.
 - Reuse existing scripts and workflows before inventing new commands or processes.
-- Keep `AGENTS.md` practical. Move workflow detail to `docs/workflows.md` and feature-specific detail to `specs/`.
+- Keep `AGENTS.md` practical. Durable governance belongs in `CONSTITUTION.md`; feature-specific detail belongs in `specs/`.
 
 ## Planning and workflow
 
@@ -40,8 +42,8 @@ Use `bugfix` for bugs, `ci` for GitHub Actions or automation changes, and `pr` o
 
 ## Plan file policy
 
-- `docs/roadmap.md` stores future ideas and unapproved work.
 - `docs/plan.md` is an index of active and closed execution plans. It is not the body of a plan.
+- Future ideas and unapproved work belong in proposals, issues, the draft table in `docs/plan.md`, or explicit follow-up sections in change records.
 - Every approved initiative gets its own living plan file under `docs/plans/YYYY-MM-DD-slug.md`.
 - Never overwrite an older plan when starting a new initiative.
 - If a new plan replaces an older one, keep the older file and mark it as superseded.
@@ -51,11 +53,12 @@ Use `bugfix` for bugs, `ci` for GitHub Actions or automation changes, and `pr` o
 
 Before implementing behavior-changing work, read in this order when the files exist:
 
-1. `docs/plan.md`, then the active plan file in `docs/plans/`
-2. the relevant feature spec in `specs/<feature>.md`
-3. the matching test spec in `specs/<feature>.test.md`
-4. `docs/workflows.md` when the task touches an existing flow or release process
-5. the files you expect to modify
+1. `CONSTITUTION.md`
+2. `docs/plan.md`, then the active plan file in `docs/plans/`
+3. the relevant feature spec in `specs/<feature>.md`
+4. the matching test spec in `specs/<feature>.test.md`
+5. the relevant architecture docs or ADRs when boundaries, persistence, security, performance, release, or compatibility are affected
+6. the files you expect to modify
 
 If the work changes externally observable behavior and no relevant spec exists, create or request the missing spec before coding the contract into the implementation.
 

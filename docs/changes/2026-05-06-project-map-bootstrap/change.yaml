@@ -1,0 +1,20 @@
+id: 2026-05-06-project-map-bootstrap
+title: Bootstrap repository project map
+status: implemented
+milestone: governance
+requirements:
+  - architecture-orientation
+  - agent-governance
+architecture:
+  - docs/project-map.md
+  - docs/architecture/system/architecture.md
+files:
+  - docs/project-map.md
+validation:
+  - command: git diff --check
+    result: passed
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed
+notes:
+  - Project map records the observed repo layout, runtime flow, data flow, external boundaries, tests, CI/release paths, architecture rules, risks, and open questions.
+  - The map is orientation evidence only and does not override specs, architecture docs, ADRs, or active plans.

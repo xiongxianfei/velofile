@@ -1,0 +1,31 @@
+id: 2026-05-06-constitution-bootstrap
+title: Bootstrap repository constitution and remove stale governance references
+status: implemented
+milestone: governance
+requirements:
+  - source-of-truth-order
+  - agent-governance
+architecture:
+  - CONSTITUTION.md
+  - AGENTS.md
+files:
+  - CONSTITUTION.md
+  - AGENTS.md
+  - CONTRIBUTING.md
+  - .codex/skills/workflow/SKILL.md
+  - .codex/skills/learn/SKILL.md
+  - .codex/skills/bugfix/SKILL.md
+  - .codex/skills/spec-review/SKILL.md
+  - .codex/skills/plan-review/SKILL.md
+  - .codex/skills/constitution/SKILL.md
+validation:
+  - command: pwsh -NoProfile -Command "$matches = rg -n 'docs/(workflows|roadmap)\\.md' AGENTS.md CONSTITUTION.md .codex docs specs .github README.md CONTRIBUTING.md; if ($LASTEXITCODE -eq 0) { $matches; exit 1 } elseif ($LASTEXITCODE -eq 1) { exit 0 } else { exit $LASTEXITCODE }"
+    result: passed with no matches after stale-reference remediation
+  - command: git diff --check
+    result: passed with line-ending normalization warnings only
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed release documentation and change metadata checks
+notes:
+  - CONSTITUTION.md now owns durable governance and source-of-truth order below direct user instruction.
+  - AGENTS.md remains concise and delegates durable governance to CONSTITUTION.md.
+  - Stale references to deleted workflow and roadmap documents were removed from active agent guidance.

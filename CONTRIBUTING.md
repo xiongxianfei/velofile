@@ -4,7 +4,7 @@ Thanks for contributing.
 
 ## Before opening a pull request
 
-1. Read `AGENTS.md`.
+1. Read `CONSTITUTION.md` and `AGENTS.md`.
 2. Check whether the task needs a plan or spec.
 3. Keep the change small and reviewable.
 4. Run the relevant verification and list the commands in the PR.
