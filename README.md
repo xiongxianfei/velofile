@@ -59,4 +59,4 @@ docs/                  Plans, architecture, ADRs, and change notes
 
 ## License
 
-VeloFile is licensed under the MIT license.
+VeloFile is licensed under Apache-2.0.
