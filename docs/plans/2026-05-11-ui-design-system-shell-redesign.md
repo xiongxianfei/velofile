@@ -268,18 +268,18 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 - [x] M2. WinUI Token Resources and File-List Row Redesign - closed
 - [x] M3. Guarded Test Fixture Mode and Deterministic File-List States - closed
 - [x] M4. Visual Baseline Evidence and Baseline Update Workflow - closed
-- [ ] M5. Lifecycle Closeout and Regression Verification - lifecycle-closeout
+- [ ] M5. Lifecycle Closeout and Regression Verification - branch-ready; PR handoff pending
 
 ## Current Handoff Summary
 
 Current milestone: M5. Lifecycle Closeout and Regression Verification
-Current milestone state: lifecycle-closeout
+Current milestone state: branch-ready
 Last reviewed milestone: M4
 Review status: clean-with-notes; CR-M4-001 resolved and no required-change findings remain for M4
 Remaining in-scope implementation milestones: none
-Next stage: `verify`
-Final closeout readiness: ready to begin
-Reason final closeout is or is not ready: M1-M4 are closed with no unresolved review-resolution findings, and the durable explain-change artifact is complete; final verification and PR handoff remain.
+Next stage: `pr`
+Final closeout readiness: branch-ready
+Reason final closeout is or is not ready: M1-M4 are closed, review-resolution is closed, explain-change is complete, and local final verification passed; PR handoff remains. Hosted GitHub CI was not observed in this stage.
 
 ## Decision Log
 
@@ -447,6 +447,18 @@ Explain-change result:
 - Status: complete.
 - The explanation traces the implementation from proposal/spec/ADR/plan decisions through grouped diffs, tests, validation evidence, resolved review findings, rejected alternatives, scope control, and remaining risks.
 
+Final verify result:
+
+- Status: branch-ready for PR handoff.
+- `dotnet --info` passed: SDK 10.0.203 on Windows 10.0.26200.
+- `dotnet restore VeloFile.sln` passed: all projects up to date.
+- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet test VeloFile.sln -c Debug` passed: 388 tests passed across App, Core, Corpus, and Windows test projects.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 388 tests passed.
+- `git status --short -- tests\visual\current tests\visual\diffs` produced no output.
+- `git diff --check` passed.
+- Hosted GitHub CI was not observed during local verify.
+
 ## Readiness
 
-See Current Handoff Summary. This plan is active and ready for `verify`. Final verification is not complete.
+See Current Handoff Summary. This plan is active and ready for `pr`. Local final verification is complete; PR handoff is not complete.

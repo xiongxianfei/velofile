@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-design-system-shell-redesign
 title: UI design-system and shell redesign
-status: explain-change-complete
+status: verify-complete
 plan: docs/plans/2026-05-11-ui-design-system-shell-redesign.md
 spec: specs/ui-design-system-shell-redesign.md
 test_spec: specs/ui-design-system-shell-redesign.test.md
@@ -8,9 +8,9 @@ architecture:
   - docs/architecture/system/architecture.md
   - docs/adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md
 milestone:
-  id: M4
-  title: Visual Baseline Evidence and Baseline Update Workflow
-  state: closed
+  id: M5
+  title: Lifecycle Closeout and Regression Verification
+  state: branch-ready
 review:
   stage: code-review
   status: clean-with-notes
@@ -174,4 +174,23 @@ explain_change:
   stage: explain-change
   status: complete
   artifact: docs/changes/2026-05-11-ui-design-system-shell-redesign/explain-change.md
-next_stage: verify
+verify:
+  stage: verify
+  status: branch-ready
+  commands:
+    - command: dotnet --info
+      result: passed; SDK 10.0.203 on Windows 10.0.26200
+    - command: dotnet restore VeloFile.sln
+      result: passed; all projects up to date
+    - command: dotnet build VeloFile.sln -c Debug
+      result: passed with 0 warnings and 0 errors
+    - command: dotnet test VeloFile.sln -c Debug
+      result: passed; 388 tests passed across App, Core, Corpus, and Windows test projects
+    - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+      result: passed; build succeeded with 0 warnings and 0 errors, UI contract validation passed, and 388 tests passed
+    - command: git status --short -- tests\visual\current tests\visual\diffs
+      result: passed; no generated visual outputs reported
+    - command: git diff --check
+      result: passed
+  ci_status: local validation passed; hosted GitHub CI not observed in this stage
+next_stage: pr

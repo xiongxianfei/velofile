@@ -4,6 +4,19 @@
 
 All recorded findings through M4 are resolved. M4 rerun code-review closed CR-M4-001 with no remaining required-change findings.
 
+Closeout status: closed
+
+## Resolution overview
+
+| Finding | Source | Disposition |
+|---|---|---|
+| CR-M1-001 | `code-review-r1` | resolved |
+| CR-M1-002 | `code-review-r1` | resolved |
+| CR-M2-001 | `code-review-r2` | resolved |
+| CR-M2-002 | `code-review-r3` | resolved |
+| CR-M3-001 | `code-review-r4` | resolved |
+| CR-M4-001 | `code-review-r5` | resolved |
+
 ## Resolved findings
 
 ### CR-M4-001
@@ -93,3 +106,11 @@ All recorded findings through M4 are resolved. M4 rerun code-review closed CR-M4
 - `dotnet test VeloFile.sln -c Debug --filter "Fixture|UiContracts"` passed: App fixture tests 15 passed, Corpus UI contract tests 14 passed, and Core/Windows projects had no matching tests.
 - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Release` passed with 0 warnings and 0 errors.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build succeeded, UI contract validation passed, and 382 tests passed.
+
+## Closeout checklist
+
+- All material findings have final disposition `resolved`.
+- No finding is marked `needs-decision`.
+- Same-stage rerun code-review closed the final M4 review-resolution with status `clean-with-notes`.
+- Validation evidence is recorded for each accepted fix.
+- No open findings remain in this change record.
