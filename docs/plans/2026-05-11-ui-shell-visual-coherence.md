@@ -465,8 +465,8 @@ No data migration is expected. Rollback is per governed region by reverting that
 
 Current milestone: M2. Shell Surface Foundation
 Current milestone state: resolution-needed
-Last reviewed milestone: M1
-Review status: M2 code-review changes-requested; CR-002 pending
+Last reviewed milestone: M2 (not closed)
+Review status: M2 code-review blocked; CR-002 unresolved because accepted full-shell visual evidence is unavailable in this tool session
 Remaining in-scope implementation milestones: M2-M8
 Next stage: `review-resolution` CR-002 for M2
 Final closeout readiness: not ready
@@ -571,4 +571,4 @@ Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M1 is ready for code review; this plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M2 remains `resolution-needed`; this plan is not ready for M3 implementation, final closeout, verification, PR handoff, or Done.

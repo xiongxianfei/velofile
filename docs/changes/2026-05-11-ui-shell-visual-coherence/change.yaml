@@ -9,13 +9,14 @@ architecture:
   - docs/adr/0010-shell-visual-coherence-contracts.md
 review:
   stage: code-review
-  status: changes-requested
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r4.md
+  status: blocked
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r5.md
   findings:
     - CR-002
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r3.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r4.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
   milestone: M2
