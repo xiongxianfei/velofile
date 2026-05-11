@@ -697,7 +697,7 @@ Each milestone must update validation notes with the commands actually run and a
 - [x] M13 complete.
 - [x] M14 complete.
 - [x] M15 complete.
-- [ ] M16 complete.
+- [x] M16 complete.
 - [ ] V1 verified.
 
 ## Decision Log
@@ -1205,4 +1205,4 @@ M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, and M16 implem
 
 ## Readiness
 
-M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation passed on rerun, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice has passed code review and verify and is ready for PR preparation after branch hygiene.
+M16 packaging, release verification, rollback/user documentation, and release contract tests are implemented. Review remediation enforces approved-fingerprint signed tag verification before release packaging, proves architecture/RID consistency, and adds change metadata link verification. Automated validation passed on rerun, unsigned local MSIX creation was verified, and signed install/update/rollback/uninstall remains recorded as required manual release-owner evidence. The slice has passed code review and verify. Branch hygiene now records local Codex tooling as ignored local state, aligns tracked governance/vision artifacts, and leaves the plan ready for final verification before PR handoff.

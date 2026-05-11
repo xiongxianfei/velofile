@@ -1,0 +1,23 @@
+id: 2026-05-11-constitution-workflow-rules
+title: Align constitution with standard workflow and manual skill rules
+status: implemented
+milestone: governance
+requirements:
+  - standard-workflow-contract
+  - manual-skill-isolation
+files:
+  - CONSTITUTION.md
+  - AGENTS.md
+validation:
+  - command: pwsh -NoProfile -Command '$required = @("Project Purpose","Source Of Truth Order","Spec-Driven Rules","Test-Driven Rules","Architecture Rules","Security And Privacy Rules","Compatibility Rules","Verification Rules","Review Rules","Documentation Rules","Agent Behavior Rules","Standard Workflow And Manual Skill Use"); $text = Get-Content -Raw CONSTITUTION.md; foreach ($heading in $required) { if ($text -notmatch "## $([regex]::Escape($heading))") { throw "Missing constitution section: $heading" } }'
+    result: passed
+  - command: pwsh -NoProfile -Command '$matches = rg -n "docs/(workflows|roadmap)\\.md" AGENTS.md CONSTITUTION.md docs specs .github README.md CONTRIBUTING.md; if ($LASTEXITCODE -eq 0) { $matches; exit 1 } elseif ($LASTEXITCODE -eq 1) { exit 0 } else { exit $LASTEXITCODE }'
+    result: passed with no stale workflow or roadmap references
+  - command: git diff --check
+    result: passed with line-ending normalization warnings only
+  - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\release-verify.ps1 -SkipPublish
+    result: passed
+notes:
+  - Constitution now states the standard workflow chain directly.
+  - Manual stage invocations are explicitly isolated unless tracked workflow evidence supports broader claims.
+  - Fast-lane exceptions remain allowed only for low-risk non-contract changes.

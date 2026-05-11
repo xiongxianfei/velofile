@@ -110,8 +110,18 @@ Agents MUST NOT claim success without evidence, fabricate test results, silently
 
 When a task is interrupted or resumed, agents MUST re-check the latest user request and current working tree before continuing.
 
-## Fast-Lane Exceptions
+## Standard Workflow And Manual Skill Use
 
-Small, low-risk changes MAY skip the full lifecycle when they do not alter product behavior, public contracts, architecture, release evidence, security, or compatibility. Examples include typo fixes, comment cleanup, formatting-only edits, narrow documentation corrections, and mechanical link updates.
+The recommended standard workflow for non-trivial AI-assisted delivery is:
+
+```text
+proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> ci-maintenance when triggered -> explain-change -> verify -> pr
+```
+
+Users MAY invoke an individual stage manually, such as `verify`, `code-review`, `project-map`, or `constitution`. A manual individual-stage invocation is isolated by default. It MUST NOT be presented as proof that upstream stages, downstream stages, review, validation, branch readiness, or PR readiness are complete unless the owning tracked evidence exists and is cited.
+
+For milestone-based plans, implementation, code review, and review-resolution repeat per milestone. Final closeout MUST NOT start until all in-scope implementation milestones are closed or explicitly deferred by plan revision and required review-resolution is closed.
+
+Small, low-risk changes MAY skip the full workflow when they do not alter product behavior, public contracts, architecture, release evidence, security, or compatibility. Examples include typo fixes, comment cleanup, formatting-only edits, narrow documentation corrections, and mechanical link updates.
 
 Fast-lane work still MUST preserve source-of-truth order, keep changes scoped, run an appropriate focused validation, and report what was and was not verified.

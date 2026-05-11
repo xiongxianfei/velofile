@@ -27,7 +27,3 @@ VeloFile refuses to become bloated in V1. It does not host third-party Shell ext
 ## What would prove this wrong
 
 The vision is wrong if VeloFile cannot beat Explorer in common navigation and filtering workflows, cannot keep destructive operations safe by default, cannot match key Windows behaviors users rely on, or requires broad feature creep before it is useful.
-
-## Open questions
-
-The first architecture decision needs to choose the Windows UI/runtime stack and Shell integration strategy that can meet the performance and compatibility goals.

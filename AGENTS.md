@@ -31,11 +31,11 @@ Do not silently blend conflicting higher-priority instructions. Call out the con
 
 Use a plan first for work that is multi-file, risky, ambiguous, architecture-affecting, migration-heavy, or large enough that it should be split into reviewable milestones.
 
-Use the default workflow for behavior-changing feature work:
+Use the standard workflow for non-trivial behavior-changing work:
 
-`plan -> spec -> test-spec -> implement -> verify -> docs -> review`
+`proposal -> proposal-review -> spec -> spec-review -> architecture -> architecture-review -> plan -> plan-review -> test-spec -> implement -> code-review -> review-resolution when triggered -> ci-maintenance when triggered -> explain-change -> verify -> pr`
 
-Add `plan-review` before spec work when the task is risky, cross-cutting, or hard to sequence cleanly.
+Manual individual-stage requests are isolated by default unless the user explicitly asks to continue through the full workflow or the active workflow state requires continuation.
 
 Use `bugfix` for bugs, `ci` for GitHub Actions or automation changes, and `pr` only when the branch is already ready for review.
 
