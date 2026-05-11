@@ -2,7 +2,7 @@
 
 ## Evidence Type
 
-unavailable full-shell visual evidence after failed capture attempt
+failed diagnostic full-shell visual evidence
 
 ## Profile
 
@@ -25,11 +25,21 @@ The repository currently has `scripts/update-ui-baselines.ps1`, which copies alr
 
 A later bounded local capture attempt launched `src\VeloFile.App\bin\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` and confirmed that the app exposes a visible `VeloFile` window. The attempted screenshot path did not produce valid evidence because the local desktop reported `150%` scale instead of the required `100%` profile, and the first capture targeted the foreground browser rather than the VeloFile window. The invalid generated screenshot and sidecar outputs were discarded.
 
+A maintainer-reviewed diagnostic screenshot showed the real shell and is recorded here as failed visual evidence. It is useful for diagnosing M2 defects, but it is not accepted closeout evidence.
+
 ## Observed Result
 
 - App launched: yes, during bounded capture diagnostic
 - Required profile used: no; local desktop reported `150%` scale instead of required `100%`
-- Whole shell visible: not accepted as observed evidence
+- Whole shell visible: yes in diagnostic screenshot
+- Evidence accepted: no
+- Reason: rendered shell is not visually acceptable for M2 shell surface foundation.
+- Blocking observations:
+  - Shell is too dark; several labels and controls have insufficient readable contrast.
+  - Sidebar toggle state text renders as unexpected localized or garbled characters.
+  - File-list icon chips still look like placeholder text rather than deterministic product icons.
+  - Top navigation/search controls remain visually disconnected from the dark shell surface.
+  - Whole-shell coherence is not yet acceptable.
 - New redesigned/non-redesigned mismatch observed: not assessed
 - Primary navigation visible and reachable: not assessed visually
 - Path/search controls visible and reachable: not assessed visually
@@ -39,13 +49,13 @@ A later bounded local capture attempt launched `src\VeloFile.App\bin\Debug\net8.
 
 ## Deviations
 
-No deviation was recorded because no visual review was performed. If a later reviewer observes and accepts a mismatch, it must be recorded in `docs/ui/design-deviations.md` before M2 closes.
+No deviation was recorded. The blocking observations are core M2 failures, not accepted temporary deviations. If a later reviewer observes and accepts a mismatch, it must be recorded in `docs/ui/design-deviations.md` before M2 closes.
 
 ## Screenshot / Sidecar
 
 - Current screenshot: not captured
 - Sidecar: not captured
-- Reason: screenshot capture automation is not implemented for M2, the local capture attempt ran at `150%` desktop scale rather than the required `100%` profile, and this tool session cannot truthfully record a manual full-shell visual-review result.
+- Reason: screenshot capture automation is not implemented for M2, the local capture attempt ran at `150%` desktop scale rather than the required `100%` profile, and the diagnostic screenshot is failed evidence rather than accepted closeout evidence.
 
 ## Conclusion
 

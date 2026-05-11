@@ -2,63 +2,151 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StaticResource x:Key="VfShellRootBackgroundBrush" ResourceKey="VfBrushSurfaceApp" />
+    <StaticResource x:Key="VfShellChromeBackgroundBrush" ResourceKey="VfBrushSurfaceChrome" />
+    <StaticResource x:Key="VfShellSidebarBackgroundBrush" ResourceKey="VfBrushSurfaceSidebar" />
+    <StaticResource x:Key="VfShellContentBackgroundBrush" ResourceKey="VfBrushSurfaceContent" />
+    <StaticResource x:Key="VfShellElevatedBackgroundBrush" ResourceKey="VfBrushSurfaceElevated" />
+    <StaticResource x:Key="VfShellTextPrimaryBrush" ResourceKey="VfBrushTextPrimary" />
+    <StaticResource x:Key="VfShellTextSecondaryBrush" ResourceKey="VfBrushTextSecondary" />
+    <StaticResource x:Key="VfShellTextMutedBrush" ResourceKey="VfBrushTextMuted" />
+    <StaticResource x:Key="VfShellTextDisabledBrush" ResourceKey="VfBrushTextFaint" />
+    <StaticResource x:Key="VfShellControlBackgroundBrush" ResourceKey="VfBrushSurfaceInput" />
+    <StaticResource x:Key="VfShellControlForegroundBrush" ResourceKey="VfBrushTextPrimary" />
+    <StaticResource x:Key="VfShellControlBorderBrush" ResourceKey="VfBrushBorderDefault" />
+    <StaticResource x:Key="VfShellControlHoverBackgroundBrush" ResourceKey="VfBrushSurfaceHover" />
+    <StaticResource x:Key="VfShellControlDisabledBackgroundBrush" ResourceKey="VfBrushSurfaceElevated" />
+    <StaticResource x:Key="VfShellControlDisabledForegroundBrush" ResourceKey="VfBrushTextFaint" />
     <StaticResource x:Key="VfShellSeparatorBrush" ResourceKey="VfBrushBorderSubtle" />
-    <StaticResource x:Key="VfShellFocusBrush" ResourceKey="VfFocusBrush" />
+    <StaticResource x:Key="VfShellFocusBrush" ResourceKey="VfBrushAccent" />
+    <StaticResource x:Key="VfShellFocusThickness" ResourceKey="VfFocusThickness" />
     <StaticResource x:Key="VfShellAccentBrush" ResourceKey="VfBrushAccent" />
-    <StaticResource x:Key="VfShellElevatedBrush" ResourceKey="VfBrushSurfaceElevated" />
+    <StaticResource x:Key="VfShellElevatedBrush" ResourceKey="VfShellElevatedBackgroundBrush" />
     <StaticResource x:Key="VfShellSelectionBrush" ResourceKey="VfBrushSurfaceSelected" />
     <StaticResource x:Key="VfShellHoverBrush" ResourceKey="VfBrushSurfaceHover" />
     <StaticResource x:Key="VfShellDangerBrush" ResourceKey="VfBrushDanger" />
     <StaticResource x:Key="VfShellWarningBrush" ResourceKey="VfBrushWarning" />
     <StaticResource x:Key="VfShellSuccessBrush" ResourceKey="VfBrushSuccess" />
     <StaticResource x:Key="VfShellDisabledOpacity" ResourceKey="VfStateDisabledOpacity" />
+    <Thickness x:Key="VfShellControlPadding">10,5</Thickness>
+    <Thickness x:Key="VfShellControlBorderThickness">1</Thickness>
 
     <Style x:Key="VfShellAppRootStyle" TargetType="Grid">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceApp}" />
+        <Setter Property="Background" Value="{StaticResource VfShellRootBackgroundBrush}" />
     </Style>
 
     <Style x:Key="VfShellChromeStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceChrome}" />
+        <Setter Property="Background" Value="{StaticResource VfShellChromeBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource VfShellSeparatorBrush}" />
     </Style>
 
     <Style x:Key="VfShellSidebarStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceSidebar}" />
+        <Setter Property="Background" Value="{StaticResource VfShellSidebarBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource VfShellSeparatorBrush}" />
     </Style>
 
     <Style x:Key="VfShellContentStyle" TargetType="Grid">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceContent}" />
+        <Setter Property="Background" Value="{StaticResource VfShellContentBackgroundBrush}" />
     </Style>
 
     <Style x:Key="VfShellCommandBandContainerStyle" TargetType="Grid">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceApp}" />
+        <Setter Property="Background" Value="{StaticResource VfShellRootBackgroundBrush}" />
     </Style>
 
     <Style x:Key="VfShellStatusContainerStyle" TargetType="Grid">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceContent}" />
+        <Setter Property="Background" Value="{StaticResource VfShellContentBackgroundBrush}" />
     </Style>
 
     <Style x:Key="VfShellPreviewContainerStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource VfBrushSurfaceSidebar}" />
+        <Setter Property="Background" Value="{StaticResource VfShellSidebarBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource VfShellSeparatorBrush}" />
     </Style>
+
+    <Style x:Key="VfShellTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextPrimaryBrush}" />
+    </Style>
+
+    <Style TargetType="TextBlock" BasedOn="{StaticResource VfShellTextBlockStyle}" />
+
+    <Style x:Key="VfShellButtonStyle" TargetType="Button">
+        <Setter Property="MinHeight" Value="{StaticResource VfSizeBreadcrumbHeight}" />
+        <Setter Property="Padding" Value="{StaticResource VfShellControlPadding}" />
+        <Setter Property="Background" Value="{StaticResource VfShellControlBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellControlForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource VfShellControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource VfShellControlBorderThickness}" />
+        <Setter Property="CornerRadius" Value="{StaticResource VfRadiusBase}" />
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{StaticResource VfShellFocusBrush}" />
+        <Setter Property="FocusVisualPrimaryThickness" Value="{StaticResource VfShellFocusThickness}" />
+    </Style>
+
+    <Style TargetType="Button" BasedOn="{StaticResource VfShellButtonStyle}" />
+
+    <Style x:Key="VfShellTextBoxStyle" TargetType="TextBox">
+        <Setter Property="MinHeight" Value="{StaticResource VfSizeBreadcrumbHeight}" />
+        <Setter Property="Padding" Value="{StaticResource VfShellControlPadding}" />
+        <Setter Property="Background" Value="{StaticResource VfShellControlBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellControlForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource VfShellControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource VfShellControlBorderThickness}" />
+        <Setter Property="CornerRadius" Value="{StaticResource VfRadiusBase}" />
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+        <Setter Property="PlaceholderForeground" Value="{StaticResource VfShellTextMutedBrush}" />
+    </Style>
+
+    <Style TargetType="TextBox" BasedOn="{StaticResource VfShellTextBoxStyle}" />
+
+    <Style x:Key="VfShellComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="MinHeight" Value="{StaticResource VfSizeBreadcrumbHeight}" />
+        <Setter Property="Padding" Value="{StaticResource VfShellControlPadding}" />
+        <Setter Property="Background" Value="{StaticResource VfShellControlBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellControlForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource VfShellControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource VfShellControlBorderThickness}" />
+        <Setter Property="CornerRadius" Value="{StaticResource VfRadiusBase}" />
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+    </Style>
+
+    <Style TargetType="ComboBox" BasedOn="{StaticResource VfShellComboBoxStyle}" />
+
+    <Style x:Key="VfShellToggleSwitchStyle" TargetType="ToggleSwitch">
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+    </Style>
+
+    <Style TargetType="ToggleSwitch" BasedOn="{StaticResource VfShellToggleSwitchStyle}" />
+
+    <Style x:Key="VfShellRadioButtonStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+    </Style>
+
+    <Style TargetType="RadioButton" BasedOn="{StaticResource VfShellRadioButtonStyle}" />
 
     <Style x:Key="VfShellPrimaryTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
         <Setter Property="FontSize" Value="{StaticResource VfTextSizeMd}" />
-        <Setter Property="Foreground" Value="{StaticResource VfBrushTextPrimary}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="VfShellSecondaryTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
         <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
-        <Setter Property="Foreground" Value="{StaticResource VfBrushTextSecondary}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="VfShellMutedTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
         <Setter Property="FontSize" Value="{StaticResource VfTextSizeSm}" />
-        <Setter Property="Foreground" Value="{StaticResource VfBrushTextMuted}" />
+        <Setter Property="Foreground" Value="{StaticResource VfShellTextMutedBrush}" />
     </Style>
 </ResourceDictionary>

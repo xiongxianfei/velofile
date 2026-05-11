@@ -28,7 +28,10 @@ blocked; CR-002 unresolved until accepted M2 full-shell visual evidence exists
   - Confirmed there is no checked-in script that launches the WinUI app and captures `shell-default` current screenshots.
   - Replaced the prior static-only visual evidence note with an explicit unavailable evidence record at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md`.
   - A later bounded local capture attempt launched the WinUI app and confirmed it exposes a visible `VeloFile` window, but the local desktop reported `150%` scale and the attempt did not produce valid `shell-standard-1440x900-100` evidence. Generated invalid current screenshot artifacts were discarded.
+  - Recorded the maintainer-reviewed diagnostic screenshot as failed visual evidence rather than accepted evidence. Blocking observations were readability/contrast, unexpected toggle state text, placeholder file-list icon chips, and disconnected command/search controls.
+  - Added M2-scoped static coverage and resource fixes for shell text/control foregrounds, readable token contrast pairs, compact sidebar toggles without visible On/Off content, shell control styles, and deterministic non-text file-list icon treatment.
   - M2 remains `resolution-needed`; this does not satisfy R22, R26, TSC013, or the M2 visual-evidence closeout rule.
+  - M2 still requires accepted `shell-default` evidence at `shell-standard-1440x900-100` before it can return to clean code review.
 
 ### CR-001: Governed fixture icon validation does not reject local icon color literals
 

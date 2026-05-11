@@ -23,7 +23,7 @@ review:
 implementation:
   milestone: M2
   status: resolution-needed
-  summary: Added the shell surface foundation resource dictionary, activated the governed shell-surface scope, applied shell surface styles to existing full-shell containers, and preserved existing route controls.
+  summary: Added and tightened the shell surface foundation resource dictionary, activated the governed shell-surface scope, applied readable shell/control resources to existing full-shell containers, removed visible sidebar toggle state text and file-list text-chip icon rendering, and preserved existing route controls. M2 still lacks accepted full-shell visual evidence.
   validation:
     - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface
     - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"
@@ -31,6 +31,8 @@ implementation:
     - dotnet build VeloFile.sln -c Debug
     - dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"
     - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter UiDesign
+    - dotnet test VeloFile.sln -c Debug --filter "ShellSurfaceResourceContractTests|FileListResourceContractTests|ShellVisualCoherenceContractTests"
 visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
 next_stage: review-resolution-cr-002

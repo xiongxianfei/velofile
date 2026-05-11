@@ -567,6 +567,24 @@ CR-002 review-resolution attempt:
   - Launched `src\VeloFile.App\bin\Debug\net8.0-windows10.0.19041.0\VeloFile.App.exe` and confirmed the app exposes a visible `VeloFile` window.
   - Attempted a local desktop screenshot capture, but the desktop reported `150%` scale rather than the required `100%` profile, and the first capture targeted the foreground browser instead of VeloFile.
   - Discarded the invalid generated current screenshot/sidecar outputs.
+- Failed diagnostic screenshot resolution:
+  - Updated `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md` to record the diagnostic shell screenshot as failed visual evidence, not an accepted deviation.
+  - Added App UI design checks for shell readability token pairs, governed shell control foreground/background resources, compact sidebar toggles with no visible On/Off content, removal of raw light-theme foreground brushes, and non-text file-list icon rendering.
+  - Applied M2 resource fixes in `VeloFile.Shell.xaml`, `MainWindow.xaml`, and `VeloFile.FileList.xaml` so shell controls share dark-surface foreground/background/border/focus resources, sidebar toggles suppress visible state text, and file-list rows render a deterministic vector icon placeholder instead of text chips.
+  - Updated `docs/ui/ui-contract-scopes.v1.json` so the expanded M2 shell/file-list resources remain governed by the existing additive V1 scope contract.
+  - Validation after the static/code fix:
+    - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurfaceResourceContractTests`: failed first with the expected missing-resource/default-control/icon-chip assertions, then passed after implementation.
+    - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter UiDesign`: passed, 19 tests.
+    - `dotnet test VeloFile.sln -c Debug --filter "ShellSurfaceResourceContractTests|FileListResourceContractTests|ShellVisualCoherenceContractTests"`: passed, App 19 and Corpus 6 matching tests.
+    - `dotnet test VeloFile.sln -c Debug --filter ShellSurfaceResourceContractTests`: passed, App 8 matching tests.
+    - `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests`: passed, Corpus 6 matching tests.
+    - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: passed, Corpus 20 matching tests.
+    - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"`: passed, App 20 and Corpus 20 matching tests.
+    - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter AppShellContract`: passed, 19 tests.
+    - `dotnet build VeloFile.sln -c Debug`: passed with 0 warnings and 0 errors.
+    - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+    - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+    - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 146/Windows 52/Corpus 37 tests passed.
 - M2 remains `resolution-needed`; it cannot return to code review until automated screenshot evidence or an observed manual full-shell visual-review note exists for `shell-default` at `shell-standard-1440x900-100`.
 
 ## Outcome and Retrospective

@@ -45,12 +45,14 @@ public sealed class FileListResourceContractTests
             "x:Key=\"VfFileListItemContainerStyle\"",
             "x:Key=\"VfFileListRowNameTextStyle\"",
             "x:Key=\"VfFileListRowMetadataTextStyle\"",
+            "x:Key=\"VfFileListIconContainerStyle\"",
+            "x:Key=\"VfFileListIconPathStyle\"",
             "VfFileListRowHeight",
             "VfFileListRowPadding",
             "VfSizeIconMd",
-            "VfSizeIconSm",
             "VfBrushTextPrimary",
-            "VfBrushTextMuted"
+            "VfBrushTextMuted",
+            "VfBrushTextSecondary"
         })
         {
             StringAssert.Contains(xaml, requiredResource);
@@ -128,9 +130,12 @@ public sealed class FileListResourceContractTests
         var mainWindowXaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
         var fileListXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
 
+        Assert.IsFalse(
+            fileListXaml.Contains("Text=\"{Binding ThumbnailDisplayText}\"", StringComparison.Ordinal),
+            "M2 shell evidence must not render placeholder-looking thumbnail text chips.");
+
         foreach (var requiredBinding in new[]
         {
-            "Text=\"{Binding ThumbnailDisplayText}\"",
             "Text=\"{Binding DisplayName}\"",
             "Text=\"{Binding Kind}\"",
             "Text=\"{Binding LastWriteTimeUtc}\""
