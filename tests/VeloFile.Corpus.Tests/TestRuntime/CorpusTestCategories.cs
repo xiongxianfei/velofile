@@ -36,15 +36,15 @@ internal static class CorpusTestCategories
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-internal sealed class ReleaseEvidenceFastRationaleAttribute(string rationale) : Attribute
+internal sealed class ReleaseEvidenceFastRationaleAttribute(string? rationale) : Attribute
 {
-    public string Rationale { get; } = rationale;
+    public string? Rationale { get; } = rationale;
 }
 
 internal sealed record CorpusTestCategoryDescriptor(
     string Name,
     IReadOnlyCollection<string> Categories,
-    bool HasReleaseEvidenceFastRationale);
+    string? ReleaseEvidenceFastRationale);
 
 internal static class CorpusCategoryInventory
 {
@@ -72,9 +72,12 @@ internal static class CorpusCategoryInventory
 
             if (categories.Contains(CorpusTestCategories.ReleaseEvidence, StringComparer.Ordinal)
                 && categories.Contains(CorpusTestCategories.Fast, StringComparer.Ordinal)
-                && !test.HasReleaseEvidenceFastRationale)
+                && string.IsNullOrWhiteSpace(test.ReleaseEvidenceFastRationale))
             {
-                errors.Add($"invalid-category-combination: {test.Name} combines ReleaseEvidence and Fast without rationale.");
+                errors.Add(
+                    "category-rationale-required: "
+                    + $"{test.Name} is marked ReleaseEvidence and Fast but has no non-empty ReleaseEvidenceFastRationale. "
+                    + "Add a specific rationale explaining why this release-evidence test belongs in the fast tier, or remove Fast.");
             }
 
             if (categories.Contains(CorpusTestCategories.CorpusScript, StringComparer.Ordinal)
@@ -90,17 +93,27 @@ internal static class CorpusCategoryInventory
 
     public static IReadOnlyList<CorpusTestCategoryDescriptor> FromAssembly(Assembly assembly)
     {
-        return assembly.GetTypes()
-            .Where(type => type.GetCustomAttribute<TestClassAttribute>() is not null)
+        return FromTypes(assembly.GetTypes()
+            .Where(type => type.GetCustomAttribute<TestClassAttribute>() is not null));
+    }
+
+    public static IReadOnlyList<CorpusTestCategoryDescriptor> FromTypes(IEnumerable<Type> types)
+    {
+        return types
             .SelectMany(TestDescriptorsFromType)
             .OrderBy(test => test.Name, StringComparer.Ordinal)
             .ToArray();
     }
 
+    public static IReadOnlyList<CorpusTestCategoryDescriptor> FromTypes(params Type[] types)
+    {
+        return FromTypes((IEnumerable<Type>)types);
+    }
+
     private static IEnumerable<CorpusTestCategoryDescriptor> TestDescriptorsFromType(Type type)
     {
         var typeCategories = CategoriesFrom(type).ToArray();
-        var typeHasRationale = type.GetCustomAttribute<ReleaseEvidenceFastRationaleAttribute>() is not null;
+        var typeRationale = type.GetCustomAttribute<ReleaseEvidenceFastRationaleAttribute>();
 
         foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Where(method => method.GetCustomAttribute<TestMethodAttribute>() is not null))
@@ -109,14 +122,22 @@ internal static class CorpusCategoryInventory
                 .Concat(CategoriesFrom(method))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
-            var hasRationale = typeHasRationale
-                || method.GetCustomAttribute<ReleaseEvidenceFastRationaleAttribute>() is not null;
+            var methodRationale = method.GetCustomAttribute<ReleaseEvidenceFastRationaleAttribute>();
+            var effectiveRationale = NormalizeRationale(methodRationale is not null
+                ? methodRationale.Rationale
+                : typeRationale?.Rationale);
 
             yield return new CorpusTestCategoryDescriptor(
                 $"{type.FullName}.{method.Name}",
                 categories,
-                hasRationale);
+                effectiveRationale);
         }
+    }
+
+    private static string? NormalizeRationale(string? rationale)
+    {
+        var normalized = rationale?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private static IEnumerable<string> CategoriesFrom(MemberInfo member)

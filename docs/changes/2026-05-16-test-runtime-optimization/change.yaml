@@ -16,14 +16,22 @@ validation:
     commands:
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory"
         result: failed as expected before implementation with missing categories and legacy category diagnostics; passed after implementation with 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed after TRO-CR1 resolution with 11 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed after TRO-CR1 resolution with 11 tests
       - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
-        result: passed; 31 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+        result: passed after TRO-CR1 resolution; 36 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
       - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
-        result: passed; 31 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+        result: passed after TRO-CR1 resolution; 36 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed after TRO-CR1 resolution; build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed
       - command: git diff --check
-        result: passed with Git LF-to-CRLF working-copy warnings only
+        result: passed after TRO-CR1 resolution with Git LF-to-CRLF working-copy warnings only
       - command: rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests
         result: passed; no legacy literal Corpus category attributes remained
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
+  - code-review-r1 requested changes for TRO-CR1 before M1 can close.
+  - TRO-CR1 was resolved by requiring non-empty ReleaseEvidenceFastRationale text for ReleaseEvidence + Fast tests.

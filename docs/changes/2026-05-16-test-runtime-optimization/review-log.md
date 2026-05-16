@@ -9,3 +9,4 @@
 | [plan-review-r1](reviews/plan-review-r1.md) | plan-review | plan | revise | TRO-PL1, TRO-PL2 |
 | [plan-review-r2](reviews/plan-review-r2.md) | plan-review | plan | approved | none |
 | [test-spec-review-r1](reviews/test-spec-review-r1.md) | test-spec-review | test spec | approved | none |
+| [code-review-r1](reviews/code-review-r1.md) | code-review | M1 | changes-requested | TRO-CR1 |

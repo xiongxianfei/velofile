@@ -474,9 +474,9 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - Current milestone: M1 category taxonomy, baseline runtime, and local commands
 - Current milestone state: review-requested
 - Last reviewed milestone: plan-review-r2
-- Review status: M1 implementation complete; ready for `code-review`
+- Review status: TRO-CR1 resolved; ready for `code-review` rerun
 - Remaining in-scope implementation milestones: M1-M6
-- Next stage: `code-review` M1
+- Next stage: `code-review` M1 rerun
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -514,6 +514,17 @@ Implementation validation:
   - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 31 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
   - `rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests` returned no legacy literal category attributes.
+- M1 code review:
+  - `code-review-r1` requested changes for TRO-CR1 because `ReleaseEvidence` + `Fast` rationale validation accepts attribute presence without proving the rationale text is non-empty.
+- M1 review-resolution:
+  - TRO-CR1 resolved by preserving rationale text in the category descriptor, requiring non-empty trimmed rationale text, and covering empty, whitespace, class-level, method-level, and override cases.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+  - `rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests` returned no legacy literal category attributes.
 
 ## Outcome and Retrospective
 
@@ -521,4 +532,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M1 implementation, not final closeout.
+See Current Handoff Summary. This plan is ready for M1 code-review rerun, not final closeout.

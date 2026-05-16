@@ -2,9 +2,33 @@
 
 ## Status
 
-resolved; spec, architecture, plan, and test spec gates are approved; ready for M1 implementation
+M1 review-requested; TRO-CR1 resolved and ready for code-review rerun
 
 ## Findings
+
+### TRO-CR1: `ReleaseEvidence` + `Fast` rationale can be empty
+
+- Source review: [code-review-r1](reviews/code-review-r1.md)
+- Status: resolved
+- Required outcome: category inventory validation must reject `ReleaseEvidence` + `Fast` when the recorded rationale is missing, empty, or whitespace.
+- Safe resolution path:
+  - Change the inventory descriptor to carry rationale text or an equivalent non-empty-rationale state.
+  - Update reflection extraction so class-level and method-level `ReleaseEvidenceFastRationaleAttribute` values must be non-empty after trimming.
+  - Add a focused test proving empty or whitespace rationale fails.
+  - Keep the fix scoped to M1 category inventory tests and helper code.
+  - Rerun M1 focused validation.
+- Resolution:
+  - Changed `CorpusTestCategoryDescriptor` to preserve `ReleaseEvidenceFastRationale` text instead of only a boolean.
+  - Updated category inventory validation to require a non-empty rationale after trimming for `ReleaseEvidence` + `Fast`.
+  - Added direct empty/whitespace rationale tests.
+  - Added reflection-path coverage for class-level whitespace rationale, method-level non-empty rationale, and method-level whitespace override over a class-level rationale.
+  - Preserved method-level override semantics.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed.
 
 ### TRO-SR1: Prepared-tool staleness is a required failure mode but is undefined
 
