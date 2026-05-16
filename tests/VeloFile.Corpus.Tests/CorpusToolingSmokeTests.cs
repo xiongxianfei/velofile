@@ -7,6 +7,8 @@ namespace VeloFile.Corpus.Tests;
 public sealed class CorpusToolingSmokeTests
 {
     [TestMethod]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.Smoke)]
     public void Generate_corpus_refuses_repository_root()
     {
         var repoRoot = FindRepoRoot();
@@ -19,6 +21,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Generate_placeholder_profiles_are_deterministic()
     {
         var profiles = new[] { "smoke", "operations", "preview", "search", "large-folder", "dragdrop", "pathological" };
@@ -49,7 +53,9 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("Benchmarks")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
+    [TestCategory(CorpusTestCategories.Benchmark)]
     public void M15_reference_profiles_are_scaled_and_release_scoped()
     {
         var expectedMinimumFiles = new Dictionary<string, int>(StringComparer.Ordinal)
@@ -81,6 +87,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Compatibility_and_preview_runners_validate_scope()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -169,7 +177,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("Compatibility")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Compatibility_release_scope_consumes_real_scope_results_without_upgrading_missing_evidence()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -224,7 +233,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("PreviewContract")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void PreviewContract_scope_records_contract_behavior_evidence()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -253,7 +263,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("PreviewProviders")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void PreviewProviders_scope_records_provider_behavior_evidence()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -282,7 +293,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("Thumbnails")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Thumbnails_scope_records_thumbnail_behavior_evidence()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -311,6 +323,9 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
+    [TestCategory(CorpusTestCategories.Benchmark)]
     public void Benchmark_harness_emits_measured_report_environment_and_release_status()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -414,7 +429,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("Diagnostics")]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Diagnostics_conformance_runner_writes_redacted_local_report_and_export()
     {
         using var scratch = ScratchWorkspace.Create();
@@ -467,7 +483,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
-    [TestCategory("Release")]
+    [TestCategory(CorpusTestCategories.Contract)]
+    [TestCategory(CorpusTestCategories.ReleaseEvidence)]
     public void Preview_triage_policy_documents_blocking_thresholds_and_exception_path()
     {
         var repoRoot = FindRepoRoot();
@@ -482,6 +499,7 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory(CorpusTestCategories.Contract)]
     public void Corpus_tool_wrapper_disables_dotnet_global_tools_path_mutation()
     {
         var repoRoot = FindRepoRoot();
@@ -493,6 +511,8 @@ public sealed class CorpusToolingSmokeTests
     }
 
     [TestMethod]
+    [TestCategory(CorpusTestCategories.CorpusScript)]
+    [TestCategory(CorpusTestCategories.Smoke)]
     public void Corpus_scripts_do_not_add_scratch_dotnet_tools_to_user_path()
     {
         using var scratch = ScratchWorkspace.Create();

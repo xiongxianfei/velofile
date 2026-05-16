@@ -1,0 +1,29 @@
+change_id: 2026-05-16-test-runtime-optimization
+status: active
+current_milestone: M1
+current_milestone_state: review-requested
+summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
+artifacts:
+  proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
+  spec: specs/test-runtime-optimization.md
+  test_spec: specs/test-runtime-optimization.test.md
+  plan: docs/plans/2026-05-16-test-runtime-optimization.md
+  architecture: docs/architecture/system/architecture.md
+  adr: docs/adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md
+validation:
+  m1:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory"
+        result: failed as expected before implementation with missing categories and legacy category diagnostics; passed after implementation with 6 tests
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 31 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 31 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests
+        result: passed; no legacy literal Corpus category attributes remained
+notes:
+  - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
+  - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.

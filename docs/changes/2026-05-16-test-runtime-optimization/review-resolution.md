@@ -1,0 +1,83 @@
+# Review Resolution
+
+## Status
+
+resolved; spec, architecture, plan, and test spec gates are approved; ready for M1 implementation
+
+## Findings
+
+### TRO-SR1: Prepared-tool staleness is a required failure mode but is undefined
+
+- Source review: [spec-review-r1](reviews/spec-review-r1.md)
+- Status: resolved
+- Required outcome: define a testable stale-tool contract in `specs/test-runtime-optimization.md` or remove/defer stale-tool rejection from the first-slice `MUST` behavior.
+- Resolution plan:
+  - Decide whether first-slice prepared-tool staleness means a missing expected artifact, missing current-run marker, source hash mismatch, build marker older than setup invocation, or no stale detection in slice one.
+  - Update R37, the error/boundary section, and AC8 or add a new acceptance criterion so the behavior is testable.
+- Resolution:
+  - Kept stale-tool rejection in first-slice scope.
+  - Defined first-slice prepared-tool currency through a current-run prepared-tool manifest inside the allowed scratch/temp root.
+  - Updated R37 so prepared-tool rejection covers missing root, outside-root path, missing manifest, different setup invocation, wrong manifest-declared tool kind/configuration/target framework/entrypoint, and missing expected artifact.
+  - Deferred source-hash and cross-run cache staleness detection until cross-run prepared-tool reuse is introduced.
+  - Added acceptance coverage for outside-root rejection and stale/invalid manifest/artifact rejection.
+  - Preserved the internal-to-tests prepared-tool boundary.
+- Validation:
+  - `git diff --check -- specs\test-runtime-optimization.md docs\changes\2026-05-16-test-runtime-optimization\review-resolution.md`
+  - `rg -n "stale|prepared-tool manifest|setup identifier|AC8|AC9|R37" specs\test-runtime-optimization.md`
+- Closeout:
+  - Spec review R2 approved the amended spec with no findings.
+  - `specs/test-runtime-optimization.md` status is `approved`.
+
+### TRO-AR1: Architecture review is downstream of an unresolved spec-review gate
+
+- Source review: [architecture-review-r1](reviews/architecture-review-r1.md)
+- Status: resolved
+- Required outcome: record an approving spec re-review for the amended test runtime optimization spec, or revise lifecycle metadata so downstream architecture work is not treated as approved before the spec gate is closed.
+- Resolution plan:
+  - Run and record `spec-review-r2` against the amended `specs/test-runtime-optimization.md`.
+  - If approved, update the spec status to `approved`, record the review log entry, and rerun architecture review.
+  - If not approved, keep architecture blocked and update architecture/ADR only after the spec is corrected.
+- Resolution:
+  - Added [spec-review-r2](reviews/spec-review-r2.md), with status `approved` and no findings.
+  - Updated `specs/test-runtime-optimization.md` status to `approved`.
+  - Added the spec approval to `review-log.md`.
+  - The upstream spec-review gate that blocked architecture review is closed.
+- Follow-up:
+  - `architecture-review-r1` remains a historical blocked review record.
+  - [architecture-review-r2](reviews/architecture-review-r2.md) approved the canonical architecture update and ADR 0011.
+
+### TRO-PL1: Milestone validation can pass against stale builds or invalid filters
+
+- Source review: [plan-review-r1](reviews/plan-review-r1.md)
+- Status: resolved
+- Required outcome: milestone validation must include a build-producing command for every milestone that changes code or tests, and all test filters must use valid, explicit MSTest/VSTest filter syntax without introducing non-taxonomy categories.
+- Resolution plan:
+  - Revise M1-M6 validation commands so code/test-changing milestones run `dotnet test ... -c Debug --filter ...` without `--no-build` before timing-focused `--no-build` commands.
+  - Replace M4's ambiguous `PreparedTool|TestCategory=Contract` filter with an accepted category filter or an explicit non-category filter such as `FullyQualifiedName~PreparedTool`.
+  - Keep `PreparedTool` out of the category taxonomy unless the spec is revised.
+- Resolution:
+  - Added a build-producing validation rule to `docs/plans/2026-05-16-test-runtime-optimization.md`.
+  - Updated M1-M6 validation commands so build-producing `dotnet test ... -c Debug --filter ...` commands precede timing-focused `--no-build` commands.
+  - Replaced M4's ambiguous filter with `FullyQualifiedName~PreparedTool&TestCategory=Contract`.
+  - Kept `PreparedTool` out of the accepted category taxonomy.
+
+### TRO-PL2: M2 can close with a public wrapper coverage gap before M3 replaces it
+
+- Source review: [plan-review-r1](reviews/plan-review-r1.md)
+- Status: resolved
+- Required outcome: the plan must prevent any milestone from closing after wrapper coverage is removed but before replacement script smoke/hermetic coverage is in place.
+- Resolution plan:
+  - Revise M2 so it only adds in-process/low-overhead contract tests and does not remove or shrink existing public wrapper coverage.
+  - Let M3 replace or reduce wrapper coverage only after minimal `CorpusScript` + `Smoke` and hermetic wrapper isolation evidence exists.
+  - Alternatively combine M2 and M3 into one milestone if contract migration and replacement script smoke coverage must be reviewed together.
+- Resolution:
+  - Added a public-wrapper coverage guard to the plan.
+  - Added a wrapper coverage migration ledger.
+  - Revised M2 so it adds lower-overhead contract tests while preserving existing public wrapper coverage.
+  - Revised M2 closeout to forbid removing, disabling, shrinking, or retagging public wrapper coverage unless equivalent smoke and hermetic evidence is already present.
+  - Revised M3 closeout to require minimal public script smoke, common hermetic wrapper isolation, accepted taxonomy categories, and ledger updates before old broad wrapper tests may be reduced or replaced.
+- Validation:
+  - `git diff --check -- docs\plans\2026-05-16-test-runtime-optimization.md docs\changes\2026-05-16-test-runtime-optimization\review-resolution.md`
+  - `rg -n "Build-Producing Validation Rule|Public-Wrapper Coverage Guard|Wrapper Coverage Migration Ledger|FullyQualifiedName~PreparedTool|--no-build" docs\plans\2026-05-16-test-runtime-optimization.md`
+- Closeout:
+  - [plan-review-r2](reviews/plan-review-r2.md) approved the revised plan with no findings.

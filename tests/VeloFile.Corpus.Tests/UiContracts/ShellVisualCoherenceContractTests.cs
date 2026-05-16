@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using VeloFile.Corpus.Tests;
 
 namespace VeloFile.Corpus.Tests.UiContracts;
 
 [TestClass]
-[TestCategory("UiContracts")]
-[TestCategory("Visual")]
+[TestCategory(CorpusTestCategories.Contract)]
+[TestCategory(CorpusTestCategories.Visual)]
 public sealed class ShellVisualCoherenceContractTests
 {
     private static readonly string[] FollowOnScopeIds =

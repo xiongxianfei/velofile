@@ -2,7 +2,7 @@
 
 ## Lifecycle Metadata
 
-- Status: approved; amended 2026-05-11 for UI design-system, shell redesign, and shell visual-coherence architecture
+- Status: approved; amended 2026-05-16 for test runtime optimization architecture
 - Scope: canonical baseline architecture for VeloFile V1
 - Related V1 proposal: [V1 Product Direction](../../proposals/2026-05-04-v1-product-direction.md)
 - Related V1 spec: [V1 Product Scope](../../../specs/v1-product-scope.md)
@@ -10,10 +10,12 @@
 - Related UI spec: [UI Design System and Shell Redesign](../../../specs/ui-design-system-shell-redesign.md)
 - Related shell visual-coherence proposal: [Shell Visual Coherence Follow-up](../../proposals/2026-05-11-shell-visual-coherence-follow-up.md)
 - Related shell visual-coherence spec: [UI Shell Visual Coherence](../../../specs/ui-shell-visual-coherence.md)
+- Related test runtime proposal: [Test Runtime Optimization](../../proposals/2026-05-16-test-runtime-optimization.md)
+- Related test runtime spec: [Test Runtime Optimization](../../../specs/test-runtime-optimization.md)
 - Context diagram: [diagrams/context.mmd](diagrams/context.mmd)
 - Container diagram: [diagrams/container.mmd](diagrams/container.mmd)
 - Component diagram: [diagrams/desktop-app-components.mmd](diagrams/desktop-app-components.mmd)
-- Last updated: 2026-05-11
+- Last updated: 2026-05-16
 
 ## 1. Introduction and Goals
 
@@ -27,6 +29,7 @@ Primary goals:
 - Keep open-source contribution boundaries visible through explicit services, providers, adapters, diagnostics, and ADRs.
 - Keep visible UI quality governed by repo-owned WinUI design contracts, validation tools, and reviewed evidence rather than external prototype packages.
 - Keep whole-shell visual coherence governed by additive token/scope contracts, deterministic vector fixture icons, full-shell soft-review evidence, and behavior-preservation matrices.
+- Keep validation feedback loops tiered so contributors can run fast contract checks locally without removing release-evidence validation from full closeout paths.
 - Preserve post-V1 extension points without pre-building out-of-scope features.
 
 ## 2. Architecture Constraints
@@ -41,6 +44,9 @@ Primary goals:
 - Shell-wide visual-coherence contracts extend `docs/ui/tokens.v1.json` and `docs/ui/ui-contract-scopes.v1.json` additively unless an approved incompatible redesign reset creates a new major contract.
 - Deterministic fixture icons use VeloFile-owned XAML vector resources and allowlisted icon kinds; first visual baselines do not depend on real Windows Shell icon extraction.
 - Full-shell visual evidence uses effective-pixel app-window review profiles and remains soft-review evidence until a later accepted decision hardens screenshot comparison.
+- Test runtime optimization keeps `scripts/ci.ps1` as the broad closeout command for the first slice; CI job splitting requires a later accepted decision.
+- Prepared corpus tool execution is internal to tests for the first slice, uses test-owned scratch/temp roots, and is guarded by a current-run prepared-tool manifest.
+- Public corpus wrapper command-line contracts remain backward compatible in the first test runtime optimization slice.
 - Shell-owned behavior is preferred for Windows-correct copy, move, delete, drag/drop, file association, thumbnail/icon, long-path, and Recycle Bin behavior.
 - Paths, file names, terminal targets, persisted state, and diagnostic inputs are untrusted.
 - Diagnostics are local-only by default. No diagnostics, telemetry, crash reports, paths, filenames, or preview-derived content are uploaded without a separate approved proposal and explicit user opt-in.
@@ -75,6 +81,7 @@ The architecture uses a layered Windows desktop app:
 - **UI shell** owns WinUI windows, tabs, sidebar, breadcrumb/path bar, file list, preview/details pane, built-in context menu, dialogs, and keyboard flow.
 - **UI design resources** own VeloFile token/resource dictionaries, shell surface resources, command/sidebar/status/preview resources, deterministic vector fixture icons, file-list row presentation resources, focus and density constants, and resource consumption rules inside the WinUI app.
 - **UI contract tooling** owns static validation from repo-owned UI contracts to WinUI resources, fixture icon resources, screenshot sidecars, and scoped literal checks without launching the app.
+- **Corpus validation tooling** owns validation tiers, corpus contract tests, public script smoke tests, hermetic wrapper isolation, test-internal prepared-tool execution, and runtime duration evidence for contributor and closeout validation.
 - **Application services** own navigation, tabs, search, filtering, commands, session restore, settings, diagnostics, preview orchestration, and benchmark hooks.
 - **Windows integration adapters** wrap Shell COM, Win32, WinRT, drag/drop, terminal launch, file associations, thumbnails/icons, and MSIX/platform behaviors.
 - **Persistence providers** own versioned session state, settings, crash markers, last-action markers, diagnostic logs, benchmark reports, favorites, and recent locations.
@@ -93,6 +100,7 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 - **VeloFile desktop app**: WinUI 3 desktop application that hosts UI, commands, search/filter orchestration, preview orchestration, Shell interop adapters, and file-operation orchestration.
 - **Local app data**: versioned JSON and local diagnostic log files for settings, favorites, recent locations, session state, local crash markers, last-action markers, and diagnostics.
 - **UI contract tooling**: solution-included .NET console tooling plus review-gated PowerShell orchestration for validating UI token/scope contracts, checking WinUI resources, and updating reviewed visual baselines.
+- **Corpus validation tooling**: solution-included corpus test harnesses, public PowerShell script smoke coverage, hermetic wrapper isolation checks, prepared-tool test execution, and runtime reporting for validation tiers.
 - **Visual baseline evidence**: committed PNG screenshots and JSON sidecars under reviewed profiles. Generated current captures and diffs are transient validation output and are not committed.
 - **Benchmark harness**: test executable that creates the deterministic corpus, drives the app process, and emits benchmark reports for release gating.
 - **MSIX package and stable release channel**: signed package and release metadata for side-by-side install, stable update channel documentation, versioning policy, update cadence expectation, and rollback/uninstall instructions.
@@ -140,6 +148,12 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 | Shell coherence R44-R65 | UI Shell; Command Layer; File Listing Service; Preview Providers; File Operation Service |
 | Shell coherence R66-R77 | UI Test Fixture Host; UI Contract Tooling; Visual Baseline Evidence |
 | Shell coherence R78-R82 | Test Specs; UI Shell; Application Services; Windows Integration Layer |
+| Test runtime R1-R15 | Corpus Validation Tooling; Test Projects; Architecture Decisions |
+| Test runtime R16-R21 | Contributor Documentation; CI and Script Orchestration |
+| Test runtime R22-R38 | Corpus Validation Tooling; Public Corpus Scripts; Scratch/Temp Workspace |
+| Test runtime R39-R43 | Release Evidence; CI and Script Orchestration; Corpus Validation Tooling |
+| Test runtime R44-R47 | Test Projects; Corpus Validation Tooling |
+| Test runtime R48-R60 | Runtime Reports; Review Evidence; CI and Script Orchestration |
 
 ## 6. Runtime View
 
@@ -196,6 +210,20 @@ Terminal discovery is lazy or background and never blocks app launch. Terminal l
 
 Last-action markers are written around high-level workflows and retain only the latest marker per marker category needed for crash attribution. Crash markers are local and retain at most the latest 10 markers. Diagnostic logs use the allowed-field and redaction contract in section 8 and never upload by default. Diagnostic retention failure must not block app launch, navigation, preview, search, or file operations. Benchmark runs drive the app process against a generated corpus and produce median, p95, p99, environment, and release-gating output.
 
+### Test Runtime Validation
+
+Test runtime optimization separates validation work by purpose without removing broad closeout validation:
+
+1. Contributors use documented `Fast` and `Contract` filters for inner-loop validation after the relevant projects are already built.
+2. `VeloFile.Corpus.Tests` category inventory enforces the accepted taxonomy and prevents expensive evidence tiers from silently entering the fast default path.
+3. Corpus contract tests exercise schemas, report shapes, manifests, redaction, profile decisions, scope classification, and release classification without public PowerShell wrappers when the wrapper itself is not the behavior under test.
+4. Public corpus wrappers keep minimal `CorpusScript` + `Smoke` coverage for supported script families.
+5. One common hermetic wrapper isolation test keeps scratch copy/publish behavior and no-repo-output behavior covered.
+6. Tests that need process execution but not hermetic publish on every assertion may use a prepared corpus tool under a test-owned scratch/temp root.
+7. Prepared-tool execution checks a current-run manifest before invoking the tool. A missing root, outside-root path, missing manifest, mismatched setup id, wrong manifest-declared tool metadata, or missing expected artifact fails before tool execution.
+8. `ReleaseEvidence`, `Benchmark`, `Visual`, and `ManualEvidence` tiers remain explicit and available for full closeout, release readiness, or future full validation commands.
+9. Runtime reports record before/after command durations, top slow tests, and whether full `scripts/ci.ps1` improved, stayed the same, or regressed.
+
 ### UI Contract Validation and Visual Fixtures
 
 First-slice UI validation starts from repo-owned contracts, not from `hifi-design/`. The UI contract tool reads `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, and governed XAML resource dictionaries as static artifacts. It validates required token keys, resource types, directly comparable values, color-to-brush relationships, duplicate governed keys, and first-slice literal rules without launching the app or depending on the WinUI runtime.
@@ -237,6 +265,9 @@ Validation and repository evidence:
 - UI token and scope contracts live under `docs/ui/`.
 - WinUI token and component resources live in the app resource tree and are merged into the application resource dictionaries.
 - UI contract tooling lives under `tools/` and is included in `VeloFile.sln`; it has no dependency on the app runtime for static validation.
+- Test runtime category metadata lives in test source and is checked by category inventory validation.
+- Prepared corpus tool manifests live only under test-owned scratch/temp roots and identify the current test-harness setup invocation, expected tool kind, configuration, target framework, and entrypoint.
+- Test runtime reports are review evidence and must identify command, configuration, filter, date, measured duration, top slow tests, and local environment assumptions.
 - First-slice committed visual baselines live under `tests/visual/baselines/winui/<profile>/` with JSON sidecars.
 - Shell-wide full-shell visual evidence uses reviewed profiles under `tests/visual/baselines/winui/<profile>/` with JSON sidecars. The initial shell visual-coherence profiles are `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`; the `200%` profile may be manual/release evidence until automation is stable.
 - Generated visual outputs under `tests/visual/current/` and `tests/visual/diffs/` are transient and ignored by Git.
@@ -269,6 +300,8 @@ Unknown fields are ignored. Missing fields fall back to documented defaults. Mal
 
 Local diagnostics include crash markers, last-action markers, diagnostic logs, and benchmark reports. They are local-only by default. No diagnostics, telemetry, crash reports, paths, filenames, or preview-derived content are uploaded without a separate approved proposal and explicit user opt-in.
 
+Test runtime observability is separate from product diagnostics. Runtime reports record validation command durations, filters, configuration, date, local environment assumptions, and top slow tests. They must not be used as universal performance guarantees. Category inventory and prepared-tool boundary diagnostics should name the offending test, category, rejected condition, or allowed root without exposing unrelated private local paths.
+
 Diagnostic events may include only these field categories:
 
 - Event id, event type, UTC timestamp, monotonic sequence number, severity, component, operation id, and correlation id.
@@ -295,6 +328,8 @@ Ownership boundaries:
 
 File paths, file names, settings, session files, and diagnostics are untrusted. Diagnostic data follows the local-only allowed/prohibited field contract above. V1 does not host third-party Shell extension menu handlers.
 
+Test runtime artifacts follow the same privacy posture. Prepared-tool manifests must not store raw local usernames, private profile paths, secrets, tokens, credentials, or machine-specific private data. Prepared-tool execution must not mutate user PATH, global .NET configuration, or repository build output outside the assigned scratch/temp root.
+
 ### Accessibility
 
 Every V1 workflow has a keyboard path. Focus state stays visible. Destructive dialogs state consequences. Loading, unsupported, failed, and empty states are distinct.
@@ -317,6 +352,14 @@ Visual evidence is not release proof for filesystem integration by itself. First
 
 Shell visual-coherence slices must maintain a behavior-preservation matrix that maps touched shell regions to V1 behavior routes and tests or explicit manual evidence. Screenshots and fixture-only evidence cannot replace behavior-route evidence through the App/Core/Windows boundaries.
 
+### Test Runtime Validation Contracts
+
+Validation tiers are an architecture boundary for contributor workflow, not a way to weaken release proof. `Fast` and `Contract` are inner-loop categories. `CorpusScript`, `ReleaseEvidence`, `Benchmark`, `Visual`, and `ManualEvidence` remain explicit cost-bearing categories and are excluded from the default fast command unless intentionally selected or explicitly justified.
+
+Corpus script smoke and corpus contract tests have different responsibilities. Contract tests should avoid PowerShell and scratch publish overhead when wrapper behavior is not the claim. Script smoke tests prove public entrypoints and representative output. Release-evidence tests own full profile and scope matrices.
+
+Prepared-tool execution is a test harness optimization only. It is not a public script feature in the first slice. The prepared tool root must stay inside the allowed scratch/temp root, carry a current-run manifest, declare expected tool metadata, and contain the expected artifact before invocation. Source-hash and cross-run cache staleness detection are deferred unless a later accepted decision introduces cross-run prepared-tool reuse.
+
 ## 9. Architecture Decisions
 
 Durable decisions are recorded in ADRs:
@@ -331,6 +374,7 @@ Durable decisions are recorded in ADRs:
 - [ADR 0008: Diagnostics and Preview Triage](../../adr/0008-diagnostics-and-preview-triage.md)
 - [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
 - [ADR 0010: Shell Visual-Coherence Contracts and Evidence](../../adr/0010-shell-visual-coherence-contracts.md)
+- [ADR 0011: Test Runtime Validation Tiers and Corpus Harness Optimization](../../adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md)
 
 ## 10. Quality Requirements
 
@@ -350,6 +394,7 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 | QS-UI-VISUAL-01 | Visual evidence reviewability | A maintainer updates first-slice screenshot baselines. | Reviewed current screenshots and sidecars for the approved profile. | Baseline mutation happens only through the review-gated command with a review id; normal CI never mutates committed baselines. | Missing review id or missing current screenshots exits nonzero; committed baselines have matching JSON sidecars and generated current/diff outputs remain uncommitted. |
 | QS-UI-SHELL-01 | Shell visual coherence | A contributor changes governed shell surface, command band, sidebar, status, preview, file-list, or icon resources. | Local validation or CI on Windows/.NET. | Static UI contract validation rejects unapproved literals, raw/default governed visuals, forbidden icon controls, arbitrary fixture icon keys, and incomplete sidecar metadata before visual review. | 100% of governed shell-scope contract violations produce nonzero validation with actionable file/scope/rule output. |
 | QS-UI-SHELL-02 | Full-shell visual evidence | A maintainer reviews a shell visual-coherence region slice. | Required shell states and effective-pixel profiles, with `200%` automated or recorded as manual/release evidence. | Full-shell screenshots and sidecars show no unrecorded mismatch between redesigned and non-redesigned regions, and behavior preservation is cited separately. | Seven required shell states have sidecars for required profiles or controlled manual/release classification; generated current/diff outputs remain uncommitted; no fixture-only evidence is used as behavior proof. |
+| QS-TEST-RUNTIME-01 | Validation feedback speed | A contributor runs the documented fast or corpus contract command after a build. | Local Windows/.NET validation with projects already built. | Fast/contract filters exclude script smoke and release-evidence tiers by default, while full closeout validation remains available through `scripts/ci.ps1`. | Corpus category inventory rejects missing/unknown categories and invalid expensive-tier combinations; runtime evidence records baseline, optimized contract, optimized script-smoke, top 10 slow tests, and full CI status. |
 
 ## 11. Risks and Technical Debt
 
@@ -366,24 +411,29 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - Shell-wide visual evidence may become subjective or over-trusted. Mitigation: pair full-shell screenshots with additive token/scope validation, icon-resource invariants, screenshot sidecar checks, and behavior-preservation matrix evidence.
 - High-DPI visual evidence may be hard to automate consistently. Mitigation: require `shell-standard-1440x900-200` as manual/release evidence until automation is stable, rather than dropping the profile.
 - Deterministic fixture icon resources may diverge from later real Shell icon integration. Mitigation: classify vector fixture icons as visual baseline evidence only and keep real Shell icons as a later integration evidence path.
+- Validation tiers may be misused to skip release evidence. Mitigation: keep `scripts/ci.ps1` as the first-slice broad closeout command, require explicit `ReleaseEvidence` commands, and record runtime evidence without presenting fast runs as release proof.
+- Prepared-tool execution may hide wrapper isolation regressions. Mitigation: keep one common hermetic wrapper isolation test and minimal public script smoke tests for supported script families.
+- Runtime reports may overfit to one machine. Mitigation: record command, filter, configuration, date, and environment assumptions, and treat local timing as evidence for the slice rather than a universal guarantee.
 
 ## 12. Glossary
 
 - **Adapter**: boundary that translates VeloFile service calls into Windows platform calls.
 - **Built-in context menu**: VeloFile-owned menu with V1 commands only.
 - **Compatibility corpus**: generated or fixed test data for Windows behavior parity.
+- **Corpus validation tooling**: test harnesses and scripts that validate corpus contracts, public corpus wrappers, release-evidence reports, and test runtime evidence.
+- **Prepared-tool manifest**: test-only metadata file in a prepared corpus tool root that proves the tool belongs to the current test-harness setup invocation.
 - **Provider**: component that supplies content or data behind a stable application boundary, such as preview or metadata.
 - **Shell-owned behavior**: behavior delegated to Windows Shell APIs instead of reimplemented in VeloFile.
 - **UI contract tooling**: static validation and review-support tooling that checks repo-owned UI contracts against WinUI resources and visual evidence metadata.
 - **Visual baseline evidence**: reviewed screenshots and JSON sidecars used to compare first-slice UI presentation over time.
 - **Shell visual-coherence evidence**: reviewed full-shell screenshots and JSON sidecars across required shell states and effective-pixel profiles, used as soft-review evidence alongside behavior-preservation proof.
+- **Validation tier**: accepted test category that tells contributors whether a test is intended for fast inner-loop, contract, smoke, release-evidence, benchmark, visual, or manual-evidence validation.
 - **V1**: first public release scope defined by the approved V1 product scope spec.
 
 ## Next Artifacts
 
-- Architecture review for the shell visual-coherence architecture update and ADR 0010.
-- Matching test spec for [UI Shell Visual Coherence](../../../specs/ui-shell-visual-coherence.md).
-- Execution plan for [UI Shell Visual Coherence](../../../docs/plans/2026-05-11-ui-shell-visual-coherence.md).
+- Execution plan for test runtime optimization.
+- Matching test spec for [Test Runtime Optimization](../../../specs/test-runtime-optimization.md) after execution planning.
 
 ## Follow-on Artifacts
 
@@ -393,8 +443,11 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
 - [UI Shell Visual Coherence Spec](../../../specs/ui-shell-visual-coherence.md)
 - [ADR 0010: Shell Visual-Coherence Contracts and Evidence](../../adr/0010-shell-visual-coherence-contracts.md)
+- [Test Runtime Optimization Proposal](../../proposals/2026-05-16-test-runtime-optimization.md)
+- [Test Runtime Optimization Spec](../../../specs/test-runtime-optimization.md)
+- [ADR 0011: Test Runtime Validation Tiers and Corpus Harness Optimization](../../adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md)
 - Architecture review for the UI design-system update completed on 2026-05-11 with status `approved` and no material findings.
 
 ## Readiness
 
-Ready for `architecture-review` for the shell visual-coherence update. No open architecture questions block review.
+Architecture review for the test runtime optimization update is approved. Ready for execution planning.
