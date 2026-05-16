@@ -94,7 +94,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M1. Category Taxonomy, Baseline Runtime, and Local Commands
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: establish the validation category contract before moving tests between tiers.
 - Requirements: R1-R21, R44-R45, R48, AC1-AC3
 - Files/components likely touched:
@@ -461,7 +461,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] Architecture review approved.
 - [x] Plan review completed.
 - [x] Test spec approved.
-- [ ] M1 closed.
+- [x] M1 closed.
 - [ ] M2 closed.
 - [ ] M3 closed.
 - [ ] M4 closed.
@@ -471,12 +471,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 
 ## Current Handoff Summary
 
-- Current milestone: M1 category taxonomy, baseline runtime, and local commands
-- Current milestone state: review-requested
-- Last reviewed milestone: plan-review-r2
-- Review status: TRO-CR1 resolved; ready for `code-review` rerun
-- Remaining in-scope implementation milestones: M1-M6
-- Next stage: `code-review` M1 rerun
+- Current milestone: M2 corpus contract tests without wrapper cost
+- Current milestone state: planned
+- Last reviewed milestone: M1 code-review-r2
+- Review status: M1 closed with no open findings
+- Remaining in-scope implementation milestones: M2-M6
+- Next stage: `implement` M2
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -525,6 +525,8 @@ Implementation validation:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
   - `rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests` returned no legacy literal category attributes.
+- M1 code review rerun:
+  - `code-review-r2` approved M1 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -532,4 +534,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M1 code-review rerun, not final closeout.
+See Current Handoff Summary. This plan is ready for M2 implementation, not final closeout.

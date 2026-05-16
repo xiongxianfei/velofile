@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
-current_milestone: M1
-current_milestone_state: review-requested
+current_milestone: M2
+current_milestone_state: planned
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -35,3 +35,4 @@ notes:
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
   - code-review-r1 requested changes for TRO-CR1 before M1 can close.
   - TRO-CR1 was resolved by requiring non-empty ReleaseEvidenceFastRationale text for ReleaseEvidence + Fast tests.
+  - code-review-r2 approved M1 and closed the milestone.

@@ -2,7 +2,7 @@
 
 ## Status
 
-M1 review-requested; TRO-CR1 resolved and ready for code-review rerun
+resolved; M1 closed by code-review-r2; ready for M2 implementation
 
 ## Findings
 
@@ -29,6 +29,9 @@ M1 review-requested; TRO-CR1 resolved and ready for code-review rerun
   - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
   - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 36 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed.
+- Closeout:
+  - [code-review-r2](reviews/code-review-r2.md) approved M1 with no findings.
+  - M1 is closed.
 
 ### TRO-SR1: Prepared-tool staleness is a required failure mode but is undefined
 
