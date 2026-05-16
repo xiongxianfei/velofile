@@ -40,3 +40,25 @@ M2 does not expose prepared-tool options, split CI, remove release evidence, del
 ## M2 evidence
 
 The Corpus contract/fast no-build run selected 42 tests and completed in about 23 seconds locally. Full `scripts/ci.ps1` passed, with the unfiltered Corpus project still taking about 5 m 46 s because M2 preserves existing public wrapper coverage until M3. Full runtime comparison and slow-test reporting remain assigned to M6.
+
+## M3 rationale
+
+M3 installs the public-wrapper safety net that lets later milestones reduce broad wrapper assertions without losing public script confidence. Each public corpus script family now has minimal `CorpusScript` + `Smoke` coverage:
+
+```text
+generate-corpus.ps1
+run-compat-corpus.ps1
+run-preview-corpus.ps1
+run-benchmarks.ps1
+run-diagnostics-conformance.ps1
+```
+
+The generate smoke path also serves as the common hermetic wrapper isolation test. It proves the shared wrapper creates scratch source copies, publishes the Corpus tool under `.velofile-tools`, does not create repository-side generated outputs, and does not add scratch .NET tool paths to the user PATH.
+
+## M3 boundaries
+
+M3 does not remove release-evidence wrapper tests, expose prepared-tool options, split CI, or change public script command-line arguments. Full matrix/profile coverage remains categorized as `ReleaseEvidence`; smoke coverage uses representative output only.
+
+## M3 evidence
+
+The `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds locally. The broader `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation selected 26 tests and still took about 6 m 48 s because it intentionally includes existing release-evidence wrapper tests. Full runtime comparison and slow-test reporting remain assigned to M6.

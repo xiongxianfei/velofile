@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M3
-current_milestone_state: planned
+current_milestone_state: review-requested
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -47,6 +47,21 @@ validation:
         result: passed; build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 57 tests passed; Corpus unfiltered duration about 5 m 46 s
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+  m3:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed; 6 tests selected; about 54 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~HermeticWrapper"
+        result: passed; 1 test selected; about 10 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript"
+        result: passed; 26 tests selected; about 6 m 48 s test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"
+        result: passed; 1 test selected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WrapperCoverageLedgerTests|FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"
+        result: passed after plan updates; 3 tests selected
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
@@ -55,3 +70,4 @@ notes:
   - code-review-r2 approved M1 and closed the milestone.
   - M2 adds in-process corpus contract checks through a test-only internal seam while preserving existing public wrapper tests until M3.
   - code-review-r3 approved M2 and closed the milestone.
+  - M3 adds minimal public script smoke coverage for each public corpus script family and a named hermetic wrapper isolation test.

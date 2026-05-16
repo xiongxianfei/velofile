@@ -81,14 +81,14 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### Wrapper Coverage Migration Ledger
 
-| Existing wrapper-backed claim | Existing test/script | M2 action | Replacement evidence | Replacement milestone |
-|---|---|---|---|---|
-| Generate corpus profile entrypoint works | `CorpusToolingSmokeTests` / `generate-corpus.ps1` | preserved in M2 | minimal `generate-corpus.ps1` smoke | M3 |
-| Compatibility runner entrypoint works | `CorpusToolingSmokeTests` / `run-compat-corpus.ps1` | preserved in M2 | minimal `run-compat-corpus.ps1` smoke | M3 |
-| Preview runner entrypoint works | `CorpusToolingSmokeTests` / `run-preview-corpus.ps1` | preserved in M2 | minimal `run-preview-corpus.ps1` smoke | M3 |
-| Benchmark wrapper entrypoint works | `CorpusToolingSmokeTests` / `run-benchmarks.ps1` | preserved in M2 | minimal `run-benchmarks.ps1` smoke, if in scope | M3 |
-| Diagnostics conformance wrapper works | `CorpusToolingSmokeTests` / `run-diagnostics-conformance.ps1` | preserved in M2 | minimal diagnostics smoke, if in scope | M3 |
-| Scratch publish does not write outside scratch root | `CorpusToolingSmokeTests` / `Invoke-CorpusTool.ps1` | preserved in M2 | common hermetic wrapper isolation test | M3 |
+| Existing wrapper-backed claim | Existing test/script | M2 action | Replacement evidence | Replacement milestone | M3 status |
+|---|---|---|---|---|---|
+| Generate corpus profile entrypoint works | `CorpusToolingSmokeTests` / `generate-corpus.ps1` | preserved in M2 | minimal `generate-corpus.ps1` smoke | M3 | covered by `HermeticWrapper_scratch_publish_isolation_and_path_safety` |
+| Compatibility runner entrypoint works | `CorpusToolingSmokeTests` / `run-compat-corpus.ps1` | preserved in M2 | minimal `run-compat-corpus.ps1` smoke | M3 | covered by `Compat_public_script_smoke_routes_and_writes_representative_output` |
+| Preview runner entrypoint works | `CorpusToolingSmokeTests` / `run-preview-corpus.ps1` | preserved in M2 | minimal `run-preview-corpus.ps1` smoke | M3 | covered by `Preview_public_script_smoke_routes_and_writes_representative_output` |
+| Benchmark wrapper entrypoint works | `CorpusToolingSmokeTests` / `run-benchmarks.ps1` | preserved in M2 | minimal `run-benchmarks.ps1` smoke, if in scope | M3 | covered by `Benchmark_public_script_smoke_routes_and_writes_representative_output` |
+| Diagnostics conformance wrapper works | `CorpusToolingSmokeTests` / `run-diagnostics-conformance.ps1` | preserved in M2 | minimal diagnostics smoke, if in scope | M3 | covered by `Diagnostics_public_script_smoke_routes_and_writes_representative_output` |
+| Scratch publish does not write outside scratch root | `CorpusToolingSmokeTests` / `Invoke-CorpusTool.ps1` | preserved in M2 | common hermetic wrapper isolation test | M3 | covered by `HermeticWrapper_scratch_publish_isolation_and_path_safety` |
 
 ## Milestones
 
@@ -190,7 +190,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M3. Public Script Smoke and Hermetic Wrapper Coverage
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: preserve public wrapper confidence with a minimal smoke set and one common hermetic scratch-publish isolation test.
 - Requirements: R27-R33, AC5-AC7
 - Files/components likely touched:
@@ -463,7 +463,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] Test spec approved.
 - [x] M1 closed.
 - [x] M2 closed.
-- [ ] M3 closed.
+- [ ] M3 review requested.
 - [ ] M4 closed.
 - [ ] M5 closed.
 - [ ] M6 closed.
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M3 public script smoke and hermetic wrapper coverage
-- Current milestone state: planned
+- Current milestone state: review-requested
 - Last implemented milestone: M2 implementation handoff
 - Last reviewed milestone: M2 code-review-r3
-- Review status: M2 closed with no open findings
+- Review status: M3 awaiting code review
 - Remaining in-scope implementation milestones: M3-M6
-- Next stage: `implement` M3
+- Next stage: `code-review` M3
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -493,6 +493,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 | 2026-05-16 | Replace legacy Corpus-only category names with the accepted taxonomy. | Spec R8-R15 require Corpus category inventory enforcement and reject unknown category names. | Preserve legacy aliases such as `UiContracts`, `Benchmarks`, or `Release` in `VeloFile.Corpus.Tests`. |
 | 2026-05-16 | Use a narrow `InternalsVisibleTo` seam from `tools/VeloFile.Corpus` to `VeloFile.Corpus.Tests` for M2 contract checks. | The contract claim is corpus command output, not public wrapper routing, so in-process invocation avoids PowerShell and scratch publish cost while preserving wrapper tests for M3. | Expose a public prepared-tool/script option; keep every assertion behind public wrapper execution. |
 | 2026-05-16 | Retarget `VeloFile.Corpus.Tests` to the Corpus tool's Windows TFM. | The Corpus tool already targets `net8.0-windows10.0.19041.0`; the test project must match to reference the tool for in-process contract checks. | Duplicate corpus logic in the test project; change the tool target framework. |
+| 2026-05-16 | Use `generate-corpus.ps1` as the M3 hermetic wrapper isolation path. | It exercises the shared `Invoke-CorpusTool.ps1` scratch source copy and publish path while also serving as the minimal generate-script smoke. | Add a separate hermetic-only wrapper command; duplicate another generate smoke invocation. |
 
 ## Surprises and Discoveries
 
@@ -501,6 +502,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - M1 category migration changes Corpus project category filters: Corpus UI contract tests now use `Contract` and/or `Visual` instead of the old `UiContracts` category, while broad unfiltered CI still runs them.
 - M2's in-process contract tests can cover manifest, compatibility, preview, diagnostics, redaction, scratch-root, and release-classification contracts without creating `.velofile-tools` or invoking public PowerShell wrappers.
 - The Corpus contract no-build run is now 42 selected tests in about 23 seconds locally, which meets the M2 target of staying under 30 seconds for the Corpus fast/contract run when already built.
+- M3's required `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation still selects release-evidence wrapper tests by design and took about 6 m 48 s locally. The smaller `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds.
 
 ## Validation Notes
 
@@ -544,6 +546,15 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M2 code review:
   - `code-review-r3` approved M2 with no findings and closed the milestone.
+- M3 TDD failure:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` first failed because the hermetic wrapper test incorrectly expected the scratch-copied project to have no `bin`/`obj` after `dotnet publish`; the assertion was corrected to focus on scratch source/publish existence and repo-side output isolation.
+- M3 validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests, about 54 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~HermeticWrapper"` passed: 1 test, about 10 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript"` passed: 26 tests, about 6 m 48 s test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"` passed: 1 test.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WrapperCoverageLedgerTests|FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"` passed after plan updates: 3 tests.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -551,4 +562,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M3 implementation, not final closeout.
+See Current Handoff Summary. M3 implementation is ready for code review, not milestone closeout or final closeout.

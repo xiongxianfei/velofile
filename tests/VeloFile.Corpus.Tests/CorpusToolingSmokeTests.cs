@@ -513,20 +513,28 @@ public sealed class CorpusToolingSmokeTests
     [TestMethod]
     [TestCategory(CorpusTestCategories.CorpusScript)]
     [TestCategory(CorpusTestCategories.Smoke)]
-    public void Corpus_scripts_do_not_add_scratch_dotnet_tools_to_user_path()
+    public void HermeticWrapper_scratch_publish_isolation_and_path_safety()
     {
+        var repoRoot = FindRepoRoot();
         using var scratch = ScratchWorkspace.Create();
+        var beforeRepoOutputs = VeloFile.Corpus.Tests.TestRuntime.RepoOutputSnapshot.CaptureGeneratedOutputPaths(repoRoot);
         var before = UserPathEntries().ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var result = RunScript("generate-corpus.ps1", "-Profile", "smoke", "-ScratchRoot", scratch.Root);
 
         AssertCommandSucceeded(result);
+        var afterRepoOutputs = VeloFile.Corpus.Tests.TestRuntime.RepoOutputSnapshot.CaptureGeneratedOutputPaths(repoRoot);
         var addedScratchPaths = UserPathEntries()
             .Where(entry => !before.Contains(entry))
             .Where(IsVeloFileScratchDotnetToolsPath)
             .ToArray();
 
         Assert.IsEmpty(addedScratchPaths, string.Join(Environment.NewLine, addedScratchPaths));
+        CollectionAssert.AreEqual(beforeRepoOutputs, afterRepoOutputs, "Hermetic wrapper execution must not create repository-side generated outputs.");
+        Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-tools", "source", "VeloFile.Corpus", "Program.cs")));
+        Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-tools", "src", "VeloFile.Core", "VeloFile.Core.csproj")));
+        Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-tools", "src", "VeloFile.Windows", "VeloFile.Windows.csproj")));
+        Assert.IsTrue(File.Exists(Path.Combine(scratch.Root, ".velofile-tools", "publish", "VeloFile.Corpus", "VeloFile.Corpus.dll")));
     }
 
     private static void AssertCommandSucceeded(CommandResult result)
