@@ -331,7 +331,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M6. Runtime Reporting and Optimization Evidence
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: record before/after timing and slow-test evidence so the optimization is reviewable.
 - Requirements: R48-R60, AC10
 - Files/components likely touched:
@@ -472,14 +472,14 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M6 runtime reporting and optimization evidence
-- Current milestone state: planned
-- Last implemented milestone: M5 review-resolution handoff
+- Current milestone state: review-requested
+- Last implemented milestone: M6 runtime reporting handoff
 - Last reviewed milestone: M5 code-review-r8
-- Review status: M5 closed with no open findings
+- Review status: M6 implementation is ready for code review; M5 closed with no open findings
 - Remaining in-scope implementation milestones: M6
-- Next stage: `implement` M6
+- Next stage: `code-review` M6
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M6 implementation, runtime evidence, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M6 code review, any required review-resolution, M7 lifecycle closeout, verify, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -496,6 +496,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 | 2026-05-16 | Use `generate-corpus.ps1` as the M3 hermetic wrapper isolation path. | It exercises the shared `Invoke-CorpusTool.ps1` scratch source copy and publish path while also serving as the minimal generate-script smoke. | Add a separate hermetic-only wrapper command; duplicate another generate smoke invocation. |
 | 2026-05-16 | Use a test-owned current-run manifest for prepared-tool execution. | M4 only needs same-run prepared tool reuse; setup-id validation prevents stale cross-run reuse without adding source-hash caching. | Expose public prepared-tool script options; implement cross-run prepared-tool caching in the first slice. |
 | 2026-05-16 | Require `EvidenceFastPathRationale` for Visual/ManualEvidence tests selected by `Fast` or `Contract`. | R42 allows evidence checks in fast/default filters only when their fast/contract purpose is explicit. | Let visual/manual evidence drift into fast/default filters based only on category names. |
+| 2026-05-16 | Record M6 runtime misses instead of weakening coverage. | Corpus fast/contract no-build and full CI remained above SHOULD targets, but the spec requires measured misses and coverage preservation rather than deleting expensive evidence. | Remove prepared-tool, wrapper, or release-evidence coverage to hit timing targets. |
 
 ## Surprises and Discoveries
 
@@ -507,6 +508,8 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - M3's required `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation still selects release-evidence wrapper tests by design and took about 6 m 48 s locally. The smaller `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds.
 - M4 prepared-tool tests must use a separate generated-corpus root under the scratch root. Reusing the prepared-tool root or its parent as corpus output makes the Corpus scratch-root guard correctly reject the non-empty unmarked directory.
 - `ShellVisualCoherenceContractTests` is both `Visual` and `Contract`; M5 keeps it in the fast/default contract tier only with an explicit static-contract rationale.
+- M6 initially hit a local validation timeout while running the broad `Fast|Contract` Corpus filter after an aborted run. A VSTest blame-hang probe pointed at prepared-tool execution, but the focused prepared-tool test and class reran cleanly; the required fast/contract commands then passed. The timeout is recorded as a local validation discovery, not accepted evidence.
+- The `--no-build` fast/contract run was slower than the build-producing run on this machine, so M6 records the miss instead of treating `--no-build` as guaranteed timing improvement.
 
 ## Validation Notes
 
@@ -603,6 +606,22 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M5 code re-review:
   - `code-review-r8` approved M5 with no findings and closed the milestone.
+- M6 TDD failure:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~RuntimeReportTests"` failed as expected before implementation because `docs\changes\2026-05-16-test-runtime-optimization\runtime\m6-optimized-runtime.md` did not exist.
+- M6 validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~RuntimeReportTests"` passed after implementation: 4 tests selected.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~RuntimeReportTests"` passed: 4 tests selected, 17 ms test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool"` passed during timeout isolation: 11 tests selected, about 29 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed after rerun: 71 tests selected, about 52 seconds test duration.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 1 m 7 s Corpus test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract"` passed: 71 tests selected, about 52 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract"` passed: 71 tests selected, about 53 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests selected, about 51 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"` passed: 10 tests selected, about 5 m 3 s test duration.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 90 tests passed; Corpus test duration about 7 m 3 s.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=m6-corpus.trx"` passed: 90 tests selected, about 7 m 24 s test duration; TRX was used to derive the top 10 slow-test table and was not committed.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -610,4 +629,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M6 implementation, not final closeout.
+See Current Handoff Summary. This plan is ready for M6 code review, not final closeout.

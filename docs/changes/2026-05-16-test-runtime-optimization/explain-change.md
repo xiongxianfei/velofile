@@ -108,3 +108,46 @@ The explicit `ReleaseEvidence` command selected 10 tests and completed in about 
 TRO-CR3 found that the broad assembly scan could not directly prove the `ManualEvidence` branch of the fast-default rationale validator because the current Corpus assembly has Visual evidence examples but no ManualEvidence examples. The resolution adds synthetic `CategoryInventoryTests` that exercise the same `CorpusCategoryInventory.Validate(...)` path for `ManualEvidence` + `Contract` and `ManualEvidence` + `Fast`.
 
 The new tests prove missing and whitespace `EvidenceFastPathRationale` values fail, and non-empty rationales pass. This keeps the fix scoped to category inventory proof; it does not change public wrapper behavior, prepared-tool behavior, release-evidence commands, CI routing, or production code.
+
+## M6 rationale
+
+M6 turns the runtime optimization work into reviewable evidence instead of relying on informal timing notes. The new `RuntimeReportTests` require the M6 report to record the accepted Corpus baseline, optimized command timings, full CI status, a structured slow-test source, exactly 10 slow-test rows, local-environment metadata, privacy controls, target outcomes, and explicit coverage preservation.
+
+The report lives at:
+
+```text
+docs/changes/2026-05-16-test-runtime-optimization/runtime/m6-optimized-runtime.md
+```
+
+It records measured local results for the focused fast/default commands, Corpus contract commands, script-smoke tier, release-evidence tier, full CI, and a TRX-derived slow-test table. Raw TRX output is intentionally not committed because it can contain machine-local absolute paths.
+
+## M6 boundaries
+
+M6 does not change production code, public wrapper behavior, prepared-tool behavior, CI routing, test category taxonomy, or release-evidence scope. It also does not delete slow coverage to satisfy timing targets.
+
+The runtime report records misses honestly:
+
+```text
+R57: Corpus fast/contract no-build remains above 30 seconds.
+R59: full CI is slower than the pre-optimization Corpus-only baseline and is not directly comparable.
+```
+
+Those misses are recorded with rationale rather than treated as permission to remove wrapper, prepared-tool, or release-evidence tests.
+
+## M6 evidence
+
+`RuntimeReportTests` first failed because the M6 report did not exist, then passed after the report was added and populated. The final report uses TRX-derived slow-test evidence from a full Corpus test run and avoids committing raw machine-local test artifacts.
+
+M6 validation passed for the required build-producing and timing-focused commands, including:
+
+```text
+dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+```
+
+A local fast/contract timeout occurred during validation after an aborted run. A VSTest hang probe pointed at prepared-tool execution, but the focused prepared-tool test and class reran cleanly, and the required fast/contract commands later passed. The event is recorded as a validation discovery, not as accepted failure evidence.
