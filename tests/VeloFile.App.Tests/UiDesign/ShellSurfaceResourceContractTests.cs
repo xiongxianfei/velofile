@@ -124,6 +124,10 @@ public sealed class ShellSurfaceResourceContractTests
         {
             StringAssert.Contains(xaml, requiredReference);
         }
+
+        var code = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml.cs");
+        StringAssert.Contains(code, "ResolveTitleBarColor(\"VfTitleBarBackgroundColor\")");
+        Assert.IsFalse(code.Contains("Color.FromArgb", StringComparison.Ordinal), "Native titlebar colors must come from governed VeloFile resources.");
     }
 
     [TestMethod]
@@ -151,9 +155,42 @@ public sealed class ShellSurfaceResourceContractTests
     }
 
     [TestMethod]
+    public void Shell_surface_dictionary_exposes_governed_titlebar_color_resources()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.Shell.xaml");
+
+        foreach (var resource in new[]
+        {
+            "VfTitleBarBackgroundColor",
+            "VfTitleBarForegroundColor",
+            "VfTitleBarInactiveBackgroundColor",
+            "VfTitleBarInactiveForegroundColor",
+            "VfTitleBarButtonBackgroundColor",
+            "VfTitleBarButtonForegroundColor",
+            "VfTitleBarButtonHoverBackgroundColor",
+            "VfTitleBarButtonHoverForegroundColor",
+            "VfTitleBarButtonPressedBackgroundColor",
+            "VfTitleBarButtonPressedForegroundColor",
+            "VfTitleBarButtonInactiveBackgroundColor",
+            "VfTitleBarButtonInactiveForegroundColor"
+        })
+        {
+            StringAssert.Contains(xaml, $"x:Key=\"{resource}\"");
+        }
+
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorSurfaceChrome\"");
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorTextPrimary\"");
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorTextMuted\"");
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorTextFaint\"");
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorSurfaceHover\"");
+        StringAssert.Contains(xaml, "ResourceKey=\"VfColorSurfaceSelected\"");
+    }
+
+    [TestMethod]
     public void File_list_default_shell_template_does_not_render_placeholder_extension_chips()
     {
         var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
+        var iconResources = ReadRepoFile("src", "VeloFile.App", "Resources", "Icons", "VeloFile.FixtureIcons.xaml");
 
         Assert.IsFalse(xaml.Contains("ThumbnailDisplayText", StringComparison.Ordinal), "M2 shell-default evidence must not render thumbnail text chips.");
         Assert.IsFalse(xaml.Contains("TextTrimming=\"CharacterEllipsis\"", StringComparison.Ordinal) && xaml.Contains("VfFileListIcon", StringComparison.Ordinal), "File-list icon treatment must not ellipsize text chips.");
@@ -163,8 +200,9 @@ public sealed class ShellSurfaceResourceContractTests
             Assert.IsFalse(xaml.Contains($"Text=\"{placeholder}\"", StringComparison.Ordinal), $"File-list visual template must not include placeholder chip '{placeholder}'.");
         }
 
-        StringAssert.Contains(xaml, "x:Key=\"VfFileListIconContainerStyle\"");
-        StringAssert.Contains(xaml, "x:Key=\"VfFileListIconPathStyle\"");
+        StringAssert.Contains(xaml, "ContentTemplate=\"{StaticResource VfFileListFixtureIconTemplate}\"");
+        StringAssert.Contains(iconResources, "x:Key=\"VfFileListIconContainerStyle\"");
+        StringAssert.Contains(iconResources, "x:Key=\"VfFileListIconPathStyle\"");
     }
 
     [TestMethod]

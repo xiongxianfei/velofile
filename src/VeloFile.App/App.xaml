@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="Resources/Tokens/VeloFile.State.xaml" />
                 <ResourceDictionary Source="Resources/Tokens/VeloFile.Motion.xaml" />
                 <ResourceDictionary Source="Resources/Components/VeloFile.Shell.xaml" />
+                <ResourceDictionary Source="Resources/Icons/VeloFile.FixtureIcons.xaml" />
                 <ResourceDictionary Source="Resources/Components/VeloFile.FileList.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -9,6 +9,7 @@
     Title="VeloFile">
     <Grid
         x:Name="RootShell"
+        RequestedTheme="Dark"
         Style="{StaticResource VfShellAppRootStyle}">
         <Grid.Resources>
             <!-- ui-contract-scope:shell-surface-foundation:start -->
@@ -91,6 +92,7 @@
                             <TextBlock
                                 MinWidth="140"
                                 Padding="8,4"
+                                Style="{StaticResource VfShellPrimaryTextStyle}"
                                 Text="{Binding Path}" />
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -291,44 +293,85 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel x:Name="VisibilityControls" Spacing="6">
-                    <ToggleSwitch
-                        x:Name="ShowHiddenFilesToggle"
-                        Header="Hidden"
-                        OnContent=""
-                        OffContent=""
-                        Style="{StaticResource VfShellToggleSwitchStyle}"
-                        AccessKey="H"
-                        Toggled="ShowHiddenFilesToggle_Toggled"
-                        AutomationProperties.Name="Show hidden files" />
-                    <ToggleSwitch
-                        x:Name="ShowSystemFilesToggle"
-                        Header="System"
-                        OnContent=""
-                        OffContent=""
-                        Style="{StaticResource VfShellToggleSwitchStyle}"
-                        AccessKey="S"
-                        Toggled="ShowSystemFilesToggle_Toggled"
-                        AutomationProperties.Name="Show protected operating system files" />
-                    <ToggleSwitch
-                        x:Name="ShowExtensionsToggle"
-                        Header="Extensions"
-                        OnContent=""
-                        OffContent=""
-                        Style="{StaticResource VfShellToggleSwitchStyle}"
-                        AccessKey="E"
-                        Toggled="ShowExtensionsToggle_Toggled"
-                        AutomationProperties.Name="Show file extensions" />
+                <StackPanel
+                    x:Name="VisibilityControls"
+                    Grid.Row="0"
+                    Spacing="8">
+                    <TextBlock
+                        Style="{StaticResource VfShellMutedTextStyle}"
+                        Text="Visibility" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="Hidden" />
+                        <ToggleSwitch
+                            x:Name="ShowHiddenFilesToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfShellToggleSwitchStyle}"
+                            AccessKey="H"
+                            Toggled="ShowHiddenFilesToggle_Toggled"
+                            AutomationProperties.Name="Show hidden files" />
+                    </Grid>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="System" />
+                        <ToggleSwitch
+                            x:Name="ShowSystemFilesToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfShellToggleSwitchStyle}"
+                            AccessKey="S"
+                            Toggled="ShowSystemFilesToggle_Toggled"
+                            AutomationProperties.Name="Show protected operating system files" />
+                    </Grid>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="Extensions" />
+                        <ToggleSwitch
+                            x:Name="ShowExtensionsToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfShellToggleSwitchStyle}"
+                            AccessKey="E"
+                            Toggled="ShowExtensionsToggle_Toggled"
+                            AutomationProperties.Name="Show file extensions" />
+                    </Grid>
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        Style="{StaticResource VfShellPrimaryTextStyle}"
+                        Text="Terminal" />
                     <ComboBox
                         x:Name="TerminalTargetComboBox"
-                        Header="Terminal"
                         PlaceholderText="Default terminal"
                         DropDownOpened="TerminalTargetComboBox_DropDownOpened"
                         SelectionChanged="TerminalTargetComboBox_SelectionChanged"
                         AutomationProperties.Name="Terminal target">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" />
+                                <TextBlock
+                                    Style="{StaticResource VfShellSecondaryTextStyle}"
+                                    Text="{Binding DisplayName}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -343,17 +386,22 @@
                     SelectionMode="Single"
                     AutomationProperties.Name="Sidebar locations">
                     <ListView.Header>
-                        <TextBlock Text="Locations" />
+                        <TextBlock
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="Locations" />
                     </ListView.Header>
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding DisplayName}" />
+                            <TextBlock
+                                Style="{StaticResource VfShellSecondaryTextStyle}"
+                                Text="{Binding DisplayName}" />
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
 
                 <TextBlock
                     Grid.Row="2"
+                    Style="{StaticResource VfShellMutedTextStyle}"
                     Text="Ready"
                     Opacity="0.7" />
             </Grid>
@@ -410,47 +458,81 @@
             </InfoBar>
 
             <!-- ui-contract-scope:file-list-first-slice:start -->
-            <ListView
-                x:Name="FileListSurface"
+            <Grid
                 Grid.Row="4"
                 Margin="0,8,0,0"
-                AllowDrop="True"
-                DragOver="FileListSurface_DragOver"
-                DragLeave="FileListSurface_DragLeave"
-                Drop="FileListSurface_Drop"
-                DoubleTapped="FileListSurface_DoubleTapped"
-                ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}"
-                ItemTemplate="{StaticResource VfFileListRowTemplate}"
-                SelectionMode="Extended"
-                SelectionChanged="FileListSurface_SelectionChanged"
-                AutomationProperties.Name="Files">
-                <ListView.Resources>
-                    <SolidColorBrush x:Key="ListViewItemBackground" Color="{Binding Color, Source={StaticResource VfFileListRowBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowHoverBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                </ListView.Resources>
-                <ListView.ContextFlyout>
-                    <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
-                        <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open with" Click="OpenWithMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="CutMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="CopyMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="PasteMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="RenameMenuItem" Text="Rename" Click="RenameMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="DeleteMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="PropertiesMenuItem" Text="Properties" Click="PropertiesMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="CopyPathMenuItem" Text="Copy path" Click="CopyPathMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="CopyNameMenuItem" Text="Copy name" Click="CopyNameMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
-                    </MenuFlyout>
-                </ListView.ContextFlyout>
-            </ListView>
+                RowSpacing="{StaticResource VfSpace1}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid
+                    x:Name="FileListHeader"
+                    Padding="{StaticResource VfFileListHeaderPadding}"
+                    ColumnSpacing="{StaticResource VfSpace3}"
+                    AutomationProperties.Name="File list columns">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="180" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="1"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Name" />
+                    <TextBlock
+                        Grid.Column="2"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Kind" />
+                    <TextBlock
+                        Grid.Column="3"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Modified" />
+                </Grid>
+
+                <ListView
+                    x:Name="FileListSurface"
+                    Grid.Row="1"
+                    AllowDrop="True"
+                    DragOver="FileListSurface_DragOver"
+                    DragLeave="FileListSurface_DragLeave"
+                    Drop="FileListSurface_Drop"
+                    DoubleTapped="FileListSurface_DoubleTapped"
+                    ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}"
+                    ItemTemplate="{StaticResource VfFileListRowTemplate}"
+                    SelectionMode="Extended"
+                    SelectionChanged="FileListSurface_SelectionChanged"
+                    AutomationProperties.Name="Files">
+                    <ListView.Resources>
+                        <SolidColorBrush x:Key="ListViewItemBackground" Color="{Binding Color, Source={StaticResource VfFileListRowBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowHoverBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                    </ListView.Resources>
+                    <ListView.ContextFlyout>
+                        <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
+                            <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open with" Click="OpenWithMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="CutMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="CopyMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="PasteMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="RenameMenuItem" Text="Rename" Click="RenameMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="DeleteMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="PropertiesMenuItem" Text="Properties" Click="PropertiesMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="CopyPathMenuItem" Text="Copy path" Click="CopyPathMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="CopyNameMenuItem" Text="Copy name" Click="CopyNameMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
+                        </MenuFlyout>
+                    </ListView.ContextFlyout>
+                </ListView>
+            </Grid>
             <!-- ui-contract-scope:file-list-first-slice:end -->
 
             <Grid
@@ -671,6 +753,7 @@
             Grid.Column="1"
             Margin="12,0"
             VerticalAlignment="Center"
+            Style="{StaticResource VfShellMutedTextStyle}"
             Text="0 items selected"
             Opacity="0.7" />
 
@@ -694,6 +777,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock
                     Text="Preview"
+                    Style="{StaticResource VfShellPrimaryTextStyle}"
                     FontWeight="SemiBold" />
                 <TextBlock
                     x:Name="PreviewStatusText"

@@ -13,13 +13,18 @@
         "VfFileListItemContainerStyle",
         "VfFileListRowHeight",
         "VfFileListRowNameTextStyle",
-        "VfFileListRowMetadataTextStyle"
+        "VfFileListRowMetadataTextStyle",
+        "VfFileListHeaderTextStyle",
+        "VfFileListHeaderPadding",
+        "VfFileListFixtureIconTemplate"
       ],
       "allowedResourceKeys": [
         "VfFileListRowTemplate",
         "VfFileListItemContainerStyle",
         "VfFileListRowNameTextStyle",
-        "VfFileListRowMetadataTextStyle"
+        "VfFileListRowMetadataTextStyle",
+        "VfFileListHeaderTextStyle",
+        "VfFileListHeaderPadding"
       ],
       "forbiddenLiteralRules": [
         "inline-color",
@@ -70,6 +75,54 @@
         "inline-row-padding",
         "inline-selection-brush",
         "inline-focus-thickness"
+      ]
+    },
+    {
+      "id": "fixture-icons",
+      "status": "active",
+      "files": [
+        "src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml"
+      ],
+      "requiredResourceReferences": [
+        "VfIconGeometryFileGeneric",
+        "VfIconGeometryFolder",
+        "VfIconGeometryPdf",
+        "VfIconGeometryImage",
+        "VfIconGeometryText",
+        "VfIconGeometrySpreadsheet",
+        "VfIconGeometryExecutable",
+        "VfIconGeometryMarkdown",
+        "VfIconGeometryThumbnailFallback",
+        "VfFileListIconGeometryConverter",
+        "VfFileListIconContainerStyle",
+        "VfFileListIconPathStyle",
+        "VfFileListFixtureIconTemplate"
+      ],
+      "allowedResourceKeys": [
+        "VfIconGeometryFileGeneric",
+        "VfIconGeometryFolder",
+        "VfIconGeometryPdf",
+        "VfIconGeometryImage",
+        "VfIconGeometryText",
+        "VfIconGeometrySpreadsheet",
+        "VfIconGeometryExecutable",
+        "VfIconGeometryMarkdown",
+        "VfIconGeometryThumbnailFallback",
+        "VfFileListIconGeometryConverter",
+        "VfFileListIconContainerStyle",
+        "VfFileListIconPathStyle",
+        "VfFileListFixtureIconTemplate"
+      ],
+      "forbiddenLiteralRules": [
+        "inline-color",
+        "inline-row-height",
+        "inline-row-padding",
+        "inline-selection-brush",
+        "inline-focus-thickness",
+        "forbidden-icon-control",
+        "forbidden-icon-glyph",
+        "forbidden-icon-chip",
+        "inline-icon-size"
       ]
     }
   ]

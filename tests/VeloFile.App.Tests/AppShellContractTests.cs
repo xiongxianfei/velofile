@@ -285,6 +285,7 @@ public sealed class AppShellContractTests
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
         var fileListResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml").FullName);
+        var iconResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Icons", "VeloFile.FixtureIcons.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
         var app = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
         var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
@@ -293,7 +294,8 @@ public sealed class AppShellContractTests
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
         Assert.IsFalse(fileListResources.Contains("Text=\"{Binding ThumbnailDisplayText}\"", StringComparison.Ordinal));
-        StringAssert.Contains(fileListResources, "VfFileListIconPathStyle");
+        StringAssert.Contains(fileListResources, "ContentTemplate=\"{StaticResource VfFileListFixtureIconTemplate}\"");
+        StringAssert.Contains(iconResources, "VfFileListIconPathStyle");
         StringAssert.Contains(fileListResources, "Opacity=\"{Binding Converter={StaticResource VfFileListRowOpacityConverter}}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");

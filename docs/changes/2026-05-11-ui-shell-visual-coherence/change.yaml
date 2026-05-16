@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-shell-visual-coherence
 title: UI shell visual coherence
-status: m2-resolution-needed
+status: m3-implementation-complete-visual-evidence-needed
 proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
 spec: specs/ui-shell-visual-coherence.md
 plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
@@ -9,30 +9,32 @@ architecture:
   - docs/adr/0010-shell-visual-coherence-contracts.md
 review:
   stage: code-review
-  status: blocked
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r7.md
-  findings:
-    - CR-002
+  status: clean-with-notes
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r9.md
+  findings: []
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r3.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r4.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r5.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r6.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r7.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r8.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
-  milestone: M2
-  status: resolution-needed
-  summary: Added and tightened the shell surface foundation resource dictionary, activated the governed shell-surface scope, applied readable shell/control resources to existing full-shell containers, removed visible sidebar toggle state text and file-list text-chip icon rendering, and preserved existing route controls. M2 still lacks accepted full-shell visual evidence.
+  milestone: M3
+  status: implementation-complete-visual-evidence-needed
+  summary: Added governed deterministic fixture icon resources, allowlisted file-list icon kinds, resource-backed icon geometry mapping, row-template icon binding, and a tokenized file-list details header while preserving existing selection, context-menu, drag/drop, thumbnail, and preview routes. Accepted full-shell visual evidence for shell-file-list-selected-focused is still pending.
   validation:
-    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface
-    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"
     - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
-    - dotnet build VeloFile.sln -c Debug
-    - dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"
-    - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter UiDesign
-    - dotnet test VeloFile.sln -c Debug --filter "ShellSurfaceResourceContractTests|FileListResourceContractTests|ShellVisualCoherenceContractTests"
+    - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid
+    - dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
+    - dotnet test VeloFile.sln -c Debug --filter "FileListResourceContractTests|UiFixture|UiContracts"
+    - dotnet test VeloFile.sln -c Debug --filter "UiContracts|FileList|AppShellContract|DragDrop|Preview"
+    - powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    - git diff --check
 visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
-next_stage: review-resolution-cr-002
+  - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
+next_stage: visual-evidence-m3

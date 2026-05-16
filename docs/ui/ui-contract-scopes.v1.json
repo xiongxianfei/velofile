@@ -13,7 +13,10 @@
         "VfFileListItemContainerStyle",
         "VfFileListRowHeight",
         "VfFileListRowNameTextStyle",
-        "VfFileListRowMetadataTextStyle"
+        "VfFileListRowMetadataTextStyle",
+        "VfFileListHeaderTextStyle",
+        "VfFileListHeaderPadding",
+        "VfFileListFixtureIconTemplate"
       ],
       "allowedResourceKeys": [
         "VfFileListRowTemplate",
@@ -21,6 +24,8 @@
         "VfFileListRowNameTextStyle",
         "VfFileListRowMetadataTextStyle",
         "VfFileListRowPadding",
+        "VfFileListHeaderTextStyle",
+        "VfFileListHeaderPadding",
         "VfFileListRowBackground",
         "VfFileListRowHoverBackground",
         "VfFileListRowSelectedBackground",
@@ -89,6 +94,18 @@
         "VfShellWarningBrush",
         "VfShellSuccessBrush",
         "VfShellDisabledOpacity",
+        "VfTitleBarBackgroundColor",
+        "VfTitleBarForegroundColor",
+        "VfTitleBarInactiveBackgroundColor",
+        "VfTitleBarInactiveForegroundColor",
+        "VfTitleBarButtonBackgroundColor",
+        "VfTitleBarButtonForegroundColor",
+        "VfTitleBarButtonHoverBackgroundColor",
+        "VfTitleBarButtonHoverForegroundColor",
+        "VfTitleBarButtonPressedBackgroundColor",
+        "VfTitleBarButtonPressedForegroundColor",
+        "VfTitleBarButtonInactiveBackgroundColor",
+        "VfTitleBarButtonInactiveForegroundColor",
         "VfShellControlPadding",
         "VfShellControlBorderThickness",
         "VfShellTextBlockStyle",
@@ -222,13 +239,21 @@
     },
     {
       "id": "fixture-icons",
-      "status": "planned",
+      "status": "active",
       "files": [
         "src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml"
       ],
       "requiredResourceReferences": [
         "VfIconGeometryFileGeneric",
         "VfIconGeometryFolder",
+        "VfIconGeometryPdf",
+        "VfIconGeometryImage",
+        "VfIconGeometryText",
+        "VfIconGeometrySpreadsheet",
+        "VfIconGeometryExecutable",
+        "VfIconGeometryMarkdown",
+        "VfIconGeometryThumbnailFallback",
+        "VfFileListIconGeometryConverter",
         "VfFileListIconContainerStyle",
         "VfFileListIconPathStyle",
         "VfFileListFixtureIconTemplate"
@@ -243,6 +268,7 @@
         "VfIconGeometryExecutable",
         "VfIconGeometryMarkdown",
         "VfIconGeometryThumbnailFallback",
+        "VfFileListIconGeometryConverter",
         "VfFileListIconContainerStyle",
         "VfFileListIconPathStyle",
         "VfFileListFixtureIconTemplate"

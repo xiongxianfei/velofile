@@ -1,4 +1,5 @@
 using VeloFile.App.ViewModels;
+using VeloFile.App.Ui;
 using VeloFile.Core.Diagnostics;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Navigation;
@@ -38,6 +39,7 @@ public sealed record UiFixtureRow(
     string Id,
     UiFixtureRowState State,
     ListedFileItem Item,
+    FileListIconKind IconKind,
     ThumbnailState Thumbnail)
 {
     public string FullPath => Item.FullPath;
@@ -219,18 +221,19 @@ public static class UiFixtureRegistry
     {
         var rows = new[]
         {
-            Row("row-document", UiFixtureRowState.Normal, "Document.pdf", "Document.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 192_000),
-            Row("row-src-folder", UiFixtureRowState.Folder, "src", "src", FileSystemEntryKind.Directory, FileAttributes.Directory, "DIR"),
-            Row("row-report-selected", UiFixtureRowState.Selected, "selected-report.docx", "selected-report.docx", FileSystemEntryKind.File, FileAttributes.Normal, "DOC", length: 81_920),
-            Row("row-keyboard-focus", UiFixtureRowState.Focused, "keyboard-focus.md", "keyboard-focus.md", FileSystemEntryKind.File, FileAttributes.Normal, "MD", length: 12_288),
-            Row("row-selected-focused", UiFixtureRowState.SelectedFocused, "selected-focused.xlsx", "selected-focused.xlsx", FileSystemEntryKind.File, FileAttributes.Normal, "XLS", length: 44_032),
-            Row("row-multi-a", UiFixtureRowState.MultiSelected, "multi-selected-a.txt", "multi-selected-a.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_096),
-            Row("row-multi-b", UiFixtureRowState.MultiSelected, "multi-selected-b.txt", "multi-selected-b.txt", FileSystemEntryKind.File, FileAttributes.Normal, "TXT", length: 4_608),
-            Row("row-hidden-env", UiFixtureRowState.Hidden, ".env", ".env", FileSystemEntryKind.File, FileAttributes.Hidden, "ENV", length: 512),
-            Row("row-protected-system", UiFixtureRowState.ProtectedSystem, "system.ini", "system.ini", FileSystemEntryKind.File, FileAttributes.Hidden | FileAttributes.System, "SYS", length: 2_048),
-            Row("row-thumbnail-fallback", UiFixtureRowState.ThumbnailFallback, "preview-timeout.png", "preview-timeout.png", FileSystemEntryKind.File, FileAttributes.Normal, "PNG", length: 735_232),
-            Row("row-long-name", UiFixtureRowState.LongName, "Very long filename with spaces and extension - final final v3 copy.pdf", "Very long filename with spaces and extension - final final v3 copy.pdf", FileSystemEntryKind.File, FileAttributes.Normal, "PDF", length: 1_240_000),
-            Row("row-metadata-heavy", UiFixtureRowState.MetadataHeavy, "invoice.pdf.exe", "invoice.pdf.exe", FileSystemEntryKind.File, FileAttributes.Normal, "EXE", length: 98_304)
+            Row("row-document", UiFixtureRowState.Normal, "Document.pdf", "Document.pdf", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Pdf, length: 192_000),
+            Row("row-src-folder", UiFixtureRowState.Folder, "src", "src", FileSystemEntryKind.Directory, FileAttributes.Directory, FileListIconKind.Folder),
+            Row("row-report-selected", UiFixtureRowState.Selected, "selected-report.docx", "selected-report.docx", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.FileGeneric, length: 81_920),
+            Row("row-keyboard-focus", UiFixtureRowState.Focused, "keyboard-focus.md", "keyboard-focus.md", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Markdown, length: 12_288),
+            Row("row-selected-focused", UiFixtureRowState.SelectedFocused, "selected-focused.xlsx", "selected-focused.xlsx", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Spreadsheet, length: 44_032),
+            Row("row-multi-a", UiFixtureRowState.MultiSelected, "multi-selected-a.txt", "multi-selected-a.txt", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Text, length: 4_096),
+            Row("row-multi-b", UiFixtureRowState.MultiSelected, "multi-selected-b.txt", "multi-selected-b.txt", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Text, length: 4_608),
+            Row("row-hidden-env", UiFixtureRowState.Hidden, ".env", ".env", FileSystemEntryKind.File, FileAttributes.Hidden, FileListIconKind.Text, length: 512),
+            Row("row-protected-system", UiFixtureRowState.ProtectedSystem, "system.ini", "system.ini", FileSystemEntryKind.File, FileAttributes.Hidden | FileAttributes.System, FileListIconKind.Text, length: 2_048),
+            Row("row-image", UiFixtureRowState.Normal, "photo.jpg", "photo.jpg", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Image, length: 235_520),
+            Row("row-thumbnail-fallback", UiFixtureRowState.ThumbnailFallback, "preview-timeout.png", "preview-timeout.png", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.ThumbnailFallback, length: 735_232),
+            Row("row-long-name", UiFixtureRowState.LongName, "Very long filename with spaces and extension - final final v3 copy.pdf", "Very long filename with spaces and extension - final final v3 copy.pdf", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Pdf, length: 1_240_000),
+            Row("row-metadata-heavy", UiFixtureRowState.MetadataHeavy, "invoice.pdf.exe", "invoice.pdf.exe", FileSystemEntryKind.File, FileAttributes.Normal, FileListIconKind.Executable, length: 98_304)
         };
 
         return new UiFixtureDefinition(FileListV1Name, "dark", "comfortable", "1440x900", rows, CreateFileListV1PresentationState(rows));
@@ -254,7 +257,7 @@ public static class UiFixtureRegistry
         string displayName,
         FileSystemEntryKind kind,
         FileAttributes attributes,
-        string thumbnailText,
+        FileListIconKind iconKind,
         long? length = null)
     {
         var fullPath = Path.Combine(FixtureRoot, name);
@@ -274,7 +277,10 @@ public static class UiFixtureRegistry
             id,
             state,
             item,
-            ThumbnailState.GenericIcon(ThumbnailArtifact.GenericIcon(thumbnailText), "ui-fixture"));
+            iconKind,
+            ThumbnailState.GenericIcon(
+                ThumbnailArtifact.GenericIcon(iconKind.ToString()),
+                iconKind is FileListIconKind.ThumbnailFallback ? "thumbnail-fallback" : "ui-fixture"));
     }
 
     private static FileSystemEntrySnapshot ToSnapshot(ListedFileItem item)

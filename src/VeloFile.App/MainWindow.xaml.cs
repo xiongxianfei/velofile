@@ -1,4 +1,6 @@
 using Microsoft.UI.Input;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -51,6 +53,7 @@ public sealed partial class MainWindow : Window
         ViewModel = viewModel;
         _fixturePresentationState = fixturePresentationState;
         ViewModel.SetShellDispatcher(new WinUiShellDispatcher(DispatcherQueue));
+        ConfigureDarkTitleBar();
         _keyboardFocusContextProvider = new WinUiKeyboardFocusContextProvider(RootShell, FileListSurface);
         _fileCommandAcceleratorRouter = new AppFileCommandAcceleratorRouter(ViewModel, _keyboardFocusContextProvider);
         _dragDropRoute = new AppDragDropRoute(ViewModel, new WinUiFileDropPayloadExtractor());
@@ -64,6 +67,43 @@ public sealed partial class MainWindow : Window
     }
 
     public AppShellViewModel ViewModel { get; }
+
+    private void ConfigureDarkTitleBar()
+    {
+        try
+        {
+            var windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Win32Interop.GetWindowIdFromWindow(windowHandle);
+            var titleBar = AppWindow.GetFromWindowId(windowId).TitleBar;
+            titleBar.BackgroundColor = ResolveTitleBarColor("VfTitleBarBackgroundColor");
+            titleBar.ForegroundColor = ResolveTitleBarColor("VfTitleBarForegroundColor");
+            titleBar.InactiveBackgroundColor = ResolveTitleBarColor("VfTitleBarInactiveBackgroundColor");
+            titleBar.InactiveForegroundColor = ResolveTitleBarColor("VfTitleBarInactiveForegroundColor");
+            titleBar.ButtonBackgroundColor = ResolveTitleBarColor("VfTitleBarButtonBackgroundColor");
+            titleBar.ButtonForegroundColor = ResolveTitleBarColor("VfTitleBarButtonForegroundColor");
+            titleBar.ButtonHoverBackgroundColor = ResolveTitleBarColor("VfTitleBarButtonHoverBackgroundColor");
+            titleBar.ButtonHoverForegroundColor = ResolveTitleBarColor("VfTitleBarButtonHoverForegroundColor");
+            titleBar.ButtonPressedBackgroundColor = ResolveTitleBarColor("VfTitleBarButtonPressedBackgroundColor");
+            titleBar.ButtonPressedForegroundColor = ResolveTitleBarColor("VfTitleBarButtonPressedForegroundColor");
+            titleBar.ButtonInactiveBackgroundColor = ResolveTitleBarColor("VfTitleBarButtonInactiveBackgroundColor");
+            titleBar.ButtonInactiveForegroundColor = ResolveTitleBarColor("VfTitleBarButtonInactiveForegroundColor");
+        }
+        catch
+        {
+            // Title bar color is visual polish; startup must remain usable if the platform rejects it.
+        }
+    }
+
+    private static global::Windows.UI.Color ResolveTitleBarColor(string resourceKey)
+    {
+        var resource = Application.Current.Resources[resourceKey];
+        if (resource is global::Windows.UI.Color color)
+        {
+            return color;
+        }
+
+        throw new InvalidOperationException($"Titlebar resource '{resourceKey}' must be a Color.");
+    }
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {

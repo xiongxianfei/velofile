@@ -28,6 +28,18 @@
     <StaticResource x:Key="VfShellWarningBrush" ResourceKey="VfBrushWarning" />
     <StaticResource x:Key="VfShellSuccessBrush" ResourceKey="VfBrushSuccess" />
     <StaticResource x:Key="VfShellDisabledOpacity" ResourceKey="VfStateDisabledOpacity" />
+    <StaticResource x:Key="VfTitleBarBackgroundColor" ResourceKey="VfColorSurfaceChrome" />
+    <StaticResource x:Key="VfTitleBarForegroundColor" ResourceKey="VfColorTextPrimary" />
+    <StaticResource x:Key="VfTitleBarInactiveBackgroundColor" ResourceKey="VfColorSurfaceChrome" />
+    <StaticResource x:Key="VfTitleBarInactiveForegroundColor" ResourceKey="VfColorTextMuted" />
+    <StaticResource x:Key="VfTitleBarButtonBackgroundColor" ResourceKey="VfColorSurfaceChrome" />
+    <StaticResource x:Key="VfTitleBarButtonForegroundColor" ResourceKey="VfColorTextPrimary" />
+    <StaticResource x:Key="VfTitleBarButtonHoverBackgroundColor" ResourceKey="VfColorSurfaceHover" />
+    <StaticResource x:Key="VfTitleBarButtonHoverForegroundColor" ResourceKey="VfColorTextPrimary" />
+    <StaticResource x:Key="VfTitleBarButtonPressedBackgroundColor" ResourceKey="VfColorSurfaceSelected" />
+    <StaticResource x:Key="VfTitleBarButtonPressedForegroundColor" ResourceKey="VfColorTextPrimary" />
+    <StaticResource x:Key="VfTitleBarButtonInactiveBackgroundColor" ResourceKey="VfColorSurfaceChrome" />
+    <StaticResource x:Key="VfTitleBarButtonInactiveForegroundColor" ResourceKey="VfColorTextFaint" />
     <Thickness x:Key="VfShellControlPadding">10,5</Thickness>
     <Thickness x:Key="VfShellControlBorderThickness">1</Thickness>
 

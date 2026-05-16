@@ -10,3 +10,5 @@
 | [code-review-r5](reviews/code-review-r5.md) | code-review | M2 | blocked | CR-002 |
 | [code-review-r6](reviews/code-review-r6.md) | code-review | M2 | blocked | CR-002 |
 | [code-review-r7](reviews/code-review-r7.md) | code-review | M2 | blocked | CR-002 |
+| [code-review-r8](reviews/code-review-r8.md) | code-review | M2 | changes-requested | CR-003, CR-004 |
+| [code-review-r9](reviews/code-review-r9.md) | code-review | M2 | clean-with-notes | none |

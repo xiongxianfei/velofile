@@ -1,0 +1,25 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="using:VeloFile.App.Ui">
+  <Geometry x:Key="VfIconGeometryFileGeneric">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryFolder">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryPdf">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryImage">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryText">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometrySpreadsheet">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryExecutable">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryMarkdown">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <Geometry x:Key="VfIconGeometryThumbnailFallback">M 0,0 L 1,0 L 1,1 Z</Geometry>
+  <ui:FileListIconGeometryConverter x:Key="VfFileListIconGeometryConverter" />
+  <Style x:Key="VfFileListIconContainerStyle" TargetType="Border">
+    <Setter Property="Width" Value="{StaticResource VfSpace6}" />
+    <Setter Property="Height" Value="{StaticResource VfSpace5}" />
+  </Style>
+  <Style x:Key="VfFileListIconPathStyle" TargetType="Path">
+    <Setter Property="Fill" Value="{StaticResource VfBrushTextSecondary}" />
+  </Style>
+  <DataTemplate x:Key="VfFileListFixtureIconTemplate">
+    <Path Data="{Binding Converter={StaticResource VfFileListIconGeometryConverter}}" />
+  </DataTemplate>
+</ResourceDictionary>
