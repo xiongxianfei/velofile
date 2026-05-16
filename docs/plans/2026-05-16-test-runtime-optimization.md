@@ -331,7 +331,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M6. Runtime Reporting and Optimization Evidence
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: record before/after timing and slow-test evidence so the optimization is reviewable.
 - Requirements: R48-R60, AC10
 - Files/components likely touched:
@@ -466,20 +466,20 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M3 closed.
 - [x] M4 closed.
 - [x] M5 closed.
-- [ ] M6 closed.
+- [x] M6 closed.
 - [ ] M7 lifecycle closeout complete.
 
 ## Current Handoff Summary
 
-- Current milestone: M6 runtime reporting and optimization evidence
-- Current milestone state: review-requested
+- Current milestone: M7 lifecycle closeout
+- Current milestone state: planned
 - Last implemented milestone: M6 runtime reporting handoff
-- Last reviewed milestone: M5 code-review-r8
-- Review status: M6 implementation is ready for code review; M5 closed with no open findings
-- Remaining in-scope implementation milestones: M6
-- Next stage: `code-review` M6
+- Last reviewed milestone: M6 code-review-r9
+- Review status: M6 closed with no open findings
+- Remaining in-scope implementation milestones: M7
+- Next stage: `implement` M7
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M6 code review, any required review-resolution, M7 lifecycle closeout, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M7 lifecycle closeout, verify, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -622,6 +622,8 @@ Implementation validation:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 90 tests passed; Corpus test duration about 7 m 3 s.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=m6-corpus.trx"` passed: 90 tests selected, about 7 m 24 s test duration; TRX was used to derive the top 10 slow-test table and was not committed.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M6 code review:
+  - `code-review-r9` approved M6 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -629,4 +631,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M6 code review, not final closeout.
+See Current Handoff Summary. This plan is ready for M7 lifecycle closeout implementation, not final closeout.

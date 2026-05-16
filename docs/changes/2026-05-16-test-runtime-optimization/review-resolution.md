@@ -2,9 +2,18 @@
 
 ## Status
 
-resolved; M5 closed by code-review-r8; ready for M6 implementation
+resolved; M6 closed by code-review-r9; ready for M7 lifecycle closeout
 
 ## Findings
+
+### M6 code review: no findings
+
+- Source review: [code-review-r9](reviews/code-review-r9.md)
+- Status: closed
+- Closeout:
+  - [code-review-r9](reviews/code-review-r9.md) approved M6 with no findings.
+  - M6 runtime reporting and optimization evidence is closed.
+  - No review-resolution findings are open for M6.
 
 ### TRO-CR3: ManualEvidence fast-default rationale path lacks direct regression proof
 

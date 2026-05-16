@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
-current_milestone: M6
-current_milestone_state: review-requested
+current_milestone: M7
+current_milestone_state: planned
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -137,3 +137,4 @@ notes:
   - code-review-r8 approved M5 and closed the milestone.
   - M6 adds runtime report contract tests and records optimized runtime evidence, top 10 slow tests, full CI status, target misses, and coverage preservation.
   - M6 records that Corpus fast/contract no-build and full CI remain above SHOULD-level targets without deleting wrapper, prepared-tool, or release-evidence coverage.
+  - code-review-r9 approved M6 and closed the milestone with no findings.
