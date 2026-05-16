@@ -468,18 +468,19 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M5 closed.
 - [x] M6 closed.
 - [x] M7 lifecycle closeout complete.
+- [x] Final verify complete.
 
 ## Current Handoff Summary
 
 - Current milestone: final closeout
-- Current milestone state: verify-ready
+- Current milestone state: branch-ready
 - Last implemented milestone: M7 lifecycle closeout handoff
 - Last reviewed milestone: M7 code-review-r10
-- Review status: M7 closed with no open findings
+- Review status: M7 closed with no open findings; final verify passed
 - Remaining in-scope implementation milestones: none
-- Next stage: `verify`
-- Final closeout readiness: ready for verify; not PR-ready
-- Reason final closeout is or is not ready: all in-scope implementation milestones are closed, review-resolution is resolved, and explain-change is current; final verification and PR handoff remain downstream.
+- Next stage: `pr`
+- Final closeout readiness: branch-ready; not PR-body-ready
+- Reason final closeout is or is not ready: all in-scope implementation milestones are closed, review-resolution is resolved, explain-change is current, and final local verification passed; PR handoff remains downstream.
 
 ## Decision Log
 
@@ -635,10 +636,15 @@ Implementation validation:
   - Reviewer spot check `git diff --check` passed.
 - Final explain-change:
   - `docs/changes/2026-05-16-test-runtime-optimization/explain-change.md` updated after code-review-r10 with the full problem-to-diff trace, test/evidence mapping, review-resolution summary, alternatives, scope controls, risks, and verify handoff.
+- Final verify:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: restore up to date; build 0 warnings/0 errors; UI contract validation passed; Core 168/App 149/Windows 52/Corpus 90 tests passed; Corpus duration about 6 m 50 s.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; Corpus duration about 50 seconds.
+  - `git diff --check` passed.
+  - `docs/changes/2026-05-16-test-runtime-optimization/verify-report.md` records branch-ready verification evidence.
 
 ## Outcome and Retrospective
 
-M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. The final explain-change artifact is current. M1-M7 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final verification and PR handoff remain downstream.
+M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. The final explain-change artifact is current, final local verification passed, and M1-M7 are closed. Required review-resolution findings are resolved and the broad closeout path still passes locally. PR handoff remains downstream.
 
 Retrospective:
 
@@ -649,4 +655,4 @@ Retrospective:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for verify, not PR handoff.
+See Current Handoff Summary. This plan is branch-ready and ready for PR handoff. It is not PR-body-ready until the `pr` stage completes.

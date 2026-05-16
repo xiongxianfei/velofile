@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: final-closeout
-current_milestone_state: verify-ready
+current_milestone_state: branch-ready
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -128,6 +128,17 @@ validation:
         result: passed with Git LF-to-CRLF working-copy warnings only
       - command: rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools
         result: passed; references remain present across governing docs, tests, scripts, and tooling
+  verify:
+    status: passed
+    commands:
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; restore up to date; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 6 m 50 s
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 50 seconds Corpus test duration
+      - command: git diff --check
+        result: passed
+      - command: git status --short
+        result: clean before verify artifact updates
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
@@ -152,4 +163,5 @@ notes:
   - M7 records lifecycle closeout evidence, broad CI validation, and final implementation handoff state without claiming verification or PR readiness.
   - code-review-r10 approved M7 and closed the final implementation milestone with no findings.
   - explain-change updated the durable rationale after M7 code review.
-  - Final verification and PR handoff remain downstream lifecycle stages.
+  - verify passed and marked the change branch-ready for PR handoff.
+  - PR body and PR-open readiness remain downstream lifecycle stages.
