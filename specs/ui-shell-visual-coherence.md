@@ -2,7 +2,7 @@
 
 ## Status
 
-approved
+approved; amended 2026-05-17 for M3 visual-evidence deferral
 
 ## Related proposal
 
@@ -28,6 +28,7 @@ The existing first-slice spec remains authoritative for first-slice token resour
 - **Effective window size**: the app-window layout size in effective pixels, not physical display pixels.
 - **Review profile**: a named screenshot evidence profile combining effective window size, scale, theme, and density.
 - **Soft-review evidence**: screenshots and sidecars used for human review before pixel comparison is stable enough to be a hard gate.
+- **M3 visual-evidence deferral**: a maintainer-approved exception that lets the M3 file-list polish/icon slice proceed to code review without accepted full-shell visual evidence, while keeping the deferred `shell-file-list-selected-focused` state required for M8 evidence consolidation and final closeout.
 
 ## Examples first
 
@@ -73,6 +74,14 @@ Given a shell region slice changes the command band
 When the slice is reviewed
 Then the behavior-preservation matrix identifies affected navigation, path entry, filter/search, accessibility, and diagnostics routes
 And cites tests or manual evidence for each touched behavior.
+
+### Example E7: M3 visual evidence is deferred without claiming visual acceptance
+
+Given the maintainer chooses to skip M3 full-shell visual evidence before M3 code review
+When the M3 file-list/icon slice is reviewed
+Then static icon/resource tests and behavior-preservation tests remain required
+And the M3 evidence note records that `shell-file-list-selected-focused` visual acceptance is deferred to M8
+And M3 code review does not claim whole-shell visual acceptance for that state.
 
 ## Requirements
 
@@ -125,6 +134,8 @@ R20. File and folder icon surfaces in governed fixture/file-list scopes MUST be 
 R21. Sidebar hierarchy MUST present navigation before secondary visibility/settings controls.
 
 R22. Full-shell screenshots for a region slice MUST show no new mismatch between redesigned and non-redesigned regions, or the mismatch MUST be recorded as a temporary or accepted design deviation.
+
+R22A. The M3 file-list polish/icon slice MAY proceed to code review without accepted `shell-file-list-selected-focused` full-shell visual evidence only when an approved plan amendment records a maintainer-directed deferral to M8, the M3 visual-evidence note states that no whole-shell visual acceptance is claimed, static icon/resource validation and touched behavior-preservation validation pass, and M8 remains required to capture or manually review the deferred state before final closeout.
 
 ### Shell surface foundation
 
@@ -226,7 +237,7 @@ R65. Preview/details pane visual changes MUST preserve existing preview selectio
 
 ### Full-shell visual evidence
 
-R66. The first required full-shell screenshot set MUST include `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation`.
+R66. The first required full-shell screenshot set MUST include `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation` before M8 evidence consolidation and final closeout. An M3 visual-evidence deferral does not remove `shell-file-list-selected-focused` from this required set.
 
 R67. Each required full-shell screenshot SHOULD be captured for `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200` when automation supports the profile.
 
@@ -321,6 +332,8 @@ I10. Generated current screenshots and diffs remain uncommitted.
 - Automated `200%` scale capture is unavailable: the evidence set records `shell-standard-1440x900-200` as manual/release evidence rather than dropping the profile.
 - Screenshot dimensions or sidecar effective window size do not match the declared profile: visual evidence validation fails or marks the capture unusable for that profile.
 - A required full-shell state cannot be produced by deterministic fixture mode: the follow-on plan must mark the state blocked or manual and cannot claim full automated evidence for that state.
+- M3 closes without accepted `shell-file-list-selected-focused` evidence and without an approved M3 visual-evidence deferral record: M3 review fails.
+- M8 closes while the M3 `shell-file-list-selected-focused` evidence remains deferred, missing, or not manually reviewed: M8 review fails.
 - Sidebar reordering removes access to an existing sidebar function: the slice fails behavior preservation.
 - A visual slice changes Core/Windows behavior without an accepted behavior spec: the change is out of scope and must be reverted or respecified.
 
@@ -510,6 +523,8 @@ AC19. Design deviations are recorded for meaningful mismatches between the refer
 
 AC20. Existing V1 behavior tests remain applicable and are not replaced by fixture-only visual evidence.
 
+AC21. If M3 uses the visual-evidence deferral, the M3 plan and visual-evidence note record the deferral, no M3 whole-shell visual acceptance is claimed, and M8 remains blocked until `shell-file-list-selected-focused` is captured or manually reviewed.
+
 ## Open questions
 
 None blocking spec review.
@@ -528,10 +543,11 @@ The exact vector geometry path data, exact fixture row-to-icon examples, and whe
 - Spec review completed with status `approved` and no material findings.
 - Architecture update drafted in [docs/architecture/system/architecture.md](../docs/architecture/system/architecture.md).
 - ADR 0010 drafted at [docs/adr/0010-shell-visual-coherence-contracts.md](../docs/adr/0010-shell-visual-coherence-contracts.md).
+- 2026-05-17 amendment approved an M3-only visual-evidence deferral while keeping M8 full-shell evidence consolidation required.
 
 ## Readiness
 
-Approved by `spec-review` and ready for `architecture-review`. The spec defines the shell visual-coherence contract, preserves existing V1 behavior, keeps first-slice artifacts authoritative for their scope, and leaves only implementation-detail questions for downstream artifacts.
+Approved by `spec-review` and amended for an M3-only visual-evidence deferral. The spec defines the shell visual-coherence contract, preserves existing V1 behavior, keeps first-slice artifacts authoritative for their scope, and keeps deferred full-shell evidence required before M8/final closeout.
 
 ## References
 

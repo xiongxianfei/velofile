@@ -2,7 +2,7 @@
 
 ## Evidence type
 
-pending full-shell visual review
+deferred full-shell visual review
 
 ## Profile
 
@@ -14,7 +14,7 @@ pending full-shell visual review
 - Density: comfortable
 - Fixture/state: file-list-v1 with selected/focused row
 - Date: 2026-05-16
-- Reviewer: not yet recorded
+- Reviewer: deferred by maintainer request
 
 ## Implementation status
 
@@ -24,8 +24,8 @@ M3 implementation added deterministic file-list icon resources, allowlisted icon
 
 - Whole shell visible: not recorded
 - Required profile used: not recorded
-- Evidence accepted: no
-- Reason: no accepted automated screenshot, manual screenshot review, or observed manual full-shell visual-review note has been recorded yet for this M3 state/profile.
+- Evidence accepted: deferred, not accepted
+- Reason: maintainer requested relaxing the M3 closeout gate so M3 code review can proceed on static icon/resource contracts and behavior-preservation tests. No whole-shell visual acceptance is claimed for M3.
 
 ## Deviations
 
@@ -35,8 +35,8 @@ M3 implementation added deterministic file-list icon resources, allowlisted icon
 
 - Current screenshot: not captured
 - Sidecar: not captured
-- Reason if not captured: screenshot automation remains unavailable in this tool session; manual full-shell visual review is still required for M3 closeout.
+- Reason if not captured: M3 visual evidence is deferred to M8 by the 2026-05-17 spec/plan amendment.
 
 ## Conclusion
 
-M3 implementation is ready for full-shell visual review, but M3 visual evidence is not accepted yet. M3 remains open until accepted `shell-file-list-selected-focused` evidence is recorded.
+M3 implementation may proceed to code review under the approved visual-evidence deferral. The deferred `shell-file-list-selected-focused` state remains required for M8 evidence consolidation and final closeout.

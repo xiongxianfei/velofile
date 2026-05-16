@@ -4,7 +4,7 @@
 
 active
 
-Readiness is not Done. Plan review is approved and the matching test spec is active; M1 and M2 are closed and implementation may continue at M3.
+Readiness is not Done. Plan review is approved and the matching test spec is active; M1 and M2 are closed, M3 implementation is complete, and the M3 full-shell visual evidence requirement is deferred to M8 by the 2026-05-17 spec/plan amendment.
 
 ## Purpose / Big Picture
 
@@ -24,7 +24,7 @@ The main risk is mixing visual redesign with behavior changes. This plan keeps t
 | Existing UI plan | [2026-05-11-ui-design-system-shell-redesign.md](2026-05-11-ui-design-system-shell-redesign.md) | active; branch-ready for PR handoff |
 | Test spec | [specs/ui-shell-visual-coherence.test.md](../../specs/ui-shell-visual-coherence.test.md) | active |
 
-Proposal review, spec review, architecture review, plan review, and test-spec authoring are complete. M1 and M2 are closed; the plan is ready for M3 implementation.
+Proposal review, spec review, architecture review, plan review, and test-spec authoring are complete. M1 and M2 are closed; M3 implementation is ready for code review under the 2026-05-17 M3 visual-evidence deferral amendment.
 
 ## Context and Orientation
 
@@ -82,6 +82,8 @@ Each shell visual-coherence region milestone must produce full-shell visual evid
 
 The evidence must show the whole shell, not only the touched component, so reviewers can identify new mismatches between redesigned and non-redesigned regions. If a mismatch is accepted temporarily, it must be recorded in `docs/ui/design-deviations.md`.
 
+M3 exception: by maintainer request on 2026-05-17, the M3 file-list polish and deterministic fixture icon slice may proceed to code review without accepted `shell-file-list-selected-focused` full-shell visual evidence. This deferral does not claim whole-shell visual acceptance for M3. M3 code review is limited to static icon/resource contracts, file-list behavior preservation, and evidence-deferral traceability. M8 must still capture or manually review `shell-file-list-selected-focused` before final closeout.
+
 M8 remains the consolidation and baseline-inventory milestone. M8 is not the first milestone where region screenshots are produced.
 
 ### M1. Shell Contract and Validator Extension
@@ -116,7 +118,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M2. Shell Surface Foundation
 
-- Milestone state: resolution-needed
+- Milestone state: closed
 - Goal: Apply one dark comfortable shell surface model to app root, chrome, sidebar, content, command band, status area, and preview/details containers before isolated region polish.
 - Requirements: R16-R27, R57, R62, A11Y1-A11Y3, A11Y6, P1-P2, AC4-AC5.
 - Files/components likely touched: `src/VeloFile.App/App.xaml`, `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Tokens/*.xaml`, new or extended `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -161,9 +163,9 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M3. File-List Polish and Deterministic Fixture Icons
 
-- Milestone state: implementation-complete; visual-evidence-needed
+- Milestone state: review-requested
 - Goal: Complete the file-list follow-on polish and replace placeholder-like fixture icon chips with governed deterministic XAML vector resources.
-- Requirements: R28-R43, R66, A11Y1-A11Y3, A11Y8, P1-P4, AC6-AC8, AC16.
+- Requirements: R22A, R28-R43, R66, A11Y1-A11Y3, A11Y8, P1-P4, AC6-AC8, AC16, AC21.
 - Files/components likely touched: `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml`, `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `src/VeloFile.App/MainWindow.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiFixtures/`, `tests/VeloFile.App.Tests/UiDesign/`.
 - Dependencies: M1 validator support and M2 shell foundation.
 - Tests to add/update: icon invariant tests rejecting `SymbolIcon`, `PathIcon`, private-use glyphs, arbitrary icon resource keys, text chips, missing required `VfIconGeometry*` resources, missing icon container/path styles, and row-height changes across fixture icon kinds.
@@ -179,18 +181,18 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixture"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|FileList|AppShellContract|DragDrop|Preview"`
-  - Produce current full-shell `shell-file-list-selected-focused` evidence for `shell-standard-1440x900-100`, or record a manual screenshot review note if automation is not stable.
+  - Record the approved M3 visual-evidence deferral note for `shell-file-list-selected-focused`; do not claim M3 whole-shell visual acceptance.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: Fixture file-list rows use deterministic vector icons and polished row states without changing V1 file-list behavior.
 - Commit message: `M3: add deterministic file-list fixture icons`
 - Milestone closeout:
   - validation passed
-  - full-shell `shell-file-list-selected-focused` evidence recorded
+  - M3 visual-evidence deferral recorded for `shell-file-list-selected-focused`, with M8 named as the required replacement gate
   - details-view header, column rhythm, metadata treatment, selection/focus, hidden/protected treatment, long names, and empty-folder state are covered by tests or evidence where touched
-  - deterministic fixture icons visible in shell evidence
+  - deterministic fixture icons covered by static resource/fixture tests; whole-shell visual confirmation deferred to M8
   - no placeholder text chips such as `P...`, `D...`, or `T...` remain in governed visual fixtures
   - focus and selection are visibly distinct and not error-like
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
+  - no M3 whole-shell visual acceptance is claimed before the deferred evidence exists
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -391,6 +393,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 - Milestone closeout:
   - validation passed
   - required screenshot or manual visual evidence inventory from M2-M7 is complete
+  - deferred M3 `shell-file-list-selected-focused` evidence has been replaced by captured or manual-review evidence
   - sidecars are complete and privacy-safe
   - deviation records are complete for accepted mismatches
   - region reference-comparison notes are complete
@@ -503,13 +506,13 @@ No data migration is expected. Rollback is per governed region by reverting that
 ## Current Handoff Summary
 
 Current milestone: M3. File-List Polish and Deterministic Fixture Icons
-Current milestone state: implementation-complete; visual-evidence-needed
+Current milestone state: review-requested
 Last reviewed milestone: M2 (closed)
 Review status: M2 code-review clean-with-notes in `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r9.md`
 Remaining in-scope implementation milestones: M3-M8
-Next stage: record accepted M3 full-shell visual evidence, then `code-review` M3
+Next stage: `code-review` M3
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 and M2 are closed; M3 implementation is complete but visual evidence is not accepted yet, and M4-M8 are not closed.
+Reason final closeout is or is not ready: M1 and M2 are closed; M3 implementation is complete and M3 full-shell visual evidence is deferred to M8 by approved amendment, but M3 code review and M4-M8 are not closed.
 
 ## Decision Log
 
@@ -522,6 +525,7 @@ Reason final closeout is or is not ready: M1 and M2 are closed; M3 implementatio
 | 2026-05-11 | Treat M9 as lifecycle closeout, not implementation. | Final closeout must not hide unfinished region work. |
 | 2026-05-11 | Reuse existing first-slice dark comfortable tokens for M2 shell foundation instead of adding new token IDs. | Existing V1 tokens already cover the M2 surface, text, focus, selection, hover, disabled, danger, warning, success, spacing, radius, sizing, and focus-thickness needs. |
 | 2026-05-16 | Use allowlisted `FileListIconKind` values and `Resources/Icons/VeloFile.FixtureIcons.xaml` geometry resources for M3 file-list icons. | This closes the placeholder text-chip class without introducing arbitrary resource-key fixture input or glyph-font/private-use icon rendering. |
+| 2026-05-17 | Defer M3 `shell-file-list-selected-focused` full-shell visual evidence to M8. | Maintainer requested skipping the M3 evidence gate so code review can assess deterministic icon/resource and behavior-preservation work now; M3 must not claim whole-shell visual acceptance and M8 remains blocked until the state is captured or manually reviewed. |
 
 ## Surprises and Discoveries
 
@@ -660,7 +664,7 @@ M3 implementation validation:
 - Added a tokenized file-list details header in the governed file-list scope to improve column rhythm without changing selection, context-menu, drag/drop, thumbnail, or preview routes.
 - Activated the `fixture-icons` UI contract scope and added the M3 icon/template/header resource keys to `docs/ui/ui-contract-scopes.v1.json`.
 - Updated the valid UI-contract fixture and targeted scope fixture so active M3 header/icon resources are represented in `scripts/ci.ps1`.
-- Recorded pending M3 visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md`; accepted full-shell visual evidence is still required before M3 can close.
+- Recorded deferred M3 visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md`; M3 whole-shell visual acceptance is not claimed, and the deferred state remains required for M8.
 - Validation passed:
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"`: passed, 21 tests.
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
@@ -671,10 +675,16 @@ M3 implementation validation:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 37 tests passed.
   - `git diff --check`: passed with line-ending warnings only.
 
+M3 evidence deferral amendment:
+
+- `shell-file-list-selected-focused` full-shell visual evidence is deferred to M8 by maintainer request.
+- M3 code review may proceed, but M3 must not claim whole-shell visual acceptance.
+- M8 remains blocked until the deferred state has captured or manual-review evidence.
+
 ## Outcome and Retrospective
 
 Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M3 implementation is complete but still needs accepted full-shell visual evidence before code review can close the milestone. This plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M3 implementation is ready for code review under the M3 visual-evidence deferral amendment. This plan is not ready for final closeout, verification, PR handoff, or Done.

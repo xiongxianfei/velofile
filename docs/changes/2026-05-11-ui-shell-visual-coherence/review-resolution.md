@@ -116,5 +116,6 @@ closed; all recorded material findings have a final disposition and required act
   - Updated M2-M7 validation commands and closeout criteria so each region milestone requires full-shell screenshot evidence or an explicit manual visual-review note before closeout.
   - Added milestone-specific evidence states for `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-sidebar-focused` or `shell-default`, `shell-operation-running`, `shell-destructive-confirmation`, and `shell-preview-open`.
   - Reframed M8 as full-shell evidence consolidation and baseline inventory rather than the first screenshot milestone.
+  - 2026-05-17 amendment: maintainer requested an M3-only deferral so `shell-file-list-selected-focused` full-shell visual evidence is no longer required before M3 code review. The deferral does not claim M3 whole-shell visual acceptance and keeps the state required for M8 evidence consolidation and final closeout.
 - Validation:
   - `git diff --check -- docs/plans/2026-05-11-ui-shell-visual-coherence.md docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md docs/changes/2026-05-11-ui-shell-visual-coherence/change.yaml`

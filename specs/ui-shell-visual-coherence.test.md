@@ -35,6 +35,7 @@ The proof strategy is layered:
 | R6-R8 | TSC001, TSC002, TSC018 |
 | R9-R15 | TSC002, TSC003, TSC004, TSC005, TSC018 |
 | R16-R22 | TSC006, TSC007, TSC013, TSC014, TSC018, TSC020 |
+| R22A | TSC013, TSC014, TSC020 |
 | R23-R27 | TSC006, TSC013, TSC015, TSC018 |
 | R28-R34 | TSC007, TSC008, TSC013, TSC015, TSC020 |
 | R35-R43 | TSC008, TSC009, TSC010, TSC013 |
@@ -229,19 +230,19 @@ TSC012. Navigation-first sidebar preserves access and accessibility
 ### Visual Evidence, Profiles, And Manual Review
 
 TSC013. Region-slice full-shell evidence exists before milestone closeout
-- Covers: R16-R22, R26, R30-R33, R58-R65, R66-R73, A11Y1-A11Y9, P5-P7, AC9-AC11, AC16, EC1-EC3, EC9-EC11, EC15, EC19-EC20, E1-E5
+- Covers: R16-R22A, R26, R30-R33, R58-R65, R66-R73, A11Y1-A11Y9, P5-P7, AC9-AC11, AC16, AC21, EC1-EC3, EC9-EC11, EC15, EC19-EC20, E1-E5, E7
 - Level: manual | smoke | contract
 - Fixture/setup: Required current screenshots or manual review notes from M2-M7.
-- Steps: For each region milestone, assert required full-shell evidence exists before closeout: M2 `shell-default`; M3 `shell-file-list-selected-focused`; M4 `shell-filter-active` and `shell-search-active`; M5 `shell-sidebar-focused` or `shell-default`; M6 `shell-operation-running` and `shell-destructive-confirmation`; M7 `shell-preview-open`. Assert screenshots show the whole shell and any accepted mismatch has a deviation record.
-- Expected result: Region slices are reviewed in whole-shell context, not as isolated component patches.
+- Steps: For each region milestone, assert required full-shell evidence exists before closeout: M2 `shell-default`; M4 `shell-filter-active` and `shell-search-active`; M5 `shell-sidebar-focused` or `shell-default`; M6 `shell-operation-running` and `shell-destructive-confirmation`; M7 `shell-preview-open`. For M3, accept either `shell-file-list-selected-focused` evidence or an approved M3 visual-evidence deferral record that names M8 as the required replacement gate and states that M3 code review does not claim whole-shell visual acceptance. Assert screenshots show the whole shell and any accepted mismatch has a deviation record.
+- Expected result: Region slices are reviewed in whole-shell context when visual evidence is present; the M3 exception is explicit, traceable, and cannot be mistaken for accepted visual evidence.
 - Failure proves: A milestone can close without visual evidence for shell coherence.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/ShellVisualEvidenceInventoryTests.cs` plus manual review notes.
 
 TSC014. Required profile and baseline inventory validation
-- Covers: R66-R77, O3-O4, S3-S6, A11Y6-A11Y7, AC9-AC13, EC12-EC14, E4-E5
+- Covers: R22A, R66-R77, O3-O4, S3-S6, A11Y6-A11Y7, AC9-AC13, AC21, EC12-EC14, E4-E5, E7
 - Level: contract | script
 - Fixture/setup: `tests/visual/baselines/winui/<profile>/`, `tests/visual/current/`, `tests/visual/diffs/`, `scripts/update-ui-baselines.ps1`.
-- Steps: Assert the seven required shell states exist or have approved manual evidence; assert `shell-min-900x560-100` and `shell-standard-1440x900-100` are captured/reviewed; assert `shell-standard-1440x900-200` is captured or explicitly manual/release; assert generated current/diff outputs are ignored and normal CI does not mutate baselines.
+- Steps: Assert the seven required shell states exist or have approved manual evidence; assert `shell-min-900x560-100` and `shell-standard-1440x900-100` are captured/reviewed; assert `shell-standard-1440x900-200` is captured or explicitly manual/release; assert generated current/diff outputs are ignored and normal CI does not mutate baselines. An M3 visual-evidence deferral is acceptable before M8, but M8/final closeout must fail if `shell-file-list-selected-focused` still has only a deferral record and no captured or manual-review evidence.
 - Expected result: Visual evidence inventory is complete, traceable, and non-mutating in normal CI.
 - Failure proves: Screenshot evidence is incomplete or baseline mutation is uncontrolled.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/VisualBaselineInventoryTests.cs` and script tests.

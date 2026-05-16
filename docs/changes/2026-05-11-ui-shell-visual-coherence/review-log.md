@@ -3,6 +3,8 @@
 | Review | Stage | Milestone | Status | Findings |
 |---|---|---|---|---|
 | [plan-review-r1](reviews/plan-review-r1.md) | plan-review | plan | changes-requested | PR-001 |
+| [spec-review-r1](reviews/spec-review-r1.md) | spec-review | M3 evidence amendment | approved | none |
+| [plan-review-r2](reviews/plan-review-r2.md) | plan-review | M3 evidence amendment | approved | none |
 | [code-review-r1](reviews/code-review-r1.md) | code-review | none | inconclusive | none |
 | [code-review-r2](reviews/code-review-r2.md) | code-review | M1 | changes-requested | CR-001 |
 | [code-review-r3](reviews/code-review-r3.md) | code-review | M1 | clean-with-notes | none |
