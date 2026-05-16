@@ -378,7 +378,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M7. Lifecycle Closeout
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: complete downstream lifecycle gates after implementation milestones close.
 - Requirements: all acceptance criteria
 - Files/components likely touched:
@@ -472,14 +472,14 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M7 lifecycle closeout
-- Current milestone state: planned
-- Last implemented milestone: M6 runtime reporting handoff
+- Current milestone state: review-requested
+- Last implemented milestone: M7 lifecycle closeout handoff
 - Last reviewed milestone: M6 code-review-r9
-- Review status: M6 closed with no open findings
+- Review status: M7 implementation is ready for code review; M6 closed with no open findings
 - Remaining in-scope implementation milestones: M7
-- Next stage: `implement` M7
+- Next stage: `code-review` M7
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M7 lifecycle closeout, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M7 code review, final verification, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -624,11 +624,23 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M6 code review:
   - `code-review-r9` approved M6 with no findings and closed the milestone.
+- M7 lifecycle closeout implementation:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 90 tests passed; Corpus test duration about 6 m 48 s.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; Corpus test duration about 51 seconds.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+  - `rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools` passed; references remain present across governing docs, tests, scripts, and tooling.
 
 ## Outcome and Retrospective
 
-Not started. Fill after implementation milestones and lifecycle closeout complete.
+M7 implementation collected lifecycle closeout evidence and leaves the plan ready for M7 code review. M1-M6 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final verification and PR handoff remain downstream of M7 review.
+
+Retrospective:
+
+- The first implementation slice reduced the practical local feedback path by making fast/default, contract, script-smoke, release-evidence, and broad closeout commands explicit instead of treating every Corpus assertion as the same validation cost.
+- Runtime evidence showed that the contract and smoke tiers are materially easier to reason about, but the `Fast|Contract` and full-CI runs still miss the aspirational SHOULD targets on this machine. The plan records those misses without deleting coverage.
+- The prepared-tool and wrapper-safety review findings were useful guardrails: optimization work stayed internal to tests and preserved public wrapper confidence, scratch-root isolation, release-evidence availability, and broad CI.
+- Assembly-wide parallelization, CI job splitting, and public prepared-tool options remain intentionally deferred follow-up work rather than hidden scope in this slice.
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M7 lifecycle closeout implementation, not final closeout.
+See Current Handoff Summary. This plan is ready for M7 code review, not final closeout.

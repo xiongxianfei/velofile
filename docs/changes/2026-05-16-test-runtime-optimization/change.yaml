@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M7
-current_milestone_state: planned
+current_milestone_state: review-requested
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -117,6 +117,17 @@ validation:
         result: passed; 90 tests selected; about 7 m 24 s test duration; TRX used for top 10 slow-test evidence and not committed
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+  m7:
+    status: implementation-ready-for-review
+    commands:
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 6 m 48 s
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 51 seconds Corpus test duration
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools
+        result: passed; references remain present across governing docs, tests, scripts, and tooling
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
@@ -138,3 +149,4 @@ notes:
   - M6 adds runtime report contract tests and records optimized runtime evidence, top 10 slow tests, full CI status, target misses, and coverage preservation.
   - M6 records that Corpus fast/contract no-build and full CI remain above SHOULD-level targets without deleting wrapper, prepared-tool, or release-evidence coverage.
   - code-review-r9 approved M6 and closed the milestone with no findings.
+  - M7 records lifecycle closeout evidence, broad CI validation, and final implementation handoff state without claiming verification or PR readiness.

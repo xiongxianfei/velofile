@@ -151,3 +151,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
 ```
 
 A local fast/contract timeout occurred during validation after an aborted run. A VSTest hang probe pointed at prepared-tool execution, but the focused prepared-tool test and class reran cleanly, and the required fast/contract commands later passed. The event is recorded as a validation discovery, not as accepted failure evidence.
+
+## M7 rationale
+
+M7 is lifecycle closeout preparation for the test runtime optimization initiative. It does not add production behavior, test categories, public script options, prepared-tool behavior, or CI routing. Instead, it confirms that the implementation milestones are closed, records the final local broad validation evidence, and updates the active plan outcome so the remaining workflow can review the closeout state explicitly.
+
+## M7 boundaries
+
+M7 does not claim final verification, branch readiness, PR readiness, or release readiness. Those remain downstream of M7 code review and the later workflow stages. M7 keeps the plan active and hands the lifecycle closeout state to code review.
+
+## M7 evidence
+
+M7 broad closeout validation passed:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+git diff --check
+rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools
+```
+
+The active plan outcome now records that M1-M6 are closed, prior review-resolution findings are resolved, and M7 is ready for code review rather than final closeout.
