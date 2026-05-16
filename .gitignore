@@ -12,3 +12,4 @@ tests/visual/diffs/
 *.rsuser
 *.nupkg
 *.snupkg
+hifi-design
