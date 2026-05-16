@@ -2,7 +2,7 @@
 
 ## Status
 
-M5 TRO-CR3 resolved; M5 returned to code review
+resolved; M5 closed by code-review-r8; ready for M6 implementation
 
 ## Findings
 
@@ -30,7 +30,8 @@ M5 TRO-CR3 resolved; M5 returned to code review
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - Closeout:
   - TRO-CR3 is resolved.
-  - M5 is ready for code review.
+  - [code-review-r8](reviews/code-review-r8.md) approved M5 with no findings.
+  - M5 is closed.
 
 ### TRO-CR2: Prepared-tool publish can mutate repository `bin`/`obj` outputs
 

@@ -288,7 +288,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M5. Release-Evidence Preservation and Full Validation Commands
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: prove expensive evidence remains explicit and available after tiering.
 - Requirements: R39-R43, AC6-AC7, AC11
 - Files/components likely touched:
@@ -465,21 +465,21 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M2 closed.
 - [x] M3 closed.
 - [x] M4 closed.
-- [ ] M5 closed.
+- [x] M5 closed.
 - [ ] M6 closed.
 - [ ] M7 lifecycle closeout complete.
 
 ## Current Handoff Summary
 
-- Current milestone: M5 release-evidence preservation and full validation commands
-- Current milestone state: review-requested
+- Current milestone: M6 runtime reporting and optimization evidence
+- Current milestone state: planned
 - Last implemented milestone: M5 review-resolution handoff
-- Last reviewed milestone: M5 code-review-r7
-- Review status: TRO-CR3 resolved; M5 awaiting code review
-- Remaining in-scope implementation milestones: M5-M6
-- Next stage: `code-review` M5
+- Last reviewed milestone: M5 code-review-r8
+- Review status: M5 closed with no open findings
+- Remaining in-scope implementation milestones: M6
+- Next stage: `implement` M6
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M5 code review, M6 implementation, runtime evidence, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M6 implementation, runtime evidence, verify, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -601,6 +601,8 @@ Implementation validation:
   - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 86 tests passed.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M5 code re-review:
+  - `code-review-r8` approved M5 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -608,4 +610,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M5 is ready for code review after TRO-CR3 resolution, not milestone closeout or final closeout.
+See Current Handoff Summary. This plan is ready for M6 implementation, not final closeout.

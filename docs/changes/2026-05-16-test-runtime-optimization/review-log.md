@@ -16,3 +16,4 @@
 | [code-review-r5](reviews/code-review-r5.md) | code-review | M4 | changes-requested | TRO-CR2 |
 | [code-review-r6](reviews/code-review-r6.md) | code-review | M4 | approved | none |
 | [code-review-r7](reviews/code-review-r7.md) | code-review | M5 | changes-requested | TRO-CR3 |
+| [code-review-r8](reviews/code-review-r8.md) | code-review | M5 | approved | none |

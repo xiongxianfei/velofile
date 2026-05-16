@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
-current_milestone: M5
-current_milestone_state: review-requested
+current_milestone: M6
+current_milestone_state: planned
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -74,7 +74,7 @@ validation:
       - command: git diff --check
         result: passed after TRO-CR2 resolution with Git LF-to-CRLF working-copy warnings only
   m5:
-    status: review-resolution-ready-for-review
+    status: closed
     commands:
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"
         result: failed before implementation because CorpusTestCategoryDescriptor had no EvidenceFastPathRationale field; passed after implementation with 18 tests selected; passed after TRO-CR3 resolution with 24 tests selected
@@ -105,3 +105,4 @@ notes:
   - M5 preserves explicit ReleaseEvidence selection, broad CI closeout, and evidence-tier rationale checks for Visual/ManualEvidence tests included in fast/default filters.
   - code-review-r7 requested M5 changes for TRO-CR3; ManualEvidence fast-default rationale requires direct regression proof.
   - TRO-CR3 was resolved by adding direct ManualEvidence + Fast/Contract rationale rejection and acceptance tests.
+  - code-review-r8 approved M5 and closed the milestone.
