@@ -240,7 +240,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M4. Test-Internal Prepared Tool Harness
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: add a prepared corpus tool path for tests that need process execution without hermetic scratch publishing on every assertion.
 - Requirements: R34-R38, AC8-AC9
 - Files/components likely touched:
@@ -464,22 +464,22 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M1 closed.
 - [x] M2 closed.
 - [x] M3 closed.
-- [ ] M4 review requested.
+- [x] M4 closed.
 - [ ] M5 closed.
 - [ ] M6 closed.
 - [ ] M7 lifecycle closeout complete.
 
 ## Current Handoff Summary
 
-- Current milestone: M4 test-internal prepared tool harness
-- Current milestone state: review-requested
-- Last implemented milestone: M4 implementation handoff
-- Last reviewed milestone: M4 code-review-r5
-- Review status: TRO-CR2 resolved; M4 awaiting code review
-- Remaining in-scope implementation milestones: M4-M6
-- Next stage: `code-review` M4
+- Current milestone: M5 release-evidence preservation and full validation commands
+- Current milestone state: planned
+- Last implemented milestone: M4 review-resolution handoff
+- Last reviewed milestone: M4 code-review-r6
+- Review status: M4 closed with no open findings
+- Remaining in-scope implementation milestones: M5-M6
+- Next stage: `implement` M5
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M5-M6 implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -578,6 +578,8 @@ Implementation validation:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests selected, about 57 seconds test duration.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests selected.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M4 code re-review:
+  - `code-review-r6` approved M4 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -585,4 +587,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M4 review-resolution is ready for code review, not milestone closeout or final closeout.
+See Current Handoff Summary. This plan is ready for M5 implementation, not final closeout.

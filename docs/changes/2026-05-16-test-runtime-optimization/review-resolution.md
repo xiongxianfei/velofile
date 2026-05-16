@@ -2,7 +2,7 @@
 
 ## Status
 
-resolved; M4 returned to code review after TRO-CR2 resolution
+resolved; M4 closed by code-review-r6; ready for M5 implementation
 
 ## Findings
 
@@ -28,6 +28,9 @@ resolved; M4 returned to code review after TRO-CR2 resolution
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests, about 57 seconds.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- Closeout:
+  - [code-review-r6](reviews/code-review-r6.md) approved M4 with no findings.
+  - M4 is closed.
 
 ### TRO-CR1: `ReleaseEvidence` + `Fast` rationale can be empty
 

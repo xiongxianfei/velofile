@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
-current_milestone: M4
-current_milestone_state: review-requested
+current_milestone: M5
+current_milestone_state: planned
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -63,7 +63,7 @@ validation:
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
   m4:
-    status: review-resolution-ready-for-review
+    status: closed
     commands:
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"
         result: failed before initial implementation with missing prepared-tool harness types; later failed on unsafe scratch-root fixture setup; passed after TRO-CR2 resolution with 11 tests selected, about 29 seconds test duration
@@ -86,3 +86,4 @@ notes:
   - M4 adds a test-internal prepared corpus tool harness with current-run manifest validation and no public script option changes.
   - code-review-r5 requested M4 changes for TRO-CR2; prepared-tool publish must not mutate repo bin/obj outputs and the repo-output oracle must prove setup plus invocation.
   - TRO-CR2 was resolved by preparing the Corpus tool from a scratch-owned source copy and expanding repo bin/obj output snapshots before setup.
+  - code-review-r6 approved M4 and closed the milestone.
