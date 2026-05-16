@@ -88,3 +88,17 @@ M4 does not change public corpus scripts, add `-PreparedToolPath` or `-UseExisti
 ## M4 evidence
 
 The focused prepared-tool validation selected 11 tests and passed after TRO-CR2 resolution. The tests cover current-run repeated execution through one prepared tool, scratch-owned source/output roots, repo bin/obj snapshot mutation detection, missing root, outside-root path, missing manifest, previous setup id, bad metadata, missing artifact, global-state/repo-output safety, and public script option absence. The retained `CorpusScript&Smoke` tier selected 6 tests and completed in about 57 seconds locally.
+
+## M5 rationale
+
+M5 preserves the expensive evidence tiers rather than making them faster or smaller. The new `ReleaseEvidenceTierTests` make the release-evidence command, full profile/scope matrix classification, benchmark evidence classification, visual/manual evidence fast-default rationale, and broad CI closeout boundary reviewable.
+
+Visual or manual evidence tests may still participate in the `Fast|Contract` local filter when they are static contract checks, but they now need a non-empty `EvidenceFastPathRationale`. This keeps evidence-only screenshots or manual-review checks from drifting into the fast/default path without explanation.
+
+## M5 boundaries
+
+M5 does not split hosted CI, expose prepared-tool options, change public corpus wrapper arguments, remove release-evidence tests, or change production App/Core/Windows behavior. `scripts/ci.ps1` remains broad and unfiltered.
+
+## M5 evidence
+
+The explicit `ReleaseEvidence` command selected 10 tests and completed in about 5 m 18 s locally. The broad fast/contract solution filter selected 61 Corpus tests while Core/App/Windows reported no matching category tests. Full `scripts/ci.ps1` passed with UI contract validation, Core 168 tests, App 149 tests, Windows 52 tests, and Corpus 80 tests.

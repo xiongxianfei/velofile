@@ -288,7 +288,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M5. Release-Evidence Preservation and Full Validation Commands
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: prove expensive evidence remains explicit and available after tiering.
 - Requirements: R39-R43, AC6-AC7, AC11
 - Files/components likely touched:
@@ -472,14 +472,14 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M5 release-evidence preservation and full validation commands
-- Current milestone state: planned
-- Last implemented milestone: M4 review-resolution handoff
+- Current milestone state: review-requested
+- Last implemented milestone: M5 implementation handoff
 - Last reviewed milestone: M4 code-review-r6
-- Review status: M4 closed with no open findings
+- Review status: M5 awaiting code review
 - Remaining in-scope implementation milestones: M5-M6
-- Next stage: `implement` M5
+- Next stage: `code-review` M5
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M5-M6 implementation, code review, runtime evidence, verify, and PR handoff are not complete.
+- Reason final closeout is or is not ready: M5 code review, M6 implementation, runtime evidence, verify, and PR handoff are not complete.
 
 ## Decision Log
 
@@ -495,6 +495,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 | 2026-05-16 | Retarget `VeloFile.Corpus.Tests` to the Corpus tool's Windows TFM. | The Corpus tool already targets `net8.0-windows10.0.19041.0`; the test project must match to reference the tool for in-process contract checks. | Duplicate corpus logic in the test project; change the tool target framework. |
 | 2026-05-16 | Use `generate-corpus.ps1` as the M3 hermetic wrapper isolation path. | It exercises the shared `Invoke-CorpusTool.ps1` scratch source copy and publish path while also serving as the minimal generate-script smoke. | Add a separate hermetic-only wrapper command; duplicate another generate smoke invocation. |
 | 2026-05-16 | Use a test-owned current-run manifest for prepared-tool execution. | M4 only needs same-run prepared tool reuse; setup-id validation prevents stale cross-run reuse without adding source-hash caching. | Expose public prepared-tool script options; implement cross-run prepared-tool caching in the first slice. |
+| 2026-05-16 | Require `EvidenceFastPathRationale` for Visual/ManualEvidence tests selected by `Fast` or `Contract`. | R42 allows evidence checks in fast/default filters only when their fast/contract purpose is explicit. | Let visual/manual evidence drift into fast/default filters based only on category names. |
 
 ## Surprises and Discoveries
 
@@ -505,6 +506,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - The Corpus contract no-build run is now 42 selected tests in about 23 seconds locally, which meets the M2 target of staying under 30 seconds for the Corpus fast/contract run when already built.
 - M3's required `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation still selects release-evidence wrapper tests by design and took about 6 m 48 s locally. The smaller `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds.
 - M4 prepared-tool tests must use a separate generated-corpus root under the scratch root. Reusing the prepared-tool root or its parent as corpus output makes the Corpus scratch-root guard correctly reject the non-empty unmarked directory.
+- `ShellVisualCoherenceContractTests` is both `Visual` and `Contract`; M5 keeps it in the fast/default contract tier only with an explicit static-contract rationale.
 
 ## Validation Notes
 
@@ -580,6 +582,15 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M4 code re-review:
   - `code-review-r6` approved M4 with no findings and closed the milestone.
+- M5 TDD failure:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"` first failed because `CorpusTestCategoryDescriptor` had no `EvidenceFastPathRationale` field for Visual/ManualEvidence tests selected by fast/default filters.
+- M5 validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"` passed: 18 tests selected.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"` passed: 10 tests selected, about 5 m 18 s test duration.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 61 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 53 seconds Corpus test duration.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 61 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 52 seconds Corpus test duration.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 80 tests passed.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -587,4 +598,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M5 implementation, not final closeout.
+See Current Handoff Summary. M5 implementation is ready for code review, not milestone closeout or final closeout.

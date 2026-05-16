@@ -41,10 +41,17 @@ internal sealed class ReleaseEvidenceFastRationaleAttribute(string? rationale) :
     public string? Rationale { get; } = rationale;
 }
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+internal sealed class EvidenceFastPathRationaleAttribute(string? rationale) : Attribute
+{
+    public string? Rationale { get; } = rationale;
+}
+
 internal sealed record CorpusTestCategoryDescriptor(
     string Name,
     IReadOnlyCollection<string> Categories,
-    string? ReleaseEvidenceFastRationale);
+    string? ReleaseEvidenceFastRationale,
+    string? EvidenceFastPathRationale = null);
 
 internal static class CorpusCategoryInventory
 {
@@ -86,6 +93,16 @@ internal static class CorpusCategoryInventory
             {
                 errors.Add($"invalid-category-combination: {test.Name} marks CorpusScript without Smoke or ReleaseEvidence.");
             }
+
+            if (HasVisualOrManualEvidencePurpose(categories)
+                && IsSelectedByFastDefaults(categories)
+                && string.IsNullOrWhiteSpace(test.EvidenceFastPathRationale))
+            {
+                errors.Add(
+                    "category-rationale-required: "
+                    + $"{test.Name} is marked Visual or ManualEvidence and Fast or Contract but has no non-empty EvidenceFastPathRationale. "
+                    + "Add a specific rationale explaining why this evidence test belongs in the fast/default tier, or remove Fast/Contract.");
+            }
         }
 
         return errors;
@@ -114,6 +131,7 @@ internal static class CorpusCategoryInventory
     {
         var typeCategories = CategoriesFrom(type).ToArray();
         var typeRationale = type.GetCustomAttribute<ReleaseEvidenceFastRationaleAttribute>();
+        var typeEvidenceRationale = type.GetCustomAttribute<EvidenceFastPathRationaleAttribute>();
 
         foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Where(method => method.GetCustomAttribute<TestMethodAttribute>() is not null))
@@ -126,11 +144,16 @@ internal static class CorpusCategoryInventory
             var effectiveRationale = NormalizeRationale(methodRationale is not null
                 ? methodRationale.Rationale
                 : typeRationale?.Rationale);
+            var methodEvidenceRationale = method.GetCustomAttribute<EvidenceFastPathRationaleAttribute>();
+            var effectiveEvidenceRationale = NormalizeRationale(methodEvidenceRationale is not null
+                ? methodEvidenceRationale.Rationale
+                : typeEvidenceRationale?.Rationale);
 
             yield return new CorpusTestCategoryDescriptor(
                 $"{type.FullName}.{method.Name}",
                 categories,
-                effectiveRationale);
+                effectiveRationale,
+                effectiveEvidenceRationale);
         }
     }
 
@@ -144,5 +167,17 @@ internal static class CorpusCategoryInventory
     {
         return member.GetCustomAttributes<TestCategoryAttribute>()
             .SelectMany(attribute => attribute.TestCategories);
+    }
+
+    private static bool HasVisualOrManualEvidencePurpose(IReadOnlyCollection<string> categories)
+    {
+        return categories.Contains(CorpusTestCategories.Visual, StringComparer.Ordinal)
+            || categories.Contains(CorpusTestCategories.ManualEvidence, StringComparer.Ordinal);
+    }
+
+    private static bool IsSelectedByFastDefaults(IReadOnlyCollection<string> categories)
+    {
+        return categories.Contains(CorpusTestCategories.Fast, StringComparer.Ordinal)
+            || categories.Contains(CorpusTestCategories.Contract, StringComparer.Ordinal);
     }
 }

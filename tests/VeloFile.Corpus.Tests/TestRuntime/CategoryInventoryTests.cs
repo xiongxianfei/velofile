@@ -138,6 +138,36 @@ public sealed class CategoryInventoryTests
         AssertContainsSingleError(errors, "CorpusScript without Smoke or ReleaseEvidence", "ScriptOnlyTest");
     }
 
+    [TestMethod]
+    public void Corpus_category_inventory_rejects_visual_contract_without_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "VisualContractTest",
+                [CorpusTestCategories.Visual, CorpusTestCategories.Contract],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: null)
+        ]);
+
+        AssertContainsSingleError(errors, "non-empty EvidenceFastPathRationale", "VisualContractTest");
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_allows_visual_contract_with_non_empty_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "VisualContractTest",
+                [CorpusTestCategories.Visual, CorpusTestCategories.Contract],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: "Static inventory validation only; no screenshot capture or manual review.")
+        ]);
+
+        Assert.IsFalse(errors.Any(), string.Join(Environment.NewLine, errors));
+    }
+
     private static void AssertContainsSingleError(IReadOnlyList<string> errors, string expectedKind, string expectedSubject)
     {
         Assert.HasCount(1, errors, string.Join(Environment.NewLine, errors));

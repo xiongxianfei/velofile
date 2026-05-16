@@ -7,6 +7,7 @@ namespace VeloFile.Corpus.Tests.UiContracts;
 [TestClass]
 [TestCategory(CorpusTestCategories.Contract)]
 [TestCategory(CorpusTestCategories.Visual)]
+[EvidenceFastPathRationale("Static shell visual-coherence contract checks only; no screenshot capture or manual visual review.")]
 public sealed class ShellVisualCoherenceContractTests
 {
     private static readonly string[] FollowOnScopeIds =
