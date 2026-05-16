@@ -472,14 +472,14 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: final closeout
-- Current milestone state: explain-change-ready
+- Current milestone state: verify-ready
 - Last implemented milestone: M7 lifecycle closeout handoff
 - Last reviewed milestone: M7 code-review-r10
 - Review status: M7 closed with no open findings
 - Remaining in-scope implementation milestones: none
-- Next stage: `explain-change`, then `verify`
-- Final closeout readiness: ready for final closeout sequence; not PR-ready
-- Reason final closeout is or is not ready: all in-scope implementation milestones are closed and review-resolution is resolved; final explain-change, verification, and PR handoff remain downstream.
+- Next stage: `verify`
+- Final closeout readiness: ready for verify; not PR-ready
+- Reason final closeout is or is not ready: all in-scope implementation milestones are closed, review-resolution is resolved, and explain-change is current; final verification and PR handoff remain downstream.
 
 ## Decision Log
 
@@ -633,10 +633,12 @@ Implementation validation:
   - `code-review-r10` approved M7 with no findings and closed the milestone.
   - Reviewer spot check `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
   - Reviewer spot check `git diff --check` passed.
+- Final explain-change:
+  - `docs/changes/2026-05-16-test-runtime-optimization/explain-change.md` updated after code-review-r10 with the full problem-to-diff trace, test/evidence mapping, review-resolution summary, alternatives, scope controls, risks, and verify handoff.
 
 ## Outcome and Retrospective
 
-M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. M1-M7 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final explain-change, verification, and PR handoff remain downstream.
+M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. The final explain-change artifact is current. M1-M7 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final verification and PR handoff remain downstream.
 
 Retrospective:
 
@@ -647,4 +649,4 @@ Retrospective:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for final closeout sequence, not PR handoff.
+See Current Handoff Summary. This plan is ready for verify, not PR handoff.

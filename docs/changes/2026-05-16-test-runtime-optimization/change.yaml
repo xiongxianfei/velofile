@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
-current_milestone: M7
-current_milestone_state: closed
+current_milestone: final-closeout
+current_milestone_state: verify-ready
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -151,4 +151,5 @@ notes:
   - code-review-r9 approved M6 and closed the milestone with no findings.
   - M7 records lifecycle closeout evidence, broad CI validation, and final implementation handoff state without claiming verification or PR readiness.
   - code-review-r10 approved M7 and closed the final implementation milestone with no findings.
+  - explain-change updated the durable rationale after M7 code review.
   - Final verification and PR handoff remain downstream lifecycle stages.
