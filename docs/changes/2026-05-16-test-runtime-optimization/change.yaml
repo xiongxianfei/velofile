@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M4
-current_milestone_state: planned
+current_milestone_state: review-requested
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -62,6 +62,17 @@ validation:
         result: passed after plan updates; 3 tests selected
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+  m4:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"
+        result: failed before implementation with missing prepared-tool harness types; later failed on unsafe scratch-root fixture setup; passed after implementation and fixture correction with 9 tests selected, about 2 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed; 6 tests selected; about 56 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed; 11 tests selected
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
@@ -72,3 +83,4 @@ notes:
   - code-review-r3 approved M2 and closed the milestone.
   - M3 adds minimal public script smoke coverage for each public corpus script family and a named hermetic wrapper isolation test.
   - code-review-r4 approved M3 and closed the milestone.
+  - M4 adds a test-internal prepared corpus tool harness with current-run manifest validation and no public script option changes.

@@ -62,3 +62,29 @@ M3 does not remove release-evidence wrapper tests, expose prepared-tool options,
 ## M3 evidence
 
 The `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds locally. The broader `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation selected 26 tests and still took about 6 m 48 s because it intentionally includes existing release-evidence wrapper tests. Full runtime comparison and slow-test reporting remain assigned to M6.
+
+## M4 rationale
+
+M4 adds a test-internal prepared corpus tool harness for process-based tests that need to invoke the Corpus CLI without proving scratch source copy and publish on every assertion. The harness publishes `tools/VeloFile.Corpus` into a prepared-tool root under the test-owned scratch root, writes `.velofile-prepared-tool.json`, validates the current-run manifest before invocation, and then runs the prepared `VeloFile.Corpus.dll` through `dotnet`.
+
+The manifest records only test-harness metadata:
+
+```text
+schemaVersion
+toolKind
+setupId
+configuration
+targetFramework
+entrypoint
+createdUtc
+```
+
+It does not store local user paths or machine-specific private paths.
+
+## M4 boundaries
+
+M4 does not change public corpus scripts, add `-PreparedToolPath` or `-UseExistingToolBuild`, split CI, remove release evidence, remove assembly-wide `DoNotParallelize`, or change production App/Core/Windows behavior. Invalid prepared-tool roots fail before process invocation with controlled diagnostics.
+
+## M4 evidence
+
+The focused prepared-tool validation selected 9 tests and passed after the harness implementation. The tests cover current-run repeated execution through one prepared tool, missing root, outside-root path, missing manifest, previous setup id, bad metadata, missing artifact, global-state/repo-output safety, and public script option absence. The retained `CorpusScript&Smoke` tier selected 6 tests and completed in about 56 seconds locally.

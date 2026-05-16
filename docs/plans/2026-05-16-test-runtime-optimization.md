@@ -240,7 +240,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M4. Test-Internal Prepared Tool Harness
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: add a prepared corpus tool path for tests that need process execution without hermetic scratch publishing on every assertion.
 - Requirements: R34-R38, AC8-AC9
 - Files/components likely touched:
@@ -464,7 +464,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M1 closed.
 - [x] M2 closed.
 - [x] M3 closed.
-- [ ] M4 closed.
+- [ ] M4 review requested.
 - [ ] M5 closed.
 - [ ] M6 closed.
 - [ ] M7 lifecycle closeout complete.
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M4 test-internal prepared tool harness
-- Current milestone state: planned
-- Last implemented milestone: M3 implementation handoff
+- Current milestone state: review-requested
+- Last implemented milestone: M4 implementation handoff
 - Last reviewed milestone: M3 code-review-r4
-- Review status: M3 closed with no open findings
+- Review status: M4 awaiting code review
 - Remaining in-scope implementation milestones: M4-M6
-- Next stage: `implement` M4
+- Next stage: `code-review` M4
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -494,6 +494,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 | 2026-05-16 | Use a narrow `InternalsVisibleTo` seam from `tools/VeloFile.Corpus` to `VeloFile.Corpus.Tests` for M2 contract checks. | The contract claim is corpus command output, not public wrapper routing, so in-process invocation avoids PowerShell and scratch publish cost while preserving wrapper tests for M3. | Expose a public prepared-tool/script option; keep every assertion behind public wrapper execution. |
 | 2026-05-16 | Retarget `VeloFile.Corpus.Tests` to the Corpus tool's Windows TFM. | The Corpus tool already targets `net8.0-windows10.0.19041.0`; the test project must match to reference the tool for in-process contract checks. | Duplicate corpus logic in the test project; change the tool target framework. |
 | 2026-05-16 | Use `generate-corpus.ps1` as the M3 hermetic wrapper isolation path. | It exercises the shared `Invoke-CorpusTool.ps1` scratch source copy and publish path while also serving as the minimal generate-script smoke. | Add a separate hermetic-only wrapper command; duplicate another generate smoke invocation. |
+| 2026-05-16 | Use a test-owned current-run manifest for prepared-tool execution. | M4 only needs same-run prepared tool reuse; setup-id validation prevents stale cross-run reuse without adding source-hash caching. | Expose public prepared-tool script options; implement cross-run prepared-tool caching in the first slice. |
 
 ## Surprises and Discoveries
 
@@ -503,6 +504,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - M2's in-process contract tests can cover manifest, compatibility, preview, diagnostics, redaction, scratch-root, and release-classification contracts without creating `.velofile-tools` or invoking public PowerShell wrappers.
 - The Corpus contract no-build run is now 42 selected tests in about 23 seconds locally, which meets the M2 target of staying under 30 seconds for the Corpus fast/contract run when already built.
 - M3's required `FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript` validation still selects release-evidence wrapper tests by design and took about 6 m 48 s locally. The smaller `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds.
+- M4 prepared-tool tests must use a separate generated-corpus root under the scratch root. Reusing the prepared-tool root or its parent as corpus output makes the Corpus scratch-root guard correctly reject the non-empty unmarked directory.
 
 ## Validation Notes
 
@@ -557,6 +559,14 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M3 code review:
   - `code-review-r4` approved M3 with no findings and closed the milestone.
+- M4 TDD failures:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"` first failed because `PreparedCorpusToolContext` and `PreparedCorpusToolRunResult` did not exist.
+  - The same command then failed because the initial fixture reused a non-empty scratch root for generated corpus output; the fixture was corrected to use a `velofile-corpus-run` subdirectory under the allowed scratch root.
+- M4 validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"` passed: 9 tests selected, about 2 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests selected, about 56 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests selected.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -564,4 +574,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M4 implementation, not final closeout.
+See Current Handoff Summary. M4 implementation is ready for code review, not milestone closeout or final closeout.
