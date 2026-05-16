@@ -467,19 +467,19 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M4 closed.
 - [x] M5 closed.
 - [x] M6 closed.
-- [ ] M7 lifecycle closeout complete.
+- [x] M7 lifecycle closeout complete.
 
 ## Current Handoff Summary
 
-- Current milestone: M7 lifecycle closeout
-- Current milestone state: review-requested
+- Current milestone: final closeout
+- Current milestone state: explain-change-ready
 - Last implemented milestone: M7 lifecycle closeout handoff
-- Last reviewed milestone: M6 code-review-r9
-- Review status: M7 implementation is ready for code review; M6 closed with no open findings
-- Remaining in-scope implementation milestones: M7
-- Next stage: `code-review` M7
-- Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M7 code review, final verification, and PR handoff are not complete.
+- Last reviewed milestone: M7 code-review-r10
+- Review status: M7 closed with no open findings
+- Remaining in-scope implementation milestones: none
+- Next stage: `explain-change`, then `verify`
+- Final closeout readiness: ready for final closeout sequence; not PR-ready
+- Reason final closeout is or is not ready: all in-scope implementation milestones are closed and review-resolution is resolved; final explain-change, verification, and PR handoff remain downstream.
 
 ## Decision Log
 
@@ -629,10 +629,14 @@ Implementation validation:
   - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; Corpus test duration about 51 seconds.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
   - `rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools` passed; references remain present across governing docs, tests, scripts, and tooling.
+- M7 code review:
+  - `code-review-r10` approved M7 with no findings and closed the milestone.
+  - Reviewer spot check `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - Reviewer spot check `git diff --check` passed.
 
 ## Outcome and Retrospective
 
-M7 implementation collected lifecycle closeout evidence and leaves the plan ready for M7 code review. M1-M6 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final verification and PR handoff remain downstream of M7 review.
+M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. M1-M7 are closed, required review-resolution findings are resolved, and the broad closeout path still passes locally. Final explain-change, verification, and PR handoff remain downstream.
 
 Retrospective:
 
@@ -643,4 +647,4 @@ Retrospective:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M7 code review, not final closeout.
+See Current Handoff Summary. This plan is ready for final closeout sequence, not PR handoff.

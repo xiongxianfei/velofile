@@ -2,9 +2,19 @@
 
 ## Status
 
-resolved; M6 closed by code-review-r9; ready for M7 lifecycle closeout
+resolved; M7 closed by code-review-r10; ready for final closeout sequence
 
 ## Findings
+
+### M7 code review: no findings
+
+- Source review: [code-review-r10](reviews/code-review-r10.md)
+- Status: closed
+- Closeout:
+  - [code-review-r10](reviews/code-review-r10.md) approved M7 with no findings.
+  - M7 lifecycle closeout handoff is closed.
+  - No review-resolution findings are open for M7.
+  - Final verification and PR handoff remain downstream lifecycle stages.
 
 ### M6 code review: no findings
 

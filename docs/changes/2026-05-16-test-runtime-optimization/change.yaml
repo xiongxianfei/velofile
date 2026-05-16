@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M7
-current_milestone_state: review-requested
+current_milestone_state: closed
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -118,7 +118,7 @@ validation:
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
   m7:
-    status: implementation-ready-for-review
+    status: closed
     commands:
       - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
         result: passed; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 6 m 48 s
@@ -150,3 +150,5 @@ notes:
   - M6 records that Corpus fast/contract no-build and full CI remain above SHOULD-level targets without deleting wrapper, prepared-tool, or release-evidence coverage.
   - code-review-r9 approved M6 and closed the milestone with no findings.
   - M7 records lifecycle closeout evidence, broad CI validation, and final implementation handoff state without claiming verification or PR readiness.
+  - code-review-r10 approved M7 and closed the final implementation milestone with no findings.
+  - Final verification and PR handoff remain downstream lifecycle stages.
