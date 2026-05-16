@@ -190,7 +190,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M3. Public Script Smoke and Hermetic Wrapper Coverage
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: preserve public wrapper confidence with a minimal smoke set and one common hermetic scratch-publish isolation test.
 - Requirements: R27-R33, AC5-AC7
 - Files/components likely touched:
@@ -463,7 +463,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] Test spec approved.
 - [x] M1 closed.
 - [x] M2 closed.
-- [ ] M3 review requested.
+- [x] M3 closed.
 - [ ] M4 closed.
 - [ ] M5 closed.
 - [ ] M6 closed.
@@ -471,13 +471,13 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 
 ## Current Handoff Summary
 
-- Current milestone: M3 public script smoke and hermetic wrapper coverage
-- Current milestone state: review-requested
-- Last implemented milestone: M2 implementation handoff
-- Last reviewed milestone: M2 code-review-r3
-- Review status: M3 awaiting code review
-- Remaining in-scope implementation milestones: M3-M6
-- Next stage: `code-review` M3
+- Current milestone: M4 test-internal prepared tool harness
+- Current milestone state: planned
+- Last implemented milestone: M3 implementation handoff
+- Last reviewed milestone: M3 code-review-r4
+- Review status: M3 closed with no open findings
+- Remaining in-scope implementation milestones: M4-M6
+- Next stage: `implement` M4
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -555,6 +555,8 @@ Implementation validation:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"` passed: 1 test.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WrapperCoverageLedgerTests|FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"` passed after plan updates: 3 tests.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M3 code review:
+  - `code-review-r4` approved M3 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -562,4 +564,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M3 implementation is ready for code review, not milestone closeout or final closeout.
+See Current Handoff Summary. This plan is ready for M4 implementation, not final closeout.
