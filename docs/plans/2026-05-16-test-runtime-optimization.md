@@ -288,7 +288,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M5. Release-Evidence Preservation and Full Validation Commands
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: prove expensive evidence remains explicit and available after tiering.
 - Requirements: R39-R43, AC6-AC7, AC11
 - Files/components likely touched:
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M5 release-evidence preservation and full validation commands
-- Current milestone state: review-requested
+- Current milestone state: resolution-needed
 - Last implemented milestone: M5 implementation handoff
-- Last reviewed milestone: M4 code-review-r6
-- Review status: M5 awaiting code review
+- Last reviewed milestone: M5 code-review-r7
+- Review status: TRO-CR3 open; M5 requires review-resolution
 - Remaining in-scope implementation milestones: M5-M6
-- Next stage: `code-review` M5
+- Next stage: `review-resolution` M5
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: M5 code review, M6 implementation, runtime evidence, verify, and PR handoff are not complete.
 
@@ -591,6 +591,8 @@ Implementation validation:
   - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 61 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 52 seconds Corpus test duration.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 80 tests passed.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M5 code review:
+  - `code-review-r7` requested changes for TRO-CR3 because `ManualEvidence` + fast/default rationale behavior is implemented but lacks direct regression proof.
 
 ## Outcome and Retrospective
 
@@ -598,4 +600,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M5 implementation is ready for code review, not milestone closeout or final closeout.
+See Current Handoff Summary. M5 is in review-resolution, not milestone closeout or final closeout.

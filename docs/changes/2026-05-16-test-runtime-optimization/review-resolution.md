@@ -2,9 +2,19 @@
 
 ## Status
 
-resolved; M4 closed by code-review-r6; ready for M5 implementation
+review-resolution needed for M5 TRO-CR3
 
 ## Findings
+
+### TRO-CR3: ManualEvidence fast-default rationale path lacks direct regression proof
+
+- Source review: [code-review-r7](reviews/code-review-r7.md)
+- Status: open
+- Required outcome: add direct test coverage proving `ManualEvidence` + `Fast` or `ManualEvidence` + `Contract` without a non-empty `EvidenceFastPathRationale` fails inventory validation, and that a non-empty rationale allows the combination when appropriate.
+- Safe resolution path:
+  - Keep the fix scoped to M5 category inventory tests and helper tests.
+  - Add focused `CategoryInventoryTests` cases for `ManualEvidence` + `Contract` or `ManualEvidence` + `Fast` without rationale and with rationale.
+  - Rerun M5 focused validation and return M5 to code review.
 
 ### TRO-CR2: Prepared-tool publish can mutate repository `bin`/`obj` outputs
 
