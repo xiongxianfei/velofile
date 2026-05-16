@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M4
-current_milestone_state: review-requested
+current_milestone_state: resolution-needed
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -84,3 +84,4 @@ notes:
   - M3 adds minimal public script smoke coverage for each public corpus script family and a named hermetic wrapper isolation test.
   - code-review-r4 approved M3 and closed the milestone.
   - M4 adds a test-internal prepared corpus tool harness with current-run manifest validation and no public script option changes.
+  - code-review-r5 requested M4 changes for TRO-CR2; prepared-tool publish must not mutate repo bin/obj outputs and the repo-output oracle must prove setup plus invocation.

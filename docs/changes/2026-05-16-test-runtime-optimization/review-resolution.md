@@ -2,9 +2,21 @@
 
 ## Status
 
-resolved; M3 closed by code-review-r4; ready for M4 implementation
+unresolved; M4 in review-resolution for TRO-CR2
 
 ## Findings
+
+### TRO-CR2: Prepared-tool publish can mutate repository `bin`/`obj` outputs
+
+- Source review: [code-review-r5](reviews/code-review-r5.md)
+- Status: open
+- Required outcome: prepared-tool setup must not write repository build outputs outside the assigned scratch/temp root, and TTO-T026 must directly prove that setup plus invocation preserve repo-side build output boundaries.
+- Safe resolution path:
+  - Keep the fix scoped to M4 test harness and tests.
+  - Either prepare the tool from a scratch source copy, or pass MSBuild properties that redirect `BaseIntermediateOutputPath`, `IntermediateOutputPath`, `OutputPath`, and related publish/build outputs for the Corpus project and its project references into the test-owned scratch root.
+  - Move the repo-output snapshot in `PreparedTool_execution_does_not_mutate_global_state_or_repo_outputs` so it is captured before `PreparedCorpusToolHarness.Prepare(context)`.
+  - Expand repo-output snapshot coverage to include relevant repository `bin` and `obj` paths or add a targeted assertion proving their timestamps/contents do not change during prepared-tool setup and invocation.
+  - Rerun M4 focused validation and return M4 to code review.
 
 ### TRO-CR1: `ReleaseEvidence` + `Fast` rationale can be empty
 

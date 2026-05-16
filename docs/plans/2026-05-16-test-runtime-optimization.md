@@ -240,7 +240,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M4. Test-Internal Prepared Tool Harness
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: add a prepared corpus tool path for tests that need process execution without hermetic scratch publishing on every assertion.
 - Requirements: R34-R38, AC8-AC9
 - Files/components likely touched:
@@ -464,7 +464,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M1 closed.
 - [x] M2 closed.
 - [x] M3 closed.
-- [ ] M4 review requested.
+- [ ] M4 resolution needed.
 - [ ] M5 closed.
 - [ ] M6 closed.
 - [ ] M7 lifecycle closeout complete.
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M4 test-internal prepared tool harness
-- Current milestone state: review-requested
+- Current milestone state: resolution-needed
 - Last implemented milestone: M4 implementation handoff
-- Last reviewed milestone: M3 code-review-r4
-- Review status: M4 awaiting code review
+- Last reviewed milestone: M4 code-review-r5
+- Review status: changes requested for TRO-CR2
 - Remaining in-scope implementation milestones: M4-M6
-- Next stage: `code-review` M4
+- Next stage: `review-resolution` TRO-CR2
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -567,6 +567,8 @@ Implementation validation:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests selected, about 56 seconds test duration.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests selected.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M4 code review:
+  - `code-review-r5` requested changes for TRO-CR2 because the prepared-tool setup path can mutate repository `bin`/`obj` outputs and the current repo-output oracle does not prove setup-time build output isolation.
 
 ## Outcome and Retrospective
 
@@ -574,4 +576,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M4 implementation is ready for code review, not milestone closeout or final closeout.
+See Current Handoff Summary. M4 is in review-resolution for TRO-CR2, not milestone closeout or final closeout.
