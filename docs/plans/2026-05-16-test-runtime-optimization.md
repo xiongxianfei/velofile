@@ -140,7 +140,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M2. Corpus Contract Tests Without Wrapper Cost
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: move assertions that do not need public wrapper behavior into in-process or low-overhead corpus contract tests.
 - Requirements: R22-R26, R39-R43, AC4, AC7
 - Files/components likely touched:
@@ -462,7 +462,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] Plan review completed.
 - [x] Test spec approved.
 - [x] M1 closed.
-- [ ] M2 review requested.
+- [x] M2 closed.
 - [ ] M3 closed.
 - [ ] M4 closed.
 - [ ] M5 closed.
@@ -471,13 +471,13 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 
 ## Current Handoff Summary
 
-- Current milestone: M2 corpus contract tests without wrapper cost
-- Current milestone state: review-requested
+- Current milestone: M3 public script smoke and hermetic wrapper coverage
+- Current milestone state: planned
 - Last implemented milestone: M2 implementation handoff
-- Last reviewed milestone: M1 code-review-r2
-- Review status: M2 awaiting code review
-- Remaining in-scope implementation milestones: M2-M6
-- Next stage: `code-review` M2
+- Last reviewed milestone: M2 code-review-r3
+- Review status: M2 closed with no open findings
+- Remaining in-scope implementation milestones: M3-M6
+- Next stage: `implement` M3
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -542,6 +542,8 @@ Implementation validation:
   - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 42 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 57 tests passed. Corpus unfiltered test duration was about 5 m 46 s because M2 preserves existing public wrapper coverage until M3.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- M2 code review:
+  - `code-review-r3` approved M2 with no findings and closed the milestone.
 
 ## Outcome and Retrospective
 
@@ -549,4 +551,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M2 implementation is ready for code review, not milestone closeout or final closeout.
+See Current Handoff Summary. This plan is ready for M3 implementation, not final closeout.

@@ -2,7 +2,7 @@
 
 ## Status
 
-resolved; M1 closed by code-review-r2; ready for M2 implementation
+resolved; M2 closed by code-review-r3; ready for M3 implementation
 
 ## Findings
 
