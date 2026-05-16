@@ -168,6 +168,100 @@ public sealed class CategoryInventoryTests
         Assert.IsFalse(errors.Any(), string.Join(Environment.NewLine, errors));
     }
 
+    [TestMethod]
+    public void Corpus_category_inventory_rejects_manual_evidence_contract_without_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceContractTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Contract],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: null)
+        ]);
+
+        AssertContainsSingleError(errors, "non-empty EvidenceFastPathRationale", "ManualEvidenceContractTest");
+        StringAssert.Contains(errors[0], CorpusTestCategories.ManualEvidence);
+        StringAssert.Contains(errors[0], CorpusTestCategories.Contract);
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_rejects_manual_evidence_fast_without_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceFastTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Fast],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: null)
+        ]);
+
+        AssertContainsSingleError(errors, "non-empty EvidenceFastPathRationale", "ManualEvidenceFastTest");
+        StringAssert.Contains(errors[0], CorpusTestCategories.ManualEvidence);
+        StringAssert.Contains(errors[0], CorpusTestCategories.Fast);
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_rejects_manual_evidence_contract_with_whitespace_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceContractTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Contract],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: "   ")
+        ]);
+
+        AssertContainsSingleError(errors, "non-empty EvidenceFastPathRationale", "ManualEvidenceContractTest");
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_rejects_manual_evidence_fast_with_whitespace_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceFastTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Fast],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: "\t")
+        ]);
+
+        AssertContainsSingleError(errors, "non-empty EvidenceFastPathRationale", "ManualEvidenceFastTest");
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_allows_manual_evidence_contract_with_non_empty_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceContractTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Contract],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: "Static manual-evidence record shape check only; does not require human review execution.")
+        ]);
+
+        Assert.IsFalse(errors.Any(), string.Join(Environment.NewLine, errors));
+    }
+
+    [TestMethod]
+    public void Corpus_category_inventory_allows_manual_evidence_fast_with_non_empty_rationale()
+    {
+        var errors = CorpusCategoryInventory.Validate(
+        [
+            new CorpusTestCategoryDescriptor(
+                "ManualEvidenceFastTest",
+                [CorpusTestCategories.ManualEvidence, CorpusTestCategories.Fast],
+                ReleaseEvidenceFastRationale: null,
+                EvidenceFastPathRationale: "Static manual-evidence record shape check only; does not require human review execution.")
+        ]);
+
+        Assert.IsFalse(errors.Any(), string.Join(Environment.NewLine, errors));
+    }
+
     private static void AssertContainsSingleError(IReadOnlyList<string> errors, string expectedKind, string expectedSubject)
     {
         Assert.HasCount(1, errors, string.Join(Environment.NewLine, errors));

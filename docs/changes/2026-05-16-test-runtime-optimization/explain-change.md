@@ -102,3 +102,9 @@ M5 does not split hosted CI, expose prepared-tool options, change public corpus 
 ## M5 evidence
 
 The explicit `ReleaseEvidence` command selected 10 tests and completed in about 5 m 18 s locally. The broad fast/contract solution filter selected 61 Corpus tests while Core/App/Windows reported no matching category tests. Full `scripts/ci.ps1` passed with UI contract validation, Core 168 tests, App 149 tests, Windows 52 tests, and Corpus 80 tests.
+
+## M5 review-resolution
+
+TRO-CR3 found that the broad assembly scan could not directly prove the `ManualEvidence` branch of the fast-default rationale validator because the current Corpus assembly has Visual evidence examples but no ManualEvidence examples. The resolution adds synthetic `CategoryInventoryTests` that exercise the same `CorpusCategoryInventory.Validate(...)` path for `ManualEvidence` + `Contract` and `ManualEvidence` + `Fast`.
+
+The new tests prove missing and whitespace `EvidenceFastPathRationale` values fail, and non-empty rationales pass. This keeps the fix scoped to category inventory proof; it does not change public wrapper behavior, prepared-tool behavior, release-evidence commands, CI routing, or production code.

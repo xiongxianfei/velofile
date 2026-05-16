@@ -2,19 +2,35 @@
 
 ## Status
 
-review-resolution needed for M5 TRO-CR3
+M5 TRO-CR3 resolved; M5 returned to code review
 
 ## Findings
 
 ### TRO-CR3: ManualEvidence fast-default rationale path lacks direct regression proof
 
 - Source review: [code-review-r7](reviews/code-review-r7.md)
-- Status: open
+- Status: resolved
 - Required outcome: add direct test coverage proving `ManualEvidence` + `Fast` or `ManualEvidence` + `Contract` without a non-empty `EvidenceFastPathRationale` fails inventory validation, and that a non-empty rationale allows the combination when appropriate.
 - Safe resolution path:
   - Keep the fix scoped to M5 category inventory tests and helper tests.
   - Add focused `CategoryInventoryTests` cases for `ManualEvidence` + `Contract` or `ManualEvidence` + `Fast` without rationale and with rationale.
   - Rerun M5 focused validation and return M5 to code review.
+- Resolution:
+  - Added direct synthetic inventory tests for `ManualEvidence` + `Contract` and `ManualEvidence` + `Fast` without a rationale.
+  - Added whitespace-rationale rejection tests for both combinations.
+  - Added non-empty rationale passing tests for both combinations.
+  - The tests call the same `CorpusCategoryInventory.Validate(...)` path used by the real assembly inventory.
+  - No public wrapper, prepared-tool, CI routing, release-evidence command, or production code behavior changed.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"` passed: 24 tests selected.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"` passed: 10 tests selected, about 5 m 11 s test duration.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 86 tests passed.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- Closeout:
+  - TRO-CR3 is resolved.
+  - M5 is ready for code review.
 
 ### TRO-CR2: Prepared-tool publish can mutate repository `bin`/`obj` outputs
 

@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M5
-current_milestone_state: resolution-needed
+current_milestone_state: review-requested
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -74,20 +74,20 @@ validation:
       - command: git diff --check
         result: passed after TRO-CR2 resolution with Git LF-to-CRLF working-copy warnings only
   m5:
-    status: resolution-needed
+    status: review-resolution-ready-for-review
     commands:
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"
-        result: failed before implementation because CorpusTestCategoryDescriptor had no EvidenceFastPathRationale field; passed after implementation with 18 tests selected
+        result: failed before implementation because CorpusTestCategoryDescriptor had no EvidenceFastPathRationale field; passed after implementation with 18 tests selected; passed after TRO-CR3 resolution with 24 tests selected
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"
-        result: passed; 10 tests selected; about 5 m 18 s test duration
+        result: passed after TRO-CR3 resolution; 10 tests selected; about 5 m 11 s test duration
       - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
-        result: passed; 61 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 53 seconds Corpus test duration
+        result: passed after TRO-CR3 resolution; 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 57 seconds Corpus test duration
       - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
-        result: passed; 61 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 52 seconds Corpus test duration
+        result: passed after TRO-CR3 resolution; 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration
       - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
-        result: passed; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 80 tests passed
+        result: passed after TRO-CR3 resolution; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 86 tests passed
       - command: git diff --check
-        result: passed with Git LF-to-CRLF working-copy warnings only
+        result: passed after TRO-CR3 resolution with Git LF-to-CRLF working-copy warnings only
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
@@ -104,3 +104,4 @@ notes:
   - code-review-r6 approved M4 and closed the milestone.
   - M5 preserves explicit ReleaseEvidence selection, broad CI closeout, and evidence-tier rationale checks for Visual/ManualEvidence tests included in fast/default filters.
   - code-review-r7 requested M5 changes for TRO-CR3; ManualEvidence fast-default rationale requires direct regression proof.
+  - TRO-CR3 was resolved by adding direct ManualEvidence + Fast/Contract rationale rejection and acceptance tests.

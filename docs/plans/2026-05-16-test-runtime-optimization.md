@@ -288,7 +288,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M5. Release-Evidence Preservation and Full Validation Commands
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: prove expensive evidence remains explicit and available after tiering.
 - Requirements: R39-R43, AC6-AC7, AC11
 - Files/components likely touched:
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M5 release-evidence preservation and full validation commands
-- Current milestone state: resolution-needed
-- Last implemented milestone: M5 implementation handoff
+- Current milestone state: review-requested
+- Last implemented milestone: M5 review-resolution handoff
 - Last reviewed milestone: M5 code-review-r7
-- Review status: TRO-CR3 open; M5 requires review-resolution
+- Review status: TRO-CR3 resolved; M5 awaiting code review
 - Remaining in-scope implementation milestones: M5-M6
-- Next stage: `review-resolution` M5
+- Next stage: `code-review` M5
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: M5 code review, M6 implementation, runtime evidence, verify, and PR handoff are not complete.
 
@@ -593,6 +593,14 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M5 code review:
   - `code-review-r7` requested changes for TRO-CR3 because `ManualEvidence` + fast/default rationale behavior is implemented but lacks direct regression proof.
+- M5 review-resolution:
+  - TRO-CR3 resolved by adding direct synthetic `CategoryInventoryTests` for `ManualEvidence` + `Contract` and `ManualEvidence` + `Fast` with missing, whitespace, and non-empty `EvidenceFastPathRationale` values.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"` passed: 24 tests selected.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"` passed: 10 tests selected, about 5 m 11 s test duration.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 57 seconds Corpus test duration.
+  - `dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors, UI contract validation passed, Core 168/App 149/Windows 52/Corpus 86 tests passed.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -600,4 +608,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M5 is in review-resolution, not milestone closeout or final closeout.
+See Current Handoff Summary. M5 is ready for code review after TRO-CR3 resolution, not milestone closeout or final closeout.
