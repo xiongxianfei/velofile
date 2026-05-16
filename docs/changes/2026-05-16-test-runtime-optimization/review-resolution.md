@@ -2,14 +2,14 @@
 
 ## Status
 
-unresolved; M4 in review-resolution for TRO-CR2
+resolved; M4 returned to code review after TRO-CR2 resolution
 
 ## Findings
 
 ### TRO-CR2: Prepared-tool publish can mutate repository `bin`/`obj` outputs
 
 - Source review: [code-review-r5](reviews/code-review-r5.md)
-- Status: open
+- Status: resolved
 - Required outcome: prepared-tool setup must not write repository build outputs outside the assigned scratch/temp root, and TTO-T026 must directly prove that setup plus invocation preserve repo-side build output boundaries.
 - Safe resolution path:
   - Keep the fix scoped to M4 test harness and tests.
@@ -17,6 +17,17 @@ unresolved; M4 in review-resolution for TRO-CR2
   - Move the repo-output snapshot in `PreparedTool_execution_does_not_mutate_global_state_or_repo_outputs` so it is captured before `PreparedCorpusToolHarness.Prepare(context)`.
   - Expand repo-output snapshot coverage to include relevant repository `bin` and `obj` paths or add a targeted assertion proving their timestamps/contents do not change during prepared-tool setup and invocation.
   - Rerun M4 focused validation and return M4 to code review.
+- Resolution:
+  - Changed `PreparedCorpusToolHarness.Prepare` to copy `tools/VeloFile.Corpus`, `src/VeloFile.Core`, and `src/VeloFile.Windows` into a scratch-owned source tree before publishing.
+  - Published from the scratch source project into the scratch prepared-tool root, with `DOTNET_CLI_HOME`, NuGet caches, `TEMP`, and `TMP` pointed at scratch-owned directories.
+  - Moved the repo-output snapshot before prepared-tool setup.
+  - Expanded `RepoOutputSnapshot` to include `bin` and `obj` paths for `tools/VeloFile.Corpus`, `src/VeloFile.Core`, and `src/VeloFile.Windows`, with file length and last-write-time fingerprints.
+  - Added tests proving snapshot mutation detection and scratch-owned prepared source/output roots.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"` passed: 11 tests, about 29 seconds.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests, about 57 seconds.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ### TRO-CR1: `ReleaseEvidence` + `Fast` rationale can be empty
 

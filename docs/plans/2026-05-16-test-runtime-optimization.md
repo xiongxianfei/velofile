@@ -240,7 +240,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M4. Test-Internal Prepared Tool Harness
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: add a prepared corpus tool path for tests that need process execution without hermetic scratch publishing on every assertion.
 - Requirements: R34-R38, AC8-AC9
 - Files/components likely touched:
@@ -464,7 +464,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] M1 closed.
 - [x] M2 closed.
 - [x] M3 closed.
-- [ ] M4 resolution needed.
+- [ ] M4 review requested.
 - [ ] M5 closed.
 - [ ] M6 closed.
 - [ ] M7 lifecycle closeout complete.
@@ -472,12 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M4 test-internal prepared tool harness
-- Current milestone state: resolution-needed
+- Current milestone state: review-requested
 - Last implemented milestone: M4 implementation handoff
 - Last reviewed milestone: M4 code-review-r5
-- Review status: changes requested for TRO-CR2
+- Review status: TRO-CR2 resolved; M4 awaiting code review
 - Remaining in-scope implementation milestones: M4-M6
-- Next stage: `review-resolution` TRO-CR2
+- Next stage: `code-review` M4
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -569,6 +569,15 @@ Implementation validation:
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - M4 code review:
   - `code-review-r5` requested changes for TRO-CR2 because the prepared-tool setup path can mutate repository `bin`/`obj` outputs and the current repo-output oracle does not prove setup-time build output isolation.
+- M4 review-resolution:
+  - TRO-CR2 fixed by preparing the Corpus tool from scratch-owned source copies and publishing into the scratch prepared-tool root.
+  - `RepoOutputSnapshot` now covers `bin` and `obj` paths for `tools/VeloFile.Corpus`, `src/VeloFile.Core`, and `src/VeloFile.Windows`, including file length and last-write-time fingerprints.
+  - `PreparedTool_execution_does_not_mutate_global_state_or_repo_outputs` now captures the repo snapshot before `Prepare`.
+  - Added `PreparedTool_prepare_uses_only_scratch_owned_source_and_output_roots` and `RepoOutputSnapshot_detects_bin_obj_file_mutation`.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"` passed: 11 tests selected, about 29 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests selected, about 57 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"` passed: 11 tests selected.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -576,4 +585,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. M4 is in review-resolution for TRO-CR2, not milestone closeout or final closeout.
+See Current Handoff Summary. M4 review-resolution is ready for code review, not milestone closeout or final closeout.

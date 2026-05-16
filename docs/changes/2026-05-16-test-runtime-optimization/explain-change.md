@@ -65,7 +65,7 @@ The `CorpusScript&Smoke` tier selected 6 tests and completed in about 54 seconds
 
 ## M4 rationale
 
-M4 adds a test-internal prepared corpus tool harness for process-based tests that need to invoke the Corpus CLI without proving scratch source copy and publish on every assertion. The harness publishes `tools/VeloFile.Corpus` into a prepared-tool root under the test-owned scratch root, writes `.velofile-prepared-tool.json`, validates the current-run manifest before invocation, and then runs the prepared `VeloFile.Corpus.dll` through `dotnet`.
+M4 adds a test-internal prepared corpus tool harness for process-based tests that need to invoke the Corpus CLI without proving scratch source copy and publish on every assertion. The harness copies `tools/VeloFile.Corpus`, `src/VeloFile.Core`, and `src/VeloFile.Windows` into a scratch-owned source tree, publishes from that scratch source into a prepared-tool root under the test-owned scratch root, writes `.velofile-prepared-tool.json`, validates the current-run manifest before invocation, and then runs the prepared `VeloFile.Corpus.dll` through `dotnet`.
 
 The manifest records only test-harness metadata:
 
@@ -87,4 +87,4 @@ M4 does not change public corpus scripts, add `-PreparedToolPath` or `-UseExisti
 
 ## M4 evidence
 
-The focused prepared-tool validation selected 9 tests and passed after the harness implementation. The tests cover current-run repeated execution through one prepared tool, missing root, outside-root path, missing manifest, previous setup id, bad metadata, missing artifact, global-state/repo-output safety, and public script option absence. The retained `CorpusScript&Smoke` tier selected 6 tests and completed in about 56 seconds locally.
+The focused prepared-tool validation selected 11 tests and passed after TRO-CR2 resolution. The tests cover current-run repeated execution through one prepared tool, scratch-owned source/output roots, repo bin/obj snapshot mutation detection, missing root, outside-root path, missing manifest, previous setup id, bad metadata, missing artifact, global-state/repo-output safety, and public script option absence. The retained `CorpusScript&Smoke` tier selected 6 tests and completed in about 57 seconds locally.

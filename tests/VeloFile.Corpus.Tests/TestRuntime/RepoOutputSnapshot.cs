@@ -12,8 +12,14 @@ internal static class RepoOutputSnapshot
             Path.Combine(repoRoot.FullName, "diagnostics"),
             Path.Combine(repoRoot.FullName, "benchmarks"),
             Path.Combine(repoRoot.FullName, "tools", "VeloFile.Corpus", "publish"),
+            Path.Combine(repoRoot.FullName, "tools", "VeloFile.Corpus", "bin"),
+            Path.Combine(repoRoot.FullName, "tools", "VeloFile.Corpus", "obj"),
             Path.Combine(repoRoot.FullName, "src", "VeloFile.Core", "publish"),
-            Path.Combine(repoRoot.FullName, "src", "VeloFile.Windows", "publish")
+            Path.Combine(repoRoot.FullName, "src", "VeloFile.Core", "bin"),
+            Path.Combine(repoRoot.FullName, "src", "VeloFile.Core", "obj"),
+            Path.Combine(repoRoot.FullName, "src", "VeloFile.Windows", "publish"),
+            Path.Combine(repoRoot.FullName, "src", "VeloFile.Windows", "bin"),
+            Path.Combine(repoRoot.FullName, "src", "VeloFile.Windows", "obj")
         };
 
         return Capture(paths);
@@ -42,9 +48,18 @@ internal static class RepoOutputSnapshot
         }
 
         yield return "dir:" + path;
+        foreach (var directory in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
+        {
+            yield return "directory:" + Path.GetRelativePath(path, directory).Replace(Path.DirectorySeparatorChar, '/');
+        }
+
         foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
         {
-            yield return "child:" + Path.GetRelativePath(path, file).Replace(Path.DirectorySeparatorChar, '/');
+            var info = new FileInfo(file);
+            yield return "child:"
+                + Path.GetRelativePath(path, file).Replace(Path.DirectorySeparatorChar, '/')
+                + ":length=" + info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ":mtime=" + info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }

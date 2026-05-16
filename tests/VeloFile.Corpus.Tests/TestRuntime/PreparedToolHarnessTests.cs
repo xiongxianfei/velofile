@@ -16,6 +16,7 @@ public sealed class PreparedToolHarnessTests
         var compatResult = PreparedCorpusToolHarness.Run(context, prepared.Root, "compat", "--scope", "smoke", "--root", runRoot);
 
         Assert.IsTrue(prepared.Root.StartsWith(scratch.Root, StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(prepared.SourceRoot.StartsWith(scratch.Root, StringComparison.OrdinalIgnoreCase));
         Assert.IsTrue(File.Exists(Path.Combine(prepared.Root, PreparedCorpusToolHarness.ManifestFileName)));
         Assert.IsTrue(result.ProcessStarted, result.Diagnostic);
         Assert.AreEqual(0, result.ExitCode, result.AllOutput);
@@ -121,12 +122,12 @@ public sealed class PreparedToolHarnessTests
         using var scratch = ScratchWorkspace.Create();
         var context = PreparedCorpusToolContext.Create(scratch.Root);
         var runRoot = Path.Combine(scratch.Root, "velofile-corpus-run");
-        var prepared = PreparedCorpusToolHarness.Prepare(context);
         var beforeRepoOutputs = RepoOutputSnapshot.CaptureGeneratedOutputPaths(repoRoot);
         var beforeUserPath = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User);
         var beforeDotnetTools = Environment.GetEnvironmentVariable("DOTNET_ADD_GLOBAL_TOOLS_TO_PATH", EnvironmentVariableTarget.User);
         var beforeDotnetCliHome = Environment.GetEnvironmentVariable("DOTNET_CLI_HOME", EnvironmentVariableTarget.User);
 
+        var prepared = PreparedCorpusToolHarness.Prepare(context);
         var result = PreparedCorpusToolHarness.Run(context, prepared.Root, "generate", "--profile", "smoke", "--root", runRoot);
 
         Assert.AreEqual(0, result.ExitCode, result.AllOutput);
@@ -134,6 +135,48 @@ public sealed class PreparedToolHarnessTests
         Assert.AreEqual(beforeUserPath, Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User));
         Assert.AreEqual(beforeDotnetTools, Environment.GetEnvironmentVariable("DOTNET_ADD_GLOBAL_TOOLS_TO_PATH", EnvironmentVariableTarget.User));
         Assert.AreEqual(beforeDotnetCliHome, Environment.GetEnvironmentVariable("DOTNET_CLI_HOME", EnvironmentVariableTarget.User));
+    }
+
+    [TestMethod]
+    public void PreparedTool_prepare_uses_only_scratch_owned_source_and_output_roots()
+    {
+        var repoRoot = TestRepo.FindRoot();
+        using var scratch = ScratchWorkspace.Create();
+        var context = PreparedCorpusToolContext.Create(scratch.Root);
+
+        var prepared = PreparedCorpusToolHarness.Prepare(context);
+        var manifest = File.ReadAllText(Path.Combine(prepared.Root, PreparedCorpusToolHarness.ManifestFileName));
+
+        AssertPathUnderRoot(scratch.Root, prepared.Root);
+        AssertPathUnderRoot(scratch.Root, prepared.SourceRoot);
+        AssertPathUnderRoot(scratch.Root, Path.Combine(prepared.Root, PreparedCorpusToolHarness.ManifestFileName));
+        Assert.IsTrue(File.Exists(Path.Combine(prepared.SourceRoot, "tools", "VeloFile.Corpus", "VeloFile.Corpus.csproj")));
+        Assert.IsTrue(File.Exists(Path.Combine(prepared.SourceRoot, "src", "VeloFile.Core", "VeloFile.Core.csproj")));
+        Assert.IsTrue(File.Exists(Path.Combine(prepared.SourceRoot, "src", "VeloFile.Windows", "VeloFile.Windows.csproj")));
+        Assert.IsFalse(manifest.Contains(repoRoot.FullName, StringComparison.OrdinalIgnoreCase), manifest);
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile))
+        {
+            Assert.IsFalse(manifest.Contains(userProfile, StringComparison.OrdinalIgnoreCase), manifest);
+        }
+    }
+
+    [TestMethod]
+    public void RepoOutputSnapshot_detects_bin_obj_file_mutation()
+    {
+        using var scratch = ScratchWorkspace.Create();
+        var watchedRoot = Path.Combine(scratch.Root, "watched-bin");
+        var watchedFile = Path.Combine(watchedRoot, "artifact.dll");
+        Directory.CreateDirectory(watchedRoot);
+        File.WriteAllText(watchedFile, "before");
+        var before = RepoOutputSnapshot.Capture([watchedRoot]);
+
+        File.WriteAllText(watchedFile, "after mutation");
+        File.SetLastWriteTimeUtc(watchedFile, DateTime.UtcNow.AddMinutes(1));
+        var after = RepoOutputSnapshot.Capture([watchedRoot]);
+
+        CollectionAssert.AreNotEqual(before, after);
     }
 
     [TestMethod]
@@ -181,5 +224,14 @@ public sealed class PreparedToolHarnessTests
         {
             Assert.IsFalse(result.Diagnostic.Contains(userProfile, StringComparison.OrdinalIgnoreCase), result.Diagnostic);
         }
+    }
+
+    private static void AssertPathUnderRoot(string root, string path)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var normalizedPath = Path.GetFullPath(path);
+        Assert.IsTrue(
+            normalizedPath.StartsWith(normalizedRoot, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal),
+            $"{normalizedPath} must be under {normalizedRoot}.");
     }
 }

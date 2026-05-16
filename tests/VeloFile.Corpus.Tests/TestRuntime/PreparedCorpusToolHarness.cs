@@ -21,7 +21,7 @@ internal sealed record PreparedCorpusToolContext(
     }
 }
 
-internal sealed record PreparedCorpusToolSetup(string Root);
+internal sealed record PreparedCorpusToolSetup(string Root, string SourceRoot);
 
 internal sealed record PreparedCorpusToolRunResult(
     bool ProcessStarted,
@@ -57,10 +57,34 @@ internal static class PreparedCorpusToolHarness
     {
         Directory.CreateDirectory(context.AllowedRoot);
         var preparedRoot = Path.Combine(context.AllowedRoot, "prepared-tools", ToolKind);
-        Directory.CreateDirectory(preparedRoot);
+        var sourceRoot = Path.Combine(context.AllowedRoot, "prepared-source");
+        var toolSourceRoot = Path.Combine(sourceRoot, "tools", "VeloFile.Corpus");
+        var coreSourceRoot = Path.Combine(sourceRoot, "src", "VeloFile.Core");
+        var windowsSourceRoot = Path.Combine(sourceRoot, "src", "VeloFile.Windows");
+        var dotnetHome = Path.Combine(context.AllowedRoot, "dotnet-home");
+        var nugetPackages = Path.Combine(context.AllowedRoot, "nuget", "packages");
+        var nugetHttpCache = Path.Combine(context.AllowedRoot, "nuget", "http-cache");
+        var nugetPluginsCache = Path.Combine(context.AllowedRoot, "nuget", "plugins-cache");
+        var tempRoot = Path.Combine(context.AllowedRoot, "temp");
+
+        RecreateDirectory(preparedRoot);
+        RecreateDirectory(sourceRoot);
+        Directory.CreateDirectory(dotnetHome);
+        Directory.CreateDirectory(nugetPackages);
+        Directory.CreateDirectory(nugetHttpCache);
+        Directory.CreateDirectory(nugetPluginsCache);
+        Directory.CreateDirectory(tempRoot);
 
         var repoRoot = TestRepo.FindRoot();
-        var projectPath = Path.Combine(repoRoot.FullName, "tools", "VeloFile.Corpus", "VeloFile.Corpus.csproj");
+        CopyDirectoryExcludingBuildOutputs(Path.Combine(repoRoot.FullName, "tools", "VeloFile.Corpus"), toolSourceRoot);
+        CopyDirectoryExcludingBuildOutputs(Path.Combine(repoRoot.FullName, "src", "VeloFile.Core"), coreSourceRoot);
+        CopyDirectoryExcludingBuildOutputs(Path.Combine(repoRoot.FullName, "src", "VeloFile.Windows"), windowsSourceRoot);
+        CopyOptionalRootFile(repoRoot.FullName, sourceRoot, "Directory.Build.props");
+        CopyOptionalRootFile(repoRoot.FullName, sourceRoot, "Directory.Build.targets");
+        CopyOptionalRootFile(repoRoot.FullName, sourceRoot, "NuGet.config");
+        CopyOptionalRootFile(repoRoot.FullName, sourceRoot, "global.json");
+
+        var projectPath = Path.Combine(toolSourceRoot, "VeloFile.Corpus.csproj");
         var result = RunProcess(
             "dotnet",
             [
@@ -70,11 +94,26 @@ internal static class PreparedCorpusToolHarness
                 context.Configuration,
                 "-f",
                 context.TargetFramework,
-                "--no-restore",
                 "-o",
-                preparedRoot
+                preparedRoot,
+                "-p:RestorePackagesPath=" + nugetPackages,
+                "-p:UseSharedCompilation=false",
+                "--nologo"
             ],
-            repoRoot.FullName);
+            sourceRoot,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["DOTNET_CLI_HOME"] = dotnetHome,
+                ["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "0",
+                ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
+                ["DOTNET_NOLOGO"] = "1",
+                ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
+                ["NUGET_PACKAGES"] = nugetPackages,
+                ["NUGET_HTTP_CACHE_PATH"] = nugetHttpCache,
+                ["NUGET_PLUGINS_CACHE_PATH"] = nugetPluginsCache,
+                ["TEMP"] = tempRoot,
+                ["TMP"] = tempRoot
+            });
 
         if (result.ExitCode != 0)
         {
@@ -92,7 +131,7 @@ internal static class PreparedCorpusToolHarness
                 Entrypoint,
                 DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)));
 
-        return new PreparedCorpusToolSetup(preparedRoot);
+        return new PreparedCorpusToolSetup(preparedRoot, sourceRoot);
     }
 
     public static PreparedCorpusToolRunResult Run(PreparedCorpusToolContext context, string preparedToolRoot, params string[] arguments)
@@ -216,7 +255,52 @@ internal static class PreparedCorpusToolHarness
         return string.Equals(left, right, StringComparison.Ordinal);
     }
 
-    private static ProcessResult RunProcess(string fileName, IReadOnlyList<string> arguments, string workingDirectory)
+    private static void RecreateDirectory(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+
+        Directory.CreateDirectory(path);
+    }
+
+    private static void CopyDirectoryExcludingBuildOutputs(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+
+        foreach (var directory in Directory.EnumerateDirectories(source))
+        {
+            var name = Path.GetFileName(directory);
+            if (string.Equals(name, "bin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            CopyDirectoryExcludingBuildOutputs(directory, Path.Combine(destination, name));
+        }
+
+        foreach (var file in Directory.EnumerateFiles(source))
+        {
+            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: true);
+        }
+    }
+
+    private static void CopyOptionalRootFile(string repoRoot, string sourceRoot, string fileName)
+    {
+        var source = Path.Combine(repoRoot, fileName);
+        if (File.Exists(source))
+        {
+            File.Copy(source, Path.Combine(sourceRoot, fileName), overwrite: true);
+        }
+    }
+
+    private static ProcessResult RunProcess(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string workingDirectory,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var startInfo = new ProcessStartInfo(fileName)
         {
@@ -229,6 +313,14 @@ internal static class PreparedCorpusToolHarness
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
+        }
+
+        if (environment is not null)
+        {
+            foreach (var (name, value) in environment)
+            {
+                startInfo.Environment[name] = value;
+            }
         }
 
         using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start process.");
