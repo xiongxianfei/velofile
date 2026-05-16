@@ -140,7 +140,7 @@ Until M3 closes, M2 must preserve existing public wrapper coverage.
 
 ### M2. Corpus Contract Tests Without Wrapper Cost
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: move assertions that do not need public wrapper behavior into in-process or low-overhead corpus contract tests.
 - Requirements: R22-R26, R39-R43, AC4, AC7
 - Files/components likely touched:
@@ -462,7 +462,7 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 - [x] Plan review completed.
 - [x] Test spec approved.
 - [x] M1 closed.
-- [ ] M2 closed.
+- [ ] M2 review requested.
 - [ ] M3 closed.
 - [ ] M4 closed.
 - [ ] M5 closed.
@@ -472,11 +472,12 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 ## Current Handoff Summary
 
 - Current milestone: M2 corpus contract tests without wrapper cost
-- Current milestone state: planned
+- Current milestone state: review-requested
+- Last implemented milestone: M2 implementation handoff
 - Last reviewed milestone: M1 code-review-r2
-- Review status: M1 closed with no open findings
+- Review status: M2 awaiting code review
 - Remaining in-scope implementation milestones: M2-M6
-- Next stage: `implement` M2
+- Next stage: `code-review` M2
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, runtime evidence, verify, and PR handoff are not complete.
 
@@ -490,12 +491,16 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 | 2026-05-16 | Defer assembly-wide `DoNotParallelize` removal. | Parallel safety needs separate evidence after categorization and shared-state inventory. | Remove assembly-wide serialization in this slice. |
 | 2026-05-16 | Use `README.md` as the first contributor-facing validation tier command surface. | It is the existing build/test entry point and keeps local commands discoverable. | Add a new validation guide in M1. |
 | 2026-05-16 | Replace legacy Corpus-only category names with the accepted taxonomy. | Spec R8-R15 require Corpus category inventory enforcement and reject unknown category names. | Preserve legacy aliases such as `UiContracts`, `Benchmarks`, or `Release` in `VeloFile.Corpus.Tests`. |
+| 2026-05-16 | Use a narrow `InternalsVisibleTo` seam from `tools/VeloFile.Corpus` to `VeloFile.Corpus.Tests` for M2 contract checks. | The contract claim is corpus command output, not public wrapper routing, so in-process invocation avoids PowerShell and scratch publish cost while preserving wrapper tests for M3. | Expose a public prepared-tool/script option; keep every assertion behind public wrapper execution. |
+| 2026-05-16 | Retarget `VeloFile.Corpus.Tests` to the Corpus tool's Windows TFM. | The Corpus tool already targets `net8.0-windows10.0.19041.0`; the test project must match to reference the tool for in-process contract checks. | Duplicate corpus logic in the test project; change the tool target framework. |
 
 ## Surprises and Discoveries
 
 - Existing Corpus tests use several non-taxonomy category names; M1 must migrate or wrap those names under the accepted taxonomy.
 - Current broad script tests mix contract, smoke, and release-evidence claims in one class; M2 and M3 must split by validation claim, not merely by file.
 - M1 category migration changes Corpus project category filters: Corpus UI contract tests now use `Contract` and/or `Visual` instead of the old `UiContracts` category, while broad unfiltered CI still runs them.
+- M2's in-process contract tests can cover manifest, compatibility, preview, diagnostics, redaction, scratch-root, and release-classification contracts without creating `.velofile-tools` or invoking public PowerShell wrappers.
+- The Corpus contract no-build run is now 42 selected tests in about 23 seconds locally, which meets the M2 target of staying under 30 seconds for the Corpus fast/contract run when already built.
 
 ## Validation Notes
 
@@ -527,6 +532,16 @@ Implementation validation:
   - `rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests` returned no legacy literal category attributes.
 - M1 code review rerun:
   - `code-review-r2` approved M1 with no findings and closed the milestone.
+- M2 TDD failure:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CorpusContractTests|FullyQualifiedName~ScratchRootBoundaryTests|FullyQualifiedName~WrapperCoverageLedgerTests"` first failed because `VeloFile.Corpus.Tests` targeted `net8.0` while `VeloFile.Corpus` targets `net8.0-windows10.0.19041.0`, then failed because `CorpusCli` was internal and inaccessible to the test project.
+- M2 validation passed:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CorpusContractTests|FullyQualifiedName~ScratchRootBoundaryTests|FullyQualifiedName~WrapperCoverageLedgerTests"` passed: 6 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract|TestCategory=Fast"` passed: 42 tests, about 24 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract|TestCategory=Fast"` passed: 42 tests, about 23 seconds test duration.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=Contract"` passed: 42 tests, about 23 seconds test duration.
+  - `dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed: 42 Corpus tests selected; Core/App/Windows reported no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed: build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 57 tests passed. Corpus unfiltered test duration was about 5 m 46 s because M2 preserves existing public wrapper coverage until M3.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 
@@ -534,4 +549,4 @@ Not started. Fill after implementation milestones and lifecycle closeout complet
 
 ## Readiness
 
-See Current Handoff Summary. This plan is ready for M2 implementation, not final closeout.
+See Current Handoff Summary. M2 implementation is ready for code review, not milestone closeout or final closeout.

@@ -14,6 +14,8 @@ using VeloFile.Core.Search;
 using VeloFile.Core.Visibility;
 using VeloFile.Windows.Preview;
 
+[assembly: InternalsVisibleTo("VeloFile.Corpus.Tests")]
+
 return CorpusCli.Run(args, Console.Out, Console.Error);
 
 internal static class CorpusCli

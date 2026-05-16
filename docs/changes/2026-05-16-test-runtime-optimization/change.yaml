@@ -1,7 +1,7 @@
 change_id: 2026-05-16-test-runtime-optimization
 status: active
 current_milestone: M2
-current_milestone_state: planned
+current_milestone_state: review-requested
 summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
 artifacts:
   proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
@@ -30,9 +30,27 @@ validation:
         result: passed after TRO-CR1 resolution with Git LF-to-CRLF working-copy warnings only
       - command: rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests
         result: passed; no legacy literal Corpus category attributes remained
+  m2:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CorpusContractTests|FullyQualifiedName~ScratchRootBoundaryTests|FullyQualifiedName~WrapperCoverageLedgerTests"
+        result: passed; 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract|TestCategory=Fast"
+        result: passed; 42 tests selected; about 24 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract|TestCategory=Fast"
+        result: passed; 42 tests selected; about 23 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=Contract"
+        result: passed; 42 tests selected; about 23 seconds test duration
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 42 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 57 tests passed; Corpus unfiltered duration about 5 m 46 s
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
 notes:
   - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
   - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
   - code-review-r1 requested changes for TRO-CR1 before M1 can close.
   - TRO-CR1 was resolved by requiring non-empty ReleaseEvidenceFastRationale text for ReleaseEvidence + Fast tests.
   - code-review-r2 approved M1 and closed the milestone.
+  - M2 adds in-process corpus contract checks through a test-only internal seam while preserving existing public wrapper tests until M3.
