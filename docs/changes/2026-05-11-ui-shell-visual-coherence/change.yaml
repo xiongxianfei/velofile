@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-shell-visual-coherence
 title: UI shell visual coherence
-status: lifecycle-closeout
+status: branch-ready
 proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
 spec: specs/ui-shell-visual-coherence.md
 plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
@@ -66,4 +66,14 @@ visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
 explain_change: docs/changes/2026-05-11-ui-shell-visual-coherence/explain-change.md
-next_stage: verify
+verify:
+  status: branch-ready
+  report: docs/changes/2026-05-11-ui-shell-visual-coherence/verify-report.md
+  validation:
+    - dotnet --info
+    - dotnet restore VeloFile.sln
+    - dotnet build VeloFile.sln -c Debug
+    - dotnet test VeloFile.sln -c Debug
+    - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    - git diff --check
+next_stage: pr

@@ -475,18 +475,19 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] M6 closed.
 - [x] M7 closed.
 - [x] M8 not triggered under the amended optional visual-artifact rule.
-- [ ] Lifecycle closeout completed.
+- [x] Final verification completed.
+- [ ] PR handoff completed.
 
 ## Current Handoff Summary
 
 Current milestone: M9. Lifecycle Closeout and Regression Verification
-Current milestone state: lifecycle-closeout
+Current milestone state: branch-ready
 Last reviewed milestone: M7 (clean-with-notes)
 Review status: code-review-r18 closed M7 with no material findings; M7 requires no review-resolution
 Remaining in-scope implementation milestones: none; M8 is optional and not triggered
-Next stage: verify
-Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1-M7 are closed, optional M8 is not triggered, and explain-change is recorded, but final verification and PR handoff work have not run.
+Next stage: pr
+Final closeout readiness: branch-ready for PR handoff
+Reason final closeout is or is not ready: M1-M7 are closed, optional M8 is not triggered, explain-change is recorded, and final local verification passed. PR body/open readiness is not claimed until the `pr` stage.
 
 ## Decision Log
 
@@ -805,7 +806,13 @@ M7 code review:
 Explain-change:
 
 - `docs/changes/2026-05-11-ui-shell-visual-coherence/explain-change.md`: updated as the durable rationale linking the actual diff, requirements, architecture, plan milestones, tests, review resolutions, validation evidence, alternatives, scope boundaries, and remaining risks.
-- No final verification is claimed by explain-change. The next lifecycle stage is `verify`.
+- No final verification was claimed by explain-change; final verification is recorded separately below.
+
+Verify:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/verify-report.md`: branch-ready for PR handoff.
+- Final local validation passed: `dotnet --info`, `dotnet restore VeloFile.sln`, `dotnet build VeloFile.sln -c Debug`, `dotnet test VeloFile.sln -c Debug`, `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`, `git diff --check`, generated visual output checks, and active artifact drift scans.
+- Hosted GitHub CI has not been observed for the local verification-report commit; it should run after push/PR.
 
 ## Outcome and Retrospective
 
@@ -813,4 +820,4 @@ Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M1-M7 are closed, optional M8 is not triggered, and explain-change is recorded. This plan is ready for final verification, but it is not ready for PR handoff or Done.
+See Current Handoff Summary. M1-M7 are closed, optional M8 is not triggered, explain-change is recorded, and final local verification passed. This plan is branch-ready for `pr`, but it is not PR body ready, PR open ready, or Done.
