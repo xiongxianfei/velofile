@@ -53,7 +53,7 @@ Hosted GitHub CI has not been observed for this unpushed local commit. Local val
 
 ## Validation Commands
 
-All commands ran from `D:\Data\20260428-velofile`.
+All commands ran from `<repo-root>`.
 
 | Command | Result | Important output |
 |---|---|---|

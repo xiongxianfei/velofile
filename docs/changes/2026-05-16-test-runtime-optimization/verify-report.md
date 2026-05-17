@@ -57,7 +57,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
 Working directory:
 
 ```text
-D:\Data\20260428-velofile
+<repo-root>
 ```
 
 Result: passed.
@@ -84,7 +84,7 @@ dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCat
 Working directory:
 
 ```text
-D:\Data\20260428-velofile
+<repo-root>
 ```
 
 Result: passed.
@@ -105,7 +105,7 @@ git diff --check
 Working directory:
 
 ```text
-D:\Data\20260428-velofile
+<repo-root>
 ```
 
 Result: passed.
@@ -121,7 +121,7 @@ git status --short
 Working directory:
 
 ```text
-D:\Data\20260428-velofile
+<repo-root>
 ```
 
 Result before verify artifact updates: clean.
