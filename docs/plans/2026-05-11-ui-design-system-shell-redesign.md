@@ -2,9 +2,9 @@
 
 ## Status
 
-active
+done
 
-This plan passed `plan-review` and has an active test spec. Readiness is not Done: implementation starts at M1 only after the current handoff summary says M1 is ready.
+This plan is closed. The first UI design-system slice merged through PR #2, and the follow-up branch including this plan's PR-stage README/learn updates was merged through PR #3 after hosted CI passed.
 
 ## Purpose / Big Picture
 
@@ -272,14 +272,14 @@ No data migration is expected. Rollback of the first slice removes first-slice r
 
 ## Current Handoff Summary
 
-Current milestone: M5. Lifecycle Closeout and Regression Verification
-Current milestone state: closed
+Current milestone: post-merge closeout
+Current milestone state: done
 Last reviewed milestone: M5 post-verify shell icon bugfix
-Review status: clean-with-notes; shell icon bugfix has no required-change findings
+Review status: clean-with-notes; shell icon bugfix has no required-change findings; PR #3 merged with hosted CI success
 Remaining in-scope implementation milestones: none
-Next stage: `pr`
-Final closeout readiness: branch-ready for PR handoff
-Reason final closeout is or is not ready: M1-M5 are closed, the shell icon bugfix has passed code-review, and renewed local final verification passed after the bugfix. Hosted GitHub CI was not observed in this stage.
+Next stage: none
+Final closeout readiness: done
+Reason final closeout is or is not ready: M1-M5 are closed, the shell icon bugfix passed code-review, renewed local final verification passed after the bugfix, and PR #3 merged after hosted CI passed.
 
 ## Decision Log
 
@@ -489,4 +489,11 @@ Renewed post-bugfix final verify result:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is active and branch-ready for `pr` handoff. Hosted GitHub CI was not observed during local verify.
+Done. PR #3 merged on 2026-05-18 local date after hosted `ci` passed.
+
+## Post-Merge Closeout
+
+- PR: https://github.com/xiongxianfei/velofile/pull/3
+- Merge commit: `e2170982f3bdfdb8255b69cc795ba40c6498544e`
+- Hosted CI: `ci` completed successfully before merge.
+- Plan index: moved to Done in `docs/plan.md`.

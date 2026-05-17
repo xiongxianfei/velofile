@@ -2,9 +2,9 @@
 
 ## Status
 
-active
+done
 
-Readiness is not Done. M1-M7 are closed, the 2026-05-17 amendment removing mandatory visual-evidence gates is approved by spec-review-r2, architecture-review-r1, plan-review-r4, and test-spec-review-r2, and optional M8 is not triggered because no optional visual artifacts require consolidation.
+This plan is closed. M1-M7 closed, optional M8 was not triggered, the visual-evidence gate amendment was approved, final verification passed, and PR #3 merged after hosted CI passed.
 
 ## Purpose / Big Picture
 
@@ -21,7 +21,7 @@ The main risk is mixing visual redesign with behavior changes. This plan keeps t
 | First-slice UI spec | [specs/ui-design-system-shell-redesign.md](../../specs/ui-design-system-shell-redesign.md) | approved; remains authoritative for first-slice scope |
 | Architecture package | [docs/architecture/system/architecture.md](../architecture/system/architecture.md) | visual-evidence amendment approved by architecture-review-r1 |
 | ADR 0010 | [0010-shell-visual-coherence-contracts.md](../adr/0010-shell-visual-coherence-contracts.md) | accepted; visual-evidence amendment approved by architecture-review-r1 |
-| Existing UI plan | [2026-05-11-ui-design-system-shell-redesign.md](2026-05-11-ui-design-system-shell-redesign.md) | active; branch-ready for PR handoff |
+| Existing UI plan | [2026-05-11-ui-design-system-shell-redesign.md](2026-05-11-ui-design-system-shell-redesign.md) | done |
 | Test spec | [specs/ui-shell-visual-coherence.test.md](../../specs/ui-shell-visual-coherence.test.md) | visual-evidence amendment approved by test-spec-review-r2 |
 
 Proposal review, spec review, architecture review, plan review, and test-spec authoring were complete for the prior contract. The 2026-05-17 amendment removes mandatory visual-evidence gates; spec-review-r2 approved the feature-spec amendment, architecture-review-r1 approved the architecture/ADR amendment, plan-review-r4 approved the plan amendment, and test-spec-review-r2 approved the test-spec amendment. M4 code review can rely on the amended contract.
@@ -476,18 +476,18 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] M7 closed.
 - [x] M8 not triggered under the amended optional visual-artifact rule.
 - [x] Final verification completed.
-- [ ] PR handoff completed.
+- [x] PR handoff completed.
 
 ## Current Handoff Summary
 
-Current milestone: M9. Lifecycle Closeout and Regression Verification
-Current milestone state: branch-ready
+Current milestone: post-merge closeout
+Current milestone state: done
 Last reviewed milestone: M7 (clean-with-notes)
-Review status: code-review-r18 closed M7 with no material findings; M7 requires no review-resolution
+Review status: code-review-r18 closed M7 with no material findings; M7 requires no review-resolution; PR #3 merged with hosted CI success
 Remaining in-scope implementation milestones: none; M8 is optional and not triggered
-Next stage: pr
-Final closeout readiness: branch-ready for PR handoff
-Reason final closeout is or is not ready: M1-M7 are closed, optional M8 is not triggered, explain-change is recorded, and final local verification passed. PR body/open readiness is not claimed until the `pr` stage.
+Next stage: none
+Final closeout readiness: done
+Reason final closeout is or is not ready: M1-M7 are closed, optional M8 is not triggered, explain-change is recorded, final local verification passed, and PR #3 merged after hosted CI passed.
 
 ## Decision Log
 
@@ -820,4 +820,11 @@ Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M1-M7 are closed, optional M8 is not triggered, explain-change is recorded, and final local verification passed. This plan is branch-ready for `pr`, but it is not PR body ready, PR open ready, or Done.
+Done. PR #3 merged on 2026-05-18 local date after hosted `ci` passed.
+
+## Post-Merge Closeout
+
+- PR: https://github.com/xiongxianfei/velofile/pull/3
+- Merge commit: `e2170982f3bdfdb8255b69cc795ba40c6498544e`
+- Hosted CI: `ci` completed successfully before merge.
+- Plan index: moved to Done in `docs/plan.md`.

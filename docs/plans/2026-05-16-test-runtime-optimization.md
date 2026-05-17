@@ -2,7 +2,9 @@
 
 ## Status
 
-active
+done
+
+This plan is closed. M1-M7 closed, final verification passed, and PR #3 merged after hosted CI passed.
 
 ## Purpose / Big Picture
 
@@ -472,15 +474,15 @@ Rollback is scoped to test harness, category metadata, scripts, and documentatio
 
 ## Current Handoff Summary
 
-- Current milestone: final closeout
-- Current milestone state: branch-ready
+- Current milestone: post-merge closeout
+- Current milestone state: done
 - Last implemented milestone: M7 lifecycle closeout handoff
 - Last reviewed milestone: M7 code-review-r10
-- Review status: M7 closed with no open findings; final verify passed
+- Review status: M7 closed with no open findings; final verify passed; PR #3 merged with hosted CI success
 - Remaining in-scope implementation milestones: none
-- Next stage: `pr`
-- Final closeout readiness: branch-ready; not PR-body-ready
-- Reason final closeout is or is not ready: all in-scope implementation milestones are closed, review-resolution is resolved, explain-change is current, and final local verification passed; PR handoff remains downstream.
+- Next stage: none
+- Final closeout readiness: done
+- Reason final closeout is or is not ready: all in-scope implementation milestones are closed, review-resolution is resolved, explain-change is current, final local verification passed, and PR #3 merged after hosted CI passed.
 
 ## Decision Log
 
@@ -644,7 +646,7 @@ Implementation validation:
 
 ## Outcome and Retrospective
 
-M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. The final explain-change artifact is current, final local verification passed, and M1-M7 are closed. Required review-resolution findings are resolved and the broad closeout path still passes locally. PR handoff remains downstream.
+M7 implementation collected lifecycle closeout evidence and code-review-r10 closed the milestone with no findings. The final explain-change artifact is current, final local verification passed, and M1-M7 are closed. Required review-resolution findings are resolved, the broad closeout path still passes locally, and PR #3 merged after hosted CI passed.
 
 Retrospective:
 
@@ -655,4 +657,11 @@ Retrospective:
 
 ## Readiness
 
-See Current Handoff Summary. This plan is branch-ready and ready for PR handoff. It is not PR-body-ready until the `pr` stage completes.
+Done. PR #3 merged on 2026-05-18 local date after hosted `ci` passed.
+
+## Post-Merge Closeout
+
+- PR: https://github.com/xiongxianfei/velofile/pull/3
+- Merge commit: `e2170982f3bdfdb8255b69cc795ba40c6498544e`
+- Hosted CI: `ci` completed successfully before merge.
+- Plan index: moved to Done in `docs/plan.md`.

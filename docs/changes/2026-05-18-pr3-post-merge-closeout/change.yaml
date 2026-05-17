@@ -1,0 +1,19 @@
+id: 2026-05-18-pr3-post-merge-closeout
+title: Close merged PR 3 plans
+status: implemented
+milestone: post-merge-closeout
+requirements:
+  - lifecycle-closeout
+files:
+  - docs/plan.md
+  - docs/plans/2026-05-11-ui-design-system-shell-redesign.md
+  - docs/plans/2026-05-11-ui-shell-visual-coherence.md
+  - docs/plans/2026-05-16-test-runtime-optimization.md
+validation:
+  - command: gh pr view 3 --json number,state,mergedAt,mergeCommit,url,headRefName,baseRefName,statusCheckRollup
+    result: passed; PR #3 state was MERGED and hosted ci concluded SUCCESS
+  - command: git diff --check -- docs/plan.md docs/plans/2026-05-11-ui-design-system-shell-redesign.md docs/plans/2026-05-11-ui-shell-visual-coherence.md docs/plans/2026-05-16-test-runtime-optimization.md docs/changes/2026-05-18-pr3-post-merge-closeout/change.yaml docs/changes/2026-05-18-pr3-post-merge-closeout/explain-change.md
+    result: passed with Git LF-to-CRLF working-copy warnings only
+notes:
+  - PR #3 merged into main on 2026-05-18 local date after hosted CI succeeded.
+  - The UI design-system shell redesign, UI shell visual coherence, and test runtime optimization plans moved from Active to Done in the plan index and their plan bodies.
