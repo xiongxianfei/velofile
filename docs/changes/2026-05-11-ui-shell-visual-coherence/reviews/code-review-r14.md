@@ -82,4 +82,3 @@ Safe resolution path:
 - Remaining in-scope implementation milestones: M4-M7; M8 optional only if visual artifacts are recorded
 - Next stage: review-resolution for CR-008
 - Final closeout readiness: not ready; M4 remains open and M5-M7 are still planned
-

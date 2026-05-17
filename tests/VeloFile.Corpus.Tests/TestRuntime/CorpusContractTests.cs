@@ -96,4 +96,3 @@ public sealed class CorpusContractTests
         Assert.AreEqual(0, result.ExitCode, result.AllOutput);
     }
 }
-

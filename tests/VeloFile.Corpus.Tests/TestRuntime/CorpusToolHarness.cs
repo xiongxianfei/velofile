@@ -19,4 +19,3 @@ internal static class CorpusToolHarness
         public string AllOutput => StandardOutput + StandardError;
     }
 }
-

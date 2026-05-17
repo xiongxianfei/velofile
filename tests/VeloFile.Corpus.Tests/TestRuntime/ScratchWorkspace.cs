@@ -44,4 +44,3 @@ internal sealed class ScratchWorkspace : IDisposable
         Directory.Delete(Root, recursive: true);
     }
 }
-
