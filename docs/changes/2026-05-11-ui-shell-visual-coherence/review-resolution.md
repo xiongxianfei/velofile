@@ -2,7 +2,7 @@
 
 ## Status
 
-closed for CR-008; M4 is ready to return to code review after CR-008 resolution
+closed for all tracked material findings; M1-M7 are closed and optional M8 is not triggered
 
 ## Findings
 

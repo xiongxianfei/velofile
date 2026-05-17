@@ -484,9 +484,9 @@ Current milestone state: lifecycle-closeout
 Last reviewed milestone: M7 (clean-with-notes)
 Review status: code-review-r18 closed M7 with no material findings; M7 requires no review-resolution
 Remaining in-scope implementation milestones: none; M8 is optional and not triggered
-Next stage: explain-change
+Next stage: verify
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1-M7 are closed and optional M8 is not triggered, but lifecycle closeout still needs explain-change, final verification, and PR handoff work.
+Reason final closeout is or is not ready: M1-M7 are closed, optional M8 is not triggered, and explain-change is recorded, but final verification and PR handoff work have not run.
 
 ## Decision Log
 
@@ -802,10 +802,15 @@ M7 code review:
 - No M7 review-resolution is required.
 - Optional M8 is not triggered by M7 because no optional current screenshots, sidecars, diffs, or baseline artifacts were added. Prior M2/M3 visual-evidence records remain historical context under AC21 and do not block final closeout.
 
+Explain-change:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/explain-change.md`: updated as the durable rationale linking the actual diff, requirements, architecture, plan milestones, tests, review resolutions, validation evidence, alternatives, scope boundaries, and remaining risks.
+- No final verification is claimed by explain-change. The next lifecycle stage is `verify`.
+
 ## Outcome and Retrospective
 
 Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M1-M7 are closed and optional M8 is not triggered. This plan is ready to start lifecycle closeout, but it is not ready for final verification, PR handoff, or Done.
+See Current Handoff Summary. M1-M7 are closed, optional M8 is not triggered, and explain-change is recorded. This plan is ready for final verification, but it is not ready for PR handoff or Done.

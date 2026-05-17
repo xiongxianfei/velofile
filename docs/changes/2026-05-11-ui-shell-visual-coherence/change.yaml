@@ -65,4 +65,5 @@ history:
 visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
-next_stage: explain-change
+explain_change: docs/changes/2026-05-11-ui-shell-visual-coherence/explain-change.md
+next_stage: verify

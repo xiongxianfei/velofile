@@ -1,164 +1,159 @@
-# Explain Change
+# Explain Change: UI Shell Visual Coherence
 
-## M1: Shell Contract and Validator Extension
+## Summary
 
-M1 implements the first proof layer for the shell visual-coherence follow-on before any production shell visuals change.
+This change extends the first UI design-system slice into the whole WinUI shell. It adds governed shell surface, file-list icon, command-band, sidebar, status/operation, and preview/details resources; wires those resources into `MainWindow.xaml`; extends static UI contract validation; and records the proposal/spec/architecture/plan/review trail that keeps the visual work scoped.
 
-## What Changed
+The goal was not to port `hifi-design/` or introduce new product behavior. The goal was to make the existing V1 shell read as one coherent Windows-native product surface while preserving navigation, listing, search, preview, file operations, drag/drop, terminal, diagnostics, persistence, and accessibility routes.
 
-- Added shell visual-coherence corpus tests in `tests/VeloFile.Corpus.Tests/UiContracts/ShellVisualCoherenceContractTests.cs`.
-- Extended `docs/ui/ui-contract-scopes.v1.json` with planned follow-on shell scopes for:
-  - shell surface foundation,
-  - command band,
-  - sidebar,
-  - status/operation surfaces,
-  - preview/details,
-  - fixture icons,
-  - full-shell visual evidence.
-- Added a behavior-preservation matrix inventory to `docs/ui/ui-contract-scopes.v1.json`.
-- Extended `tools/VeloFile.UiContracts` so static validation can:
-  - reject governed fixture icon resources that use `SymbolIcon`, `PathIcon`, private-use glyph fonts, ellipsized text chips, or local icon sizes;
-  - validate full-shell visual sidecar required fields, profile size/scale consistency, dynamic-region shape, and privacy exclusions through `--visual-root`;
-  - treat planned follow-on scopes as declared contract inventory while validating only active scopes.
+Current workflow state: M1-M7 are closed, optional M8 is not triggered, and the next lifecycle stage is `verify`. Final verification and PR readiness have not yet been claimed.
 
-## Why This Changed
+## Problem
 
-The approved spec requires shell-wide token/scope validation, governed fixture icon checks, screenshot sidecar checks, and behavior-preservation matrix evidence before visual slices are trusted. M1 creates those static proof surfaces without changing Core, Windows adapters, or production shell behavior.
+The shell had the right behavioral surface, but the UI still looked like separate raw controls placed around a file-list redesign. The proposal identified these recurring problems:
 
-## Validation
+- app root, chrome, sidebar, command band, file list, status, and preview did not share one surface model;
+- raw/default WinUI controls were still visible inside governed shell regions;
+- fixture file-list icons looked like placeholder text chips;
+- ordinary focus, selected state, warning, danger, disabled, and status states were not consistently separated;
+- sidebar hierarchy, command-band anatomy, operation/status safety surfaces, and preview/details states needed region-specific polish;
+- static checks and behavior tests had to remain the hard proof because screenshot automation was not yet stable enough to be a required gate.
 
-- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"` failed before implementation with the expected missing-scope, missing-icon-check, and missing-`--visual-root` failures.
-- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"` passed after implementation: 3 passed.
-- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "UiContracts|Visual"` passed: 21 passed.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
-- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors.
-- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed after rerunning with a longer timeout.
+## Decision Trail
 
-## CR-001 Resolution
+| Decision layer | Decision | Source |
+|---|---|---|
+| Exploration / proposal | Use a follow-on shell coherence spec instead of patching controls one by one or directly porting `hifi-design/`. | `docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md` |
+| Authority model | `hifi-design/` is a benchmark/reference only; production authority remains VeloFile specs, tokens, scopes, XAML resources, tests, and deviation records. | Spec R1-R4, architecture UI design-system section, ADR 0010 |
+| Scope | Preserve V1 behavior and do not add persisted theme/density, broad theme engine, plugin UI, dual-pane browsing, or other V1 expansion. | Spec R5-R8, R27, C1-C7 |
+| Contract strategy | Extend `docs/ui/tokens.v1.json` and `docs/ui/ui-contract-scopes.v1.json` additively; do not create a token major version for this follow-on. | Spec R9-R15, ADR 0010 |
+| Proof model | Static resource validation, behavior-preservation tests, accessibility checks, and deviation records are hard proof; screenshots/manual notes are optional supporting artifacts. | Spec R22, R66-R77, AC9-AC13, AC21 |
+| Architecture boundary | UI resources and contract tooling may change; Core services and Windows adapters should not be redesigned for visual styling. | `docs/architecture/system/architecture.md`, ADR 0010 |
+| Plan | Implement in region milestones: M1 contracts, M2 shell foundation, M3 file list/icons, M4 command band, M5 sidebar, M6 status/operations, M7 preview/details, optional M8 artifacts, M9 lifecycle closeout. | `docs/plans/2026-05-11-ui-shell-visual-coherence.md` |
 
-Code review found that governed fixture icon validation rejected icon controls, glyphs, text chips, and local sizes, but not raw local icon colors. The resolution keeps the change inside M1's contract-validation boundary:
+## Diff Rationale By Area
 
-- added direct tests for `Fill="#FFFFFF"` and `Color="#FFFFFF"` in governed icon resources;
-- added a valid resource-reference icon fixture;
-- added checked valid/invalid icon fixture files;
-- extended the validator to reject raw local icon color literals for `Fill`, `Stroke`, `Foreground`, `Background`, `Color`, and `BorderBrush` in `Resources/Icons`.
+| Files / area | Change | Reason | Source artifact | Test / evidence |
+|---|---|---|---|---|
+| `docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md` | Added accepted proposal for shell-wide visual coherence. | Captures why the UI issue is systemic and why a follow-on spec is needed. | Proposal option D | Proposal accepted |
+| `specs/ui-shell-visual-coherence.md` | Added the shell visual-coherence contract and later amended it to make visual artifacts optional. | Defines requirements R1-R82, including behavior preservation, optional screenshot guardrails, and non-goals. | Spec R1-R82, AC1-AC21 | Spec reviews r1/r2 |
+| `specs/ui-shell-visual-coherence.test.md` | Added traceable test spec, behavior-preservation matrix, and TSC001-TSC021. | Maps each requirement area to concrete static, app, corpus, behavior, accessibility, and optional artifact checks. | Test spec mapping table | Test-spec reviews r1/r2 |
+| `docs/architecture/system/architecture.md`, `docs/adr/0010-shell-visual-coherence-contracts.md` | Added shell visual-coherence architecture rules and optional-artifact amendment. | Keeps the UI authority chain additive and separates visual fixture evidence from real behavior evidence. | ADR 0010, QS-UI-SHELL-01/02 | Architecture review r1 |
+| `docs/plans/2026-05-11-ui-shell-visual-coherence.md`, `docs/plan.md` | Added and updated the living execution plan, progress, validation notes, and handoff state. | Keeps milestone sequencing, validation, review outcomes, and next stage explicit. | Plan milestones M1-M9 | Plan reviews r1-r4; M7 closeout |
+| `docs/changes/2026-05-11-ui-shell-visual-coherence/*` | Added change record, review log, review-resolution record, code/spec/plan/test/architecture review records, visual evidence notes, and this explanation. | Gives reviewers durable evidence for why changes happened and how findings were resolved. | Workflow contract | Review log through code-review-r18 |
+| `docs/ui/ui-contract-scopes.v1.json` | Added additive governed shell scopes, active region metadata, resource key requirements, fixture-icon invariants, behavior matrix metadata, and optional artifact guardrails. | Lets static validation enforce region-specific contracts without globally banning legacy XAML outside active scopes. | Spec R9-R15, R35-R43, R66-R82 | UI contract validator; `ShellVisualCoherenceContractTests` |
+| `tools/VeloFile.UiContracts/Program.cs` | Extended validation for shell scopes, governed fixture icon invariants, raw icon color literals, optional sidecars, and scoped visual literals. | Static checks catch defect classes such as raw/default visuals, glyph icons, text chips, and unsafe optional artifacts before runtime review. | TSC003, TSC004, TSC009, TSC014, TSC019 | Corpus UI contract tests and validator runs |
+| `src/VeloFile.App/App.xaml` | Merged new component dictionaries: Shell, CommandBand, Sidebar, Status, Operations, Preview, and FixtureIcons. | Makes governed resources available to the production shell through the app resource chain. | Spec R12, R23-R65 | Resource contract tests |
+| `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml` | Added shell-wide surface, text, control, focus, accent, titlebar, contrast, toggle, and foundational resources. | Provides the shared dark comfortable shell surface model required before region polish. | R16-R27, CR-003 | `ShellSurfaceResourceContractTests` |
+| `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml` | Added deterministic fixture icon resources and file-list details/header/icon polish. | Replaces placeholder-like chips with allowlisted vector icons and keeps row rhythm stable. | R28-R43, AC6-AC8, AC16 | `FileListResourceContractTests`, fixture tests |
+| `src/VeloFile.App/Ui/FileListIconKind.cs`, `FileListIconGeometryConverter.cs`, `ViewModels/FileListRowViewModel.cs`, `Testing/UiFixtureRegistry.cs` | Added allowlisted fixture icon kind plumbing and deterministic fixture mappings. | Prevents arbitrary resource-key fixture input and makes governed fixture rows deterministic. | R39-R40, S1, P3 | `UiFixtureRegistryTests`, icon contract tests |
+| `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml`, `MainWindow.xaml` command band region | Added command-band styles, scoped markers, resource consumption, and state styling for buttons/TextBoxes. | Makes navigation/path/filter/search read as one region while preserving existing route handlers. | R44-R49, CR-008 | `CommandBandResourceContractTests`, command route filters |
+| `src/VeloFile.App/Resources/Components/VeloFile.Sidebar.xaml`, `MainWindow.xaml` sidebar region | Added sidebar styles, navigation-first grouping, compact visibility toggles, accessible labels, and terminal control styling. | Moves sidebar toward navigation-first component anatomy while preserving discoverability and keyboard/access routes. | R50-R56, AC14 | `SidebarResourceContractTests` |
+| `src/VeloFile.App/Resources/Components/VeloFile.Status.xaml`, `VeloFile.Operations.xaml`, `MainWindow.xaml`, `MainWindow.xaml.cs` operation/status paths | Added governed status/operation/destructive styles and status-to-style mapping. | Makes active operation, conflict, failed, cancelled, and destructive states visually distinct without changing operation services. | R57-R61 | `StatusOperationResourceContractTests` |
+| `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml`, `MainWindow.xaml`, `MainWindow.xaml.cs` preview paths | Added preview pane/status/content/PDF/image/metadata styles and preview-status style mapping. | Integrates preview/details into the shell surface while preserving preview controller/provider and PDF navigation behavior. | R62-R65 | `PreviewResourceContractTests` |
+| `tests/fixtures/ui-contracts/**` | Added/updated valid and invalid fixture resources for active scopes, command/status/sidebar/preview dictionaries, and icon literal failures. | Keeps the static validator representative and proves both allowed and rejected patterns. | TSC003, TSC009, TSC014 | Corpus UI contract validation |
+| `tests/VeloFile.App.Tests/UiDesign/**` | Added focused App UI resource contract tests for shell surface, file list, command band, sidebar, status/operations, and preview. | Tests the actual XAML/resource wiring that reviewers cannot infer from key existence alone. | TSC006-TSC012, TSC015-TSC016 | M2-M7 focused app validation |
+| `tests/VeloFile.Corpus.Tests/UiContracts/ShellVisualCoherenceContractTests.cs` | Added and updated corpus contract tests for shell scopes, icon invariant rules, optional sidecars, and active-region progression. | Keeps UI contract policy executable through the corpus/tooling layer. | TSC001-TSC005, TSC008-TSC014 | Corpus tests and CI |
 
-Additional validation:
+Note: the current branch also contains separate test-runtime optimization changes with their own proposal/spec/plan/change record. This explanation covers only `2026-05-11-ui-shell-visual-coherence`.
 
-- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"` passed: 6 passed.
-- `dotnet test VeloFile.sln -c Debug --filter ShellVisualCoherenceContractTests` passed: 6 passed.
-- `dotnet test VeloFile.sln -c Debug --filter UiContracts` passed: 20 passed.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed.
+## Tests Added Or Changed
 
-## Deferred By Design
+| Test / area | What it proves | Why this level is appropriate |
+|---|---|---|
+| `ShellVisualCoherenceContractTests` | Shell scopes, fixture icon invariants, optional sidecars, and active scope metadata obey the contract. | Corpus/static tests are the right level for contract policy that does not require launching the app. |
+| `ShellSurfaceResourceContractTests` | Shell dictionary merge, shell surface resource keys, titlebar resource bridge, compact toggles, contrast pairs, route preservation, and governed resource consumption. | App-level static XAML tests prove production shell resources are wired without changing runtime behavior. |
+| `FileListResourceContractTests` | File-list header/icon resources, deterministic vector icon treatment, row-state stability, no placeholder chips, and focus/selection separation. | File-list polish is mostly XAML/resource contract plus fixture/view-model determinism. |
+| `UiFixtureRegistryTests` | Fixture rows expose allowlisted icon kinds and wait for deterministic rendered fallback state. | Fixture tests prove the deterministic visual fixture input path without depending on real Shell icon extraction. |
+| `CommandBandResourceContractTests` | Command-band resources exist and are consumed by governed buttons/TextBoxes, including hover/pressed/disabled/focused state resources. | CR-008 showed key existence was insufficient; these tests prove actual style consumption. |
+| `SidebarResourceContractTests` | Sidebar dictionary merge, active scope, navigation-first order, accessible names, access keys, and existing handlers. | Sidebar reordering is observable behavior, so static order/accessibility checks and route preservation are required. |
+| `StatusOperationResourceContractTests` | Status/operation/destructive resources, separate danger/focus treatment, operation status style mapping, and existing route preservation. | Safety surfaces need focused checks because destructive treatment must not share ordinary focus/accent meaning. |
+| `PreviewResourceContractTests` | Preview resources, scoped preview XAML usage, preview status style mapping, PDF navigation wiring, active scope metadata, and unchanged preview width behavior. | Preview changes are UI styling only, so tests prove resource wiring and route preservation rather than provider behavior. |
+| Existing filtered behavior tests | Navigation, search, app shell, file list, operations, preview, terminal, accessibility, and UI contract routes remain covered. | Spec R78-R82 require behavior-preservation evidence; screenshots/fixtures cannot replace these routes. |
 
-- M1 does not create shell surface, command band, sidebar, status, preview, or icon production resources.
-- M1 does not capture screenshots.
-- M1 does not change App/Core/Windows behavior routes.
+## Validation Evidence Available Before Final Verify
 
-Those surfaces belong to later milestones.
+This is milestone validation evidence, not final `verify` evidence.
 
-## M2: Shell Surface Foundation
+- M1:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "ShellVisualCoherenceContractTests"`: passed after expected initial failures.
+  - `dotnet test VeloFile.sln -c Debug --filter UiContracts`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M2:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurfaceResourceContractTests|AppShellContract|UiDesign"`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M3:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|FileList|AppShellContract|DragDrop|Preview"`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M4:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~CommandBandResourceContractTests"`: passed after CR-008 resolution.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M5:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~SidebarResourceContractTests"`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Terminal|Accessibility"`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M6:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~StatusOperationResourceContractTests"`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "Operation|FileOperation|Status|Accessibility"`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+- M7:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"`: passed.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed after tokenizing the preview border thickness.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"`: passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed.
+  - `git diff --check`: passed with line-ending normalization warnings only.
+- Code-review-r18 reviewer reruns:
+  - `PreviewResourceContractTests`: passed, 4 tests.
+  - production UI contract validator: passed.
+  - `Preview|PreviewSurface|Accessibility`: passed, 19 tests.
+  - `git diff --check`: passed.
 
-M2 implements the first production visual slice for the follow-on: a tokenized shell surface layer applied to the existing WinUI shell containers.
+Final verification still needs to run the repository's final closeout commands in the `verify` stage.
 
-## What Changed
+## Review Resolution Summary
 
-- Added `src/VeloFile.App/Resources/Components/VeloFile.Shell.xaml` with shell-owned styles and resource aliases for app root, chrome, sidebar, content, command band container, status container, preview container, separators, text hierarchy, focus/accent, selection, hover, disabled, danger, warning, and success surfaces.
-- Merged the shell resource dictionary through `src/VeloFile.App/App.xaml` after token dictionaries and before file-list resources.
-- Updated `src/VeloFile.App/MainWindow.xaml` so the root shell, tab/chrome, command band container, sidebar, content region, status container, and preview pane consume the shell foundation resources.
-- Activated the `shell-surface-foundation` scope in `docs/ui/ui-contract-scopes.v1.json`.
-- Added `tests/VeloFile.App.Tests/UiDesign/ShellSurfaceResourceContractTests.cs` to prove the dictionary merge, governed resource exposure, scoped resource consumption, and existing route-control preservation.
-- Updated UI-contract fixtures so the valid fixture set also represents the newly active shell surface scope.
-- Recorded M2 soft visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md`.
+Detailed review findings and dispositions are in `docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md`.
 
-## Why This Changed
+Summary by disposition:
 
-The approved spec requires the shell surface foundation to be the first follow-on implementation region. The current shell was mixing raw/default surfaces with the first-slice file-list treatment. M2 creates the shared resource layer before deeper file-list, command band, sidebar, status, or preview polish.
+- Resolved by implementation: CR-001, CR-002, CR-003, CR-004, CR-006, CR-007, CR-008, PR-002, TSR-001.
+- Resolved or superseded by approved visual-evidence amendment: CR-005.
+- Superseded by approved visual-evidence amendment: PR-001.
+- No-material code reviews after resolution: code-review-r3, r9, r10, r15, r16, r17, r18.
 
-M2 reuses existing first-slice V1 tokens instead of adding new token IDs because the current token contract already covers the needed dark comfortable surfaces, text colors, focus/accent, state colors, spacing, radius, sizing, and disabled opacity.
+The final implementation review is `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r18.md`, which closed M7 with no material findings. M1-M7 are closed and optional M8 is not triggered because no optional current screenshots, diffs, sidecars, or baselines were added after the visual-evidence gate amendment.
 
-## Validation
+## Alternatives Rejected
 
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter ShellSurface` failed before implementation with 3 expected failures, then passed after implementation: 4 passed.
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"` passed: 18 passed.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes docs\ui\ui-contract-scopes.v1.json --scope-root tests\fixtures\ui-contracts\valid` passed after fixture update.
-- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"` passed for matching App and Corpus tests; Core and Windows had no matching tests for this filter.
-- `dotnet build VeloFile.sln -c Debug` passed with 0 warnings and 0 errors after rerunning without the parallel testhost lock.
-- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
+- Directly porting `hifi-design/`: rejected because it would make the reference artifact an implicit production authority and risk importing non-WinUI assumptions.
+- Creating `tokens.v2.json`: rejected because the work adds regions and resources but does not change token semantics incompatibly.
+- Hard-gating screenshots or pixel diffs: rejected because screenshot automation, dynamic regions, scaling, and rasterization are not stable enough to act as release proof in this slice.
+- Treating optional screenshots or fixture visuals as behavior proof: rejected because behavior must remain proven through App/Core/Windows routes.
+- Using real Windows Shell icons for first deterministic fixture icon work: deferred because real Shell icons add OS/theme/cache variance.
+- Rewriting Core services, Windows adapters, preview providers, file operations, or persistence for visual polish: rejected as outside the approved shell visual-coherence scope.
 
-## Deferred By Design
+## Scope Control
 
-- M2 does not reorder the sidebar, redesign command controls, replace fixture icon chips, or change file-list row state treatment.
-- M2 does not add persisted theme/density settings or new token major versions.
-- M2 does not change Core, Windows adapters, file operations, preview providers, terminal launch, diagnostics, persistence, or runtime behavior routes.
-- M2 records a manual visual-review note rather than a screenshot because full-shell screenshot automation is not stable or implemented for this milestone.
+The change deliberately stays inside these boundaries:
 
-## M4: Command Band Visual Coherence
+- Production behavior routes are preserved unless a region explicitly needed source-order or visual grouping changes approved by the spec.
+- Core domain services and Windows adapters are not redesigned for UI styling.
+- The first-slice UI design-system spec remains authoritative for its original file-list/token scope.
+- `hifi-design/` remains reference input only.
+- No persisted theme/density preference, broad theme engine, tweak panel, plugin UI, dual-pane browsing, or other V1 feature expansion was added.
+- Generated `tests/visual/current/` and `tests/visual/diffs/` artifacts remain uncommitted.
+- The separate test-runtime optimization work on this branch is governed by its own change record and is not part of this explanation.
 
-M4 implements the command/path/filter/search visual-resource slice while keeping the existing navigation and search behavior routes intact.
+## Risks And Follow-Ups
 
-## What Changed
-
-- Added `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml` with governed command-band brushes, spacing, sizing, padding, button, icon-button, breadcrumb, input, path, radio, status, and skipped-location text styles.
-- Merged the command-band resource dictionary through `src/VeloFile.App/App.xaml`.
-- Updated the existing command/path/filter/search XAML in `src/VeloFile.App/MainWindow.xaml` to consume command-band resources and added `shell-command-band` scope markers.
-- Activated `shell-command-band` in `docs/ui/ui-contract-scopes.v1.json`.
-- Updated valid UI-contract fixtures so the active production scope also validates under `scripts/ci.ps1`.
-- Added `tests/VeloFile.App.Tests/UiDesign/CommandBandResourceContractTests.cs` to prove dictionary merge, required style resources, scoped XAML usage, route preservation, and accessibility names/tooltips.
-- Updated the corpus shell visual-coherence contract test so the command-band scope is expected to be active at M4.
-- Tightened the existing icon-button invariant test to reject actual icon controls/glyphs instead of rejecting style names containing `Icon`.
-
-## Why This Changed
-
-The approved M4 contract requires the command band to read as one intentional navigation/path/filter/search region while preserving existing V1 command behavior. This change keeps the handlers and view-model routes stable and moves the visual treatment into governed WinUI resources so later shell regions can share the same tokenized model.
-
-## Validation
-
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "CommandBandResourceContractTests"` failed before implementation for the expected missing command-band resources/scope, then passed: 4 tests.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid` passed.
-- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed with 0 warnings and 0 errors.
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"` passed: 67 tests.
-- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"` passed for matching App, Core, and Corpus tests; Windows had no matching tests for this filter.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
-
-## Deferred By Design
-
-- M4 does not change Core, Windows adapters, file operations, preview, sidebar ordering, status/operation surfaces, or command route behavior.
-- The later approved visual-evidence gate amendment supersedes the earlier M4 full-shell visual-evidence gate. Visual artifacts are optional supporting context, not a closeout requirement.
-
-## M7: Preview and Details Surface Treatment
-
-M7 implements the preview/details visual-resource slice while preserving the existing preview controller, providers, selection behavior, and PDF navigation routes.
-
-## What Changed
-
-- Added `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml` with governed preview pane, status, loading, ready, unsupported, failed, content, image, PDF navigation, metadata list, metadata row, label, and value resources.
-- Merged the preview resource dictionary through `src/VeloFile.App/App.xaml`.
-- Updated the preview pane in `src/VeloFile.App/MainWindow.xaml` with `shell-preview-details` scope markers and applied preview styles to the pane, status/content text, PDF navigation/buttons/page indicator, rendered image, and metadata list rows.
-- Added `ApplyPreviewStatusStyle` in `src/VeloFile.App/MainWindow.xaml.cs` so loading, success, unsupported, and failed preview states use distinct VeloFile preview style resources.
-- Activated `shell-preview-details` in `docs/ui/ui-contract-scopes.v1.json`.
-- Updated valid UI-contract fixtures and `ShellVisualCoherenceContractTests` so production and fixture validation agree that the preview/details scope is active.
-- Added `tests/VeloFile.App.Tests/UiDesign/PreviewResourceContractTests.cs` to prove dictionary merge, required preview resources, scoped preview XAML usage, preview status-style mapping, route preservation, and active scope metadata.
-
-## Why This Changed
-
-The approved M7 contract requires preview/details surfaces to share the shell surface foundation while keeping loading, success, unsupported, failed, metadata, image/text/PDF, and page-navigation states visually distinguishable. M7 keeps the existing preview behavior intact and moves the visual treatment into governed WinUI resources.
-
-## Validation
-
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"` failed before implementation for the expected missing M7 resources/scope, then passed: 4 tests.
-- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed with 0 warnings and 0 errors.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` initially failed on an inline preview border-thickness literal, then passed after tokenizing it as `VfPreviewNoBorderThickness`.
-- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid` passed.
-- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"` passed: 19 tests.
-- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"` passed for matching App, Core, Windows, and Corpus tests.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
-- `git diff --check` passed with CRLF normalization warnings only.
-
-## Deferred By Design
-
-- M7 does not change Core preview providers, the preview controller, Windows adapters, file-list row templates, preview selection behavior, PDF navigation behavior, or preview command route methods.
-- M7 does not add required screenshot/manual visual evidence because the approved visual-evidence gate amendment makes those artifacts optional supporting context.
+- Final `verify` has not run yet. The next stage must run final validation before any PR readiness claim.
+- Runtime screenshot/manual visual review is optional under the amended contract; this explanation does not claim post-M7 screenshot acceptance.
+- The UI is governed region by region, but high-fidelity product polish can still improve after V1 if new proposals/specs accept that work.
+- Real Windows Shell icons remain future integration evidence; fixture icons are deterministic visual-contract assets, not OS icon parity proof.
+- Optional M8 remains available if maintainers later record optional screenshots, sidecars, diffs, baselines, or manual notes that need consolidation.
