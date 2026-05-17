@@ -3,8 +3,8 @@ C4Component
 
   Container_Boundary(app, "VeloFile desktop app") {
     Component(ui, "UI shell", "WinUI 3", "Windows, tabs, sidebar, breadcrumb/path bar, virtualized file list, preview/details panes, dialogs, keyboard and accessibility flow.")
-    Component(uiDesignResources, "UI design resources", "XAML ResourceDictionary", "Repo-owned tokens, brushes, sizing, focus resources, file-list row template, item-container style, and first-slice component resources.")
-    Component(testFixtureHost, "UI test fixture host", "Debug/test-only app shell path", "Allows hardcoded deterministic UI fixtures only in an allowed Debug/test context with the fixture environment guard.")
+    Component(uiDesignResources, "UI design resources", "XAML ResourceDictionary", "Repo-owned tokens, brushes, sizing, focus resources, shell surfaces, file-list row resources, fixture vector icons, and component resources.")
+    Component(testFixtureHost, "UI test fixture host", "Debug/test-only app shell path", "Allows hardcoded deterministic UI fixtures and allowlisted icon kinds only in an allowed Debug/test context with the fixture environment guard.")
     Component(commandLayer, "Command layer", "C#", "Built-in context menu, keyboard shortcuts, command availability, clipboard commands, Open/Open With, terminal command routing.")
     Component(sessionService, "Session service", "C#", "Tab lifecycle, per-tab history, active tab, missing-location state, crash recovery flow, and restore orchestration.")
     Component(persistenceService, "Persistence service", "C#", "Versioned settings, favorites, recent locations, session state, crash markers, last-action markers, atomic local writes, and last-known-good recovery.")

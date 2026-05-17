@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using VeloFile.Corpus.Tests;
 
 namespace VeloFile.Corpus.Tests.Visual;
 
 [TestClass]
-[TestCategory("Visual")]
-[TestCategory("UiContracts")]
+[TestCategory(CorpusTestCategories.Visual)]
 public sealed class VisualBaselineInventoryTests
 {
     private static readonly string[] RequiredScreens =

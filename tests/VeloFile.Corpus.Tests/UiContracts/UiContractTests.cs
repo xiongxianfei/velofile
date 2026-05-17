@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using VeloFile.Corpus.Tests;
 
 namespace VeloFile.Corpus.Tests.UiContracts;
 
 [TestClass]
-[TestCategory("UiContracts")]
+[TestCategory(CorpusTestCategories.Contract)]
 public sealed class UiContractTests
 {
     [TestMethod]

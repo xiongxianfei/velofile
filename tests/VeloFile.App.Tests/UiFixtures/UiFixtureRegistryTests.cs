@@ -1,4 +1,5 @@
 using VeloFile.App.Testing;
+using VeloFile.App.Ui;
 using VeloFile.App.ViewModels;
 
 namespace VeloFile.App.Tests.UiFixtures;
@@ -63,6 +64,34 @@ public sealed class UiFixtureRegistryTests
     }
 
     [TestMethod]
+    public void File_list_v1_fixture_exposes_allowlisted_deterministic_icon_kinds()
+    {
+        var fixture = UiFixtureRegistry.GetFixture("file-list-v1");
+
+        Assert.IsNotNull(fixture);
+        CollectionAssert.IsSubsetOf(
+            new[]
+            {
+                FileListIconKind.Folder,
+                FileListIconKind.FileGeneric,
+                FileListIconKind.Pdf,
+                FileListIconKind.Image,
+                FileListIconKind.Text,
+                FileListIconKind.Markdown,
+                FileListIconKind.Spreadsheet,
+                FileListIconKind.Executable,
+                FileListIconKind.ThumbnailFallback
+            },
+            fixture.Rows.Select(row => row.IconKind).Distinct().ToArray());
+
+        foreach (var row in fixture.Rows)
+        {
+            Assert.IsTrue(Enum.IsDefined(row.IconKind), row.Id);
+            Assert.IsFalse(row.IconKind.ToString().StartsWith("VfIconGeometry", StringComparison.Ordinal), row.Id);
+        }
+    }
+
+    [TestMethod]
     public void File_list_v1_fixture_exposes_explicit_presentation_targets()
     {
         var fixture = UiFixtureRegistry.GetFixture("file-list-v1");
@@ -103,12 +132,14 @@ public sealed class UiFixtureRegistryTests
         var viewModel = UiFixtureRegistry.CreateFileListV1ViewModel();
 
         await WaitUntilAsync(() => viewModel.FileListRows.Count >= 10);
+        await WaitUntilAsync(() => viewModel.FileListRows.Any(row => row.IconKind == FileListIconKind.ThumbnailFallback));
 
         Assert.AreEqual(@"C:\VeloFileFixture", viewModel.ActivePath);
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.DisplayName == "Document.pdf"));
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.VisibilityKind == FileListRowVisibilityKind.Hidden));
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.VisibilityKind == FileListRowVisibilityKind.ProtectedSystem));
-        Assert.IsTrue(viewModel.FileListRows.Any(row => row.ThumbnailDisplayText == "PDF"));
+        Assert.IsTrue(viewModel.FileListRows.Any(row => row.IconKind == FileListIconKind.Pdf));
+        Assert.IsTrue(viewModel.FileListRows.Any(row => row.IconKind == FileListIconKind.ThumbnailFallback));
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.DisplayName.Contains("Very long filename", StringComparison.Ordinal)));
     }
 

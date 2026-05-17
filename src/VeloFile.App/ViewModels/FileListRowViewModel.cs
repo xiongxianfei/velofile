@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using VeloFile.App.Input;
+using VeloFile.App.Ui;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Preview;
 
@@ -55,6 +56,8 @@ public sealed class FileListRowViewModel : IFileListRowItem, INotifyPropertyChan
 
     public ThumbnailStatus ThumbnailStatus => Thumbnail.Status;
 
+    public FileListIconKind IconKind => FileListIconKindResolver.Resolve(FileItem, Thumbnail);
+
     public string ThumbnailDisplayText => Thumbnail.Artifact?.DisplayText
         ?? (FileItem.Kind is FileSystemEntryKind.Directory ? "DIR" : "...");
 
@@ -82,6 +85,7 @@ public sealed class FileListRowViewModel : IFileListRowItem, INotifyPropertyChan
             OnPropertyChanged(nameof(IsProtectedOperatingSystemFile));
             OnPropertyChanged(nameof(IsVisuallyDimmed));
             OnPropertyChanged(nameof(VisibilityKind));
+            OnPropertyChanged(nameof(IconKind));
             OnPropertyChanged(nameof(ThumbnailDisplayText));
         }
 
@@ -89,6 +93,7 @@ public sealed class FileListRowViewModel : IFileListRowItem, INotifyPropertyChan
         {
             OnPropertyChanged(nameof(Thumbnail));
             OnPropertyChanged(nameof(ThumbnailStatus));
+            OnPropertyChanged(nameof(IconKind));
             OnPropertyChanged(nameof(ThumbnailDisplayText));
         }
     }

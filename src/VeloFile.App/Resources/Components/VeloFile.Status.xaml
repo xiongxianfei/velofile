@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StaticResource x:Key="VfStatusSurfaceBrush" ResourceKey="VfShellContentBackgroundBrush" />
+    <StaticResource x:Key="VfStatusBorderBrush" ResourceKey="VfShellSeparatorBrush" />
+    <StaticResource x:Key="VfStatusTextBrush" ResourceKey="VfShellTextSecondaryBrush" />
+    <StaticResource x:Key="VfStatusMutedTextBrush" ResourceKey="VfShellTextMutedBrush" />
+    <StaticResource x:Key="VfStatusFailureTextBrush" ResourceKey="VfShellDangerBrush" />
+    <StaticResource x:Key="VfStatusFocusBrush" ResourceKey="VfShellFocusBrush" />
+    <StaticResource x:Key="VfStatusFocusThickness" ResourceKey="VfShellFocusThickness" />
+    <Thickness x:Key="VfStatusSurfacePadding">10,6</Thickness>
+    <Thickness x:Key="VfStatusSurfaceBorderThickness">1,0,0,0</Thickness>
+    <Thickness x:Key="VfStatusSurfaceMargin">0,8,0,0</Thickness>
+    <Thickness x:Key="VfStatusMessageSpacing">0,6,0,0</Thickness>
+
+    <Style x:Key="VfStatusSurfaceStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource VfStatusSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource VfStatusBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource VfStatusSurfaceBorderThickness}" />
+        <Setter Property="Padding" Value="{StaticResource VfStatusSurfacePadding}" />
+        <Setter Property="Margin" Value="{StaticResource VfStatusSurfaceMargin}" />
+    </Style>
+
+    <Style x:Key="VfStatusTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+        <Setter Property="Foreground" Value="{StaticResource VfStatusTextBrush}" />
+    </Style>
+
+    <Style x:Key="VfStatusMutedTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeSm}" />
+        <Setter Property="Foreground" Value="{StaticResource VfStatusMutedTextBrush}" />
+    </Style>
+
+    <Style x:Key="VfStatusFailureTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeBase}" />
+        <Setter Property="Foreground" Value="{StaticResource VfStatusFailureTextBrush}" />
+    </Style>
+</ResourceDictionary>

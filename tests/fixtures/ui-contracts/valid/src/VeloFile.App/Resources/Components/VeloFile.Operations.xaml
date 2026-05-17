@@ -1,0 +1,36 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StaticResource x:Key="VfOperationSurfaceBrush" ResourceKey="VfShellElevatedBackgroundBrush" />
+  <StaticResource x:Key="VfOperationBorderBrush" ResourceKey="VfShellSeparatorBrush" />
+  <StaticResource x:Key="VfOperationTextBrush" ResourceKey="VfShellTextPrimaryBrush" />
+  <StaticResource x:Key="VfOperationMutedTextBrush" ResourceKey="VfShellTextMutedBrush" />
+  <StaticResource x:Key="VfOperationProgressBrush" ResourceKey="VfShellAccentBrush" />
+  <StaticResource x:Key="VfOperationCompletedBrush" ResourceKey="VfShellSuccessBrush" />
+  <StaticResource x:Key="VfOperationCancelledBrush" ResourceKey="VfShellWarningBrush" />
+  <StaticResource x:Key="VfOperationFailureBrush" ResourceKey="VfShellDangerBrush" />
+  <StaticResource x:Key="VfOperationConflictBrush" ResourceKey="VfShellWarningBrush" />
+  <StaticResource x:Key="VfOperationDangerBrush" ResourceKey="VfShellDangerBrush" />
+  <StaticResource x:Key="VfOperationDangerForegroundBrush" ResourceKey="VfBrushAccentOnAccent" />
+  <StaticResource x:Key="VfOperationFocusBrush" ResourceKey="VfShellFocusBrush" />
+  <StaticResource x:Key="VfOperationFocusThickness" ResourceKey="VfShellFocusThickness" />
+  <StaticResource x:Key="VfOperationDisabledOpacity" ResourceKey="VfShellDisabledOpacity" />
+  <Thickness x:Key="VfOperationSurfacePadding">10,8</Thickness>
+  <Thickness x:Key="VfOperationSurfaceBorderThickness">1</Thickness>
+  <Thickness x:Key="VfOperationSurfaceMargin">0,6,0,0</Thickness>
+  <CornerRadius x:Key="VfOperationSurfaceRadius">6</CornerRadius>
+  <x:Double x:Key="VfOperationPanelSpacing">8</x:Double>
+  <Style x:Key="VfOperationSurfaceStyle" TargetType="Border" />
+  <Style x:Key="VfOperationProgressStyle" TargetType="TextBlock" />
+  <Style x:Key="VfOperationCompletedStyle" TargetType="TextBlock" />
+  <Style x:Key="VfOperationCancelledStyle" TargetType="TextBlock" />
+  <Style x:Key="VfOperationFailureStyle" TargetType="TextBlock" />
+  <Style x:Key="VfOperationConflictStatusTextStyle" TargetType="TextBlock" />
+  <Style x:Key="VfDestructiveStatusTextStyle" TargetType="TextBlock" />
+  <Style x:Key="VfOperationConflictStyle" TargetType="Border" />
+  <Style x:Key="VfDestructiveConfirmationStyle" TargetType="Border" />
+  <Style x:Key="VfDestructiveConfirmationTextStyle" TargetType="TextBlock" />
+  <Style x:Key="VfDestructiveActionButtonStyle" TargetType="Button" />
+  <Style x:Key="VfOperationCancelButtonStyle" TargetType="Button" />
+  <Style x:Key="VfOperationSecondaryButtonStyle" TargetType="Button" />
+</ResourceDictionary>

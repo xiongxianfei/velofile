@@ -25,6 +25,20 @@ VeloFile V1 is implemented behind a Windows App SDK app shell with Core and Wind
 - .NET SDK 10.x.
 - Visual Studio 2022 with WinUI / Windows App SDK C# tooling.
 
+## Run Locally
+
+From a Windows developer shell at the repository root:
+
+```powershell
+dotnet restore VeloFile.sln
+dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug -p:Platform=x64
+dotnet run --project src\VeloFile.App\VeloFile.App.csproj -c Debug -p:Platform=x64
+```
+
+You can also open `VeloFile.sln` in Visual Studio 2022, set `VeloFile.App` as the startup project, choose `x64`, and press F5.
+
+The local Debug run is unpackaged. Use the release commands below when you need an MSIX package.
+
 ## Build And Test
 
 ```powershell
@@ -35,6 +49,20 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
 The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script as a fallback when PowerShell 7 is unavailable.
+
+### Focused Validation Tiers
+
+Use the focused tiers for local feedback after the relevant projects are built:
+
+```powershell
+dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+```
+
+`--no-build` commands assume the relevant projects have already been built. Use `scripts\ci.ps1` for broad milestone closeout and review gates; focused tiers are for intentional local feedback, not a replacement for full validation.
 
 ## Release Verification
 

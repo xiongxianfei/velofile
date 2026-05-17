@@ -1,0 +1,167 @@
+change_id: 2026-05-16-test-runtime-optimization
+status: active
+current_milestone: final-closeout
+current_milestone_state: branch-ready
+summary: Split Corpus validation into explicit tiers while preserving broad closeout and release evidence.
+artifacts:
+  proposal: docs/proposals/2026-05-16-test-runtime-optimization.md
+  spec: specs/test-runtime-optimization.md
+  test_spec: specs/test-runtime-optimization.test.md
+  plan: docs/plans/2026-05-16-test-runtime-optimization.md
+  architecture: docs/architecture/system/architecture.md
+  adr: docs/adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md
+validation:
+  m1:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory"
+        result: failed as expected before implementation with missing categories and legacy category diagnostics; passed after implementation with 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed after TRO-CR1 resolution with 11 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed after TRO-CR1 resolution with 11 tests
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed after TRO-CR1 resolution; 36 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed after TRO-CR1 resolution; 36 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed after TRO-CR1 resolution; build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 51 tests passed
+      - command: git diff --check
+        result: passed after TRO-CR1 resolution with Git LF-to-CRLF working-copy warnings only
+      - command: rg -n 'TestCategory\("(Benchmarks|Compatibility|PreviewContract|PreviewProviders|Thumbnails|Diagnostics|Release|UiContracts)"\)|TestCategory\("' tests\VeloFile.Corpus.Tests
+        result: passed; no legacy literal Corpus category attributes remained
+  m2:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CorpusContractTests|FullyQualifiedName~ScratchRootBoundaryTests|FullyQualifiedName~WrapperCoverageLedgerTests"
+        result: passed; 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract|TestCategory=Fast"
+        result: passed; 42 tests selected; about 24 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract|TestCategory=Fast"
+        result: passed; 42 tests selected; about 23 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=Contract"
+        result: passed; 42 tests selected; about 23 seconds test duration
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 42 Corpus tests selected, Core/App/Windows reported no matching tests for this filter
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; build 0 warnings/0 errors; Core 168, App 149, Windows 52, Corpus 57 tests passed; Corpus unfiltered duration about 5 m 46 s
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  m3:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed; 6 tests selected; about 54 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~HermeticWrapper"
+        result: passed; 1 test selected; about 10 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventory|TestCategory=CorpusScript"
+        result: passed; 26 tests selected; about 6 m 48 s test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"
+        result: passed; 1 test selected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WrapperCoverageLedgerTests|FullyQualifiedName~Script_smoke_cases_use_minimal_scopes"
+        result: passed after plan updates; 3 tests selected
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  m4:
+    status: closed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool&TestCategory=Contract"
+        result: failed before initial implementation with missing prepared-tool harness types; later failed on unsafe scratch-root fixture setup; passed after TRO-CR2 resolution with 11 tests selected, about 29 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed after TRO-CR2 resolution; 6 tests selected; about 57 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CategoryInventoryTests"
+        result: passed after TRO-CR2 resolution; 11 tests selected
+      - command: git diff --check
+        result: passed after TRO-CR2 resolution with Git LF-to-CRLF working-copy warnings only
+  m5:
+    status: closed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~ReleaseEvidenceTierTests|FullyQualifiedName~CategoryInventoryTests"
+        result: failed before implementation because CorpusTestCategoryDescriptor had no EvidenceFastPathRationale field; passed after implementation with 18 tests selected; passed after TRO-CR3 resolution with 24 tests selected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"
+        result: passed after TRO-CR3 resolution; 10 tests selected; about 5 m 11 s test duration
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed after TRO-CR3 resolution; 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 57 seconds Corpus test duration
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed after TRO-CR3 resolution; 67 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed after TRO-CR3 resolution; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 86 tests passed
+      - command: git diff --check
+        result: passed after TRO-CR3 resolution with Git LF-to-CRLF working-copy warnings only
+  m6:
+    status: implementation-ready-for-review
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~RuntimeReportTests"
+        result: failed as expected before implementation because the M6 optimized runtime report did not exist; passed after implementation with 4 tests selected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "FullyQualifiedName~RuntimeReportTests"
+        result: passed after implementation; 4 tests selected; 17 ms test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~PreparedTool"
+        result: passed during fast/contract timeout isolation; 11 tests selected; about 29 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed after rerun; 71 tests selected; about 52 seconds test duration
+      - command: dotnet test VeloFile.sln -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 54 seconds Corpus test duration
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 1 m 7 s Corpus test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Contract"
+        result: passed; 71 tests selected; about 52 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Contract"
+        result: passed; 71 tests selected; about 53 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed; 6 tests selected; about 51 seconds test duration
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=ReleaseEvidence"
+        result: passed; 10 tests selected; about 5 m 3 s test duration
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 7 m 3 s
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=m6-corpus.trx"
+        result: passed; 90 tests selected; about 7 m 24 s test duration; TRX used for top 10 slow-test evidence and not committed
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  m7:
+    status: closed
+    commands:
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 6 m 48 s
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 51 seconds Corpus test duration
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: rg -n "Test Runtime Optimization|TestCategory=Fast|TestCategory=Contract|ReleaseEvidence|FullyQualifiedName~PreparedTool|scripts\\ci.ps1" docs specs tests scripts tools
+        result: passed; references remain present across governing docs, tests, scripts, and tooling
+  verify:
+    status: passed
+    commands:
+      - command: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+        result: passed; restore up to date; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 149, Windows 52, Corpus 90 tests passed; Corpus duration about 6 m 50 s
+      - command: dotnet test VeloFile.sln -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed; 71 Corpus tests selected; Core/App/Windows reported no matching tests for this filter; about 50 seconds Corpus test duration
+      - command: git diff --check
+        result: passed
+      - command: git status --short
+        result: clean before verify artifact updates
+notes:
+  - M1 is scoped to category taxonomy, baseline runtime evidence, local validation commands, and shared-state inventory.
+  - Public wrapper execution model, prepared-tool harness, release-evidence split, and parallelization changes are deferred to later milestones.
+  - code-review-r1 requested changes for TRO-CR1 before M1 can close.
+  - TRO-CR1 was resolved by requiring non-empty ReleaseEvidenceFastRationale text for ReleaseEvidence + Fast tests.
+  - code-review-r2 approved M1 and closed the milestone.
+  - M2 adds in-process corpus contract checks through a test-only internal seam while preserving existing public wrapper tests until M3.
+  - code-review-r3 approved M2 and closed the milestone.
+  - M3 adds minimal public script smoke coverage for each public corpus script family and a named hermetic wrapper isolation test.
+  - code-review-r4 approved M3 and closed the milestone.
+  - M4 adds a test-internal prepared corpus tool harness with current-run manifest validation and no public script option changes.
+  - code-review-r5 requested M4 changes for TRO-CR2; prepared-tool publish must not mutate repo bin/obj outputs and the repo-output oracle must prove setup plus invocation.
+  - TRO-CR2 was resolved by preparing the Corpus tool from a scratch-owned source copy and expanding repo bin/obj output snapshots before setup.
+  - code-review-r6 approved M4 and closed the milestone.
+  - M5 preserves explicit ReleaseEvidence selection, broad CI closeout, and evidence-tier rationale checks for Visual/ManualEvidence tests included in fast/default filters.
+  - code-review-r7 requested M5 changes for TRO-CR3; ManualEvidence fast-default rationale requires direct regression proof.
+  - TRO-CR3 was resolved by adding direct ManualEvidence + Fast/Contract rationale rejection and acceptance tests.
+  - code-review-r8 approved M5 and closed the milestone.
+  - M6 adds runtime report contract tests and records optimized runtime evidence, top 10 slow tests, full CI status, target misses, and coverage preservation.
+  - M6 records that Corpus fast/contract no-build and full CI remain above SHOULD-level targets without deleting wrapper, prepared-tool, or release-evidence coverage.
+  - code-review-r9 approved M6 and closed the milestone with no findings.
+  - M7 records lifecycle closeout evidence, broad CI validation, and final implementation handoff state without claiming verification or PR readiness.
+  - code-review-r10 approved M7 and closed the final implementation milestone with no findings.
+  - explain-change updated the durable rationale after M7 code review.
+  - verify passed and marked the change branch-ready for PR handoff.
+  - PR body and PR-open readiness remain downstream lifecycle stages.

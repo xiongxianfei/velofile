@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="using:VeloFile.App.Ui">
     <Thickness x:Key="VfFileListRowPadding">12,6</Thickness>
+    <Thickness x:Key="VfFileListHeaderPadding">12,0,12,6</Thickness>
     <SolidColorBrush x:Key="VfFileListRowBackground" Color="{StaticResource VfColorSurfaceContent}" />
     <SolidColorBrush x:Key="VfFileListRowHoverBackground" Color="{StaticResource VfColorSurfaceHover}" />
     <SolidColorBrush x:Key="VfFileListRowSelectedBackground" Color="{StaticResource VfColorSurfaceSelected}" />
@@ -44,6 +45,15 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
+    <Style x:Key="VfFileListHeaderTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource VfFontUi}" />
+        <Setter Property="FontSize" Value="{StaticResource VfTextSizeXs}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource VfBrushTextMuted}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
     <DataTemplate x:Key="VfFileListRowTemplate">
         <Grid
             MinHeight="{StaticResource VfFileListRowHeight}"
@@ -56,21 +66,9 @@
                 <ColumnDefinition Width="120" />
                 <ColumnDefinition Width="180" />
             </Grid.ColumnDefinitions>
-            <Border
-                Width="{StaticResource VfSpace6}"
-                Height="{StaticResource VfSpace5}"
-                CornerRadius="{StaticResource VfRadiusSm}"
-                Background="{StaticResource VfBrushSurfaceElevated}">
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FontSize="{StaticResource VfTextSizeXs}"
-                    Foreground="{StaticResource VfBrushTextSecondary}"
-                    MinWidth="{StaticResource VfSizeIconSm}"
-                    MaxWidth="{StaticResource VfSizeIconMd}"
-                    Text="{Binding ThumbnailDisplayText}"
-                    TextTrimming="CharacterEllipsis" />
-            </Border>
+            <ContentControl
+                Content="{Binding IconKind}"
+                ContentTemplate="{StaticResource VfFileListFixtureIconTemplate}" />
             <TextBlock
                 Grid.Column="1"
                 Style="{StaticResource VfFileListRowNameTextStyle}"

@@ -1,4 +1,5 @@
 using VeloFile.App.ViewModels;
+using VeloFile.App.Ui;
 using VeloFile.Core.Listing;
 using VeloFile.Core.Preview;
 
@@ -26,6 +27,7 @@ public sealed class FileListResourceContractTests
             "Resources/Tokens/VeloFile.Density.xaml",
             "Resources/Tokens/VeloFile.State.xaml",
             "Resources/Tokens/VeloFile.Motion.xaml",
+            "Resources/Icons/VeloFile.FixtureIcons.xaml",
             "Resources/Components/VeloFile.FileList.xaml"
         })
         {
@@ -45,16 +47,53 @@ public sealed class FileListResourceContractTests
             "x:Key=\"VfFileListItemContainerStyle\"",
             "x:Key=\"VfFileListRowNameTextStyle\"",
             "x:Key=\"VfFileListRowMetadataTextStyle\"",
+            "x:Key=\"VfFileListHeaderTextStyle\"",
+            "x:Key=\"VfFileListHeaderPadding\"",
             "VfFileListRowHeight",
             "VfFileListRowPadding",
-            "VfSizeIconMd",
-            "VfSizeIconSm",
             "VfBrushTextPrimary",
             "VfBrushTextMuted"
         })
         {
             StringAssert.Contains(xaml, requiredResource);
         }
+    }
+
+    [TestMethod]
+    public void Fixture_icon_dictionary_exposes_named_vector_resources_and_template_contract()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Icons", "VeloFile.FixtureIcons.xaml");
+
+        foreach (var requiredResource in new[]
+        {
+            "x:Key=\"VfIconGeometryFileGeneric\"",
+            "x:Key=\"VfIconGeometryFolder\"",
+            "x:Key=\"VfIconGeometryPdf\"",
+            "x:Key=\"VfIconGeometryImage\"",
+            "x:Key=\"VfIconGeometryText\"",
+            "x:Key=\"VfIconGeometrySpreadsheet\"",
+            "x:Key=\"VfIconGeometryExecutable\"",
+            "x:Key=\"VfIconGeometryMarkdown\"",
+            "x:Key=\"VfIconGeometryThumbnailFallback\"",
+            "x:Key=\"VfFileListIconContainerStyle\"",
+            "x:Key=\"VfFileListIconPathStyle\"",
+            "x:Key=\"VfFileListFixtureIconTemplate\""
+        })
+        {
+            StringAssert.Contains(xaml, requiredResource);
+        }
+
+        StringAssert.Contains(xaml, "x:Key=\"VfFileListIconGeometryConverter\"");
+        StringAssert.Contains(xaml, "<Path");
+        StringAssert.Contains(xaml, "Data=\"{Binding Converter={StaticResource VfFileListIconGeometryConverter}}\"");
+        StringAssert.Contains(xaml, "Property=\"Fill\" Value=\"{StaticResource VfBrushTextSecondary}\"");
+        StringAssert.Contains(xaml, "Property=\"Width\" Value=\"{StaticResource VfSpace6}\"");
+        StringAssert.Contains(xaml, "Property=\"Height\" Value=\"{StaticResource VfSpace5}\"");
+        Assert.IsFalse(xaml.Contains("<SymbolIcon", StringComparison.Ordinal));
+        Assert.IsFalse(xaml.Contains("<PathIcon", StringComparison.Ordinal));
+        Assert.IsFalse(xaml.Contains("Text=\"P...\"", StringComparison.Ordinal));
+        Assert.IsFalse(xaml.Contains("Text=\"D...\"", StringComparison.Ordinal));
+        Assert.IsFalse(xaml.Contains("Text=\"T...\"", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -116,6 +155,12 @@ public sealed class FileListResourceContractTests
         StringAssert.Contains(region, "x:Name=\"FileListSurface\"");
         StringAssert.Contains(region, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
         StringAssert.Contains(region, "ItemContainerStyle=\"{StaticResource VfFileListItemContainerStyle}\"");
+        StringAssert.Contains(region, "x:Name=\"FileListHeader\"");
+        StringAssert.Contains(region, "Padding=\"{StaticResource VfFileListHeaderPadding}\"");
+        StringAssert.Contains(region, "Style=\"{StaticResource VfFileListHeaderTextStyle}\"");
+        StringAssert.Contains(region, "Text=\"Name\"");
+        StringAssert.Contains(region, "Text=\"Kind\"");
+        StringAssert.Contains(region, "Text=\"Modified\"");
         Assert.IsFalse(region.Contains("<ListView.ItemTemplate>", StringComparison.Ordinal));
         Assert.IsFalse(region.Contains("MinHeight=\"32\"", StringComparison.Ordinal));
         Assert.IsFalse(region.Contains("Padding=\"8,4\"", StringComparison.Ordinal));
@@ -128,9 +173,14 @@ public sealed class FileListResourceContractTests
         var mainWindowXaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
         var fileListXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml");
 
+        Assert.IsFalse(
+            fileListXaml.Contains("Text=\"{Binding ThumbnailDisplayText}\"", StringComparison.Ordinal),
+            "M2 shell evidence must not render placeholder-looking thumbnail text chips.");
+        StringAssert.Contains(fileListXaml, "Content=\"{Binding IconKind}\"");
+        StringAssert.Contains(fileListXaml, "ContentTemplate=\"{StaticResource VfFileListFixtureIconTemplate}\"");
+
         foreach (var requiredBinding in new[]
         {
-            "Text=\"{Binding ThumbnailDisplayText}\"",
             "Text=\"{Binding DisplayName}\"",
             "Text=\"{Binding Kind}\"",
             "Text=\"{Binding LastWriteTimeUtc}\""
@@ -228,6 +278,7 @@ public sealed class FileListResourceContractTests
         Assert.IsFalse(hidden.IsProtectedOperatingSystemFile);
         Assert.IsTrue(hidden.IsVisuallyDimmed);
         Assert.AreEqual(FileListRowVisibilityKind.Hidden, hidden.VisibilityKind);
+        Assert.AreEqual(FileListIconKind.Text, hidden.IconKind);
         Assert.AreEqual("TXT", hidden.ThumbnailDisplayText);
 
         var directory = new FileListRowViewModel(
@@ -235,6 +286,7 @@ public sealed class FileListResourceContractTests
             ThumbnailState.NotLoaded);
 
         Assert.AreEqual(FileListRowVisibilityKind.Normal, directory.VisibilityKind);
+        Assert.AreEqual(FileListIconKind.Folder, directory.IconKind);
         Assert.AreEqual("DIR", directory.ThumbnailDisplayText);
     }
 

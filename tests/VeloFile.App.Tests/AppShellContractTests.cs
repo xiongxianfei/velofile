@@ -86,7 +86,11 @@ public sealed class AppShellContractTests
             StringAssert.Contains(button, "<Viewbox");
             StringAssert.Contains(button, "<Path");
             StringAssert.Contains(button, "Data=\"");
-            Assert.IsFalse(button.Contains("Icon", StringComparison.Ordinal), $"{automationName} must not depend on icon controls or icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("<SymbolIcon", StringComparison.Ordinal), $"{automationName} must not depend on SymbolIcon font glyph resolution.");
+            Assert.IsFalse(button.Contains("<PathIcon", StringComparison.Ordinal), $"{automationName} must not depend on PathIcon controls.");
+            Assert.IsFalse(button.Contains("Glyph=\"", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("Segoe MDL2 Assets", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("Segoe Fluent Icons", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
         }
     }
 
@@ -285,6 +289,7 @@ public sealed class AppShellContractTests
         var repoRoot = FindRepoRoot();
         var xaml = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml").FullName);
         var fileListResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Components", "VeloFile.FileList.xaml").FullName);
+        var iconResources = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "Resources", "Icons", "VeloFile.FixtureIcons.xaml").FullName);
         var codeBehind = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "MainWindow.xaml.cs").FullName);
         var app = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "App.xaml.cs").FullName);
         var composition = File.ReadAllText(repoRoot.Combine("src", "VeloFile.App", "AppCompositionRoot.cs").FullName);
@@ -292,7 +297,9 @@ public sealed class AppShellContractTests
 
         StringAssert.Contains(codeBehind, "FileListSurface.ItemsSource = ViewModel.FileListRows");
         StringAssert.Contains(xaml, "ItemTemplate=\"{StaticResource VfFileListRowTemplate}\"");
-        StringAssert.Contains(fileListResources, "Text=\"{Binding ThumbnailDisplayText}\"");
+        Assert.IsFalse(fileListResources.Contains("Text=\"{Binding ThumbnailDisplayText}\"", StringComparison.Ordinal));
+        StringAssert.Contains(fileListResources, "ContentTemplate=\"{StaticResource VfFileListFixtureIconTemplate}\"");
+        StringAssert.Contains(iconResources, "VfFileListIconPathStyle");
         StringAssert.Contains(fileListResources, "Opacity=\"{Binding Converter={StaticResource VfFileListRowOpacityConverter}}\"");
         StringAssert.Contains(codeBehind, "AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName)");
         StringAssert.Contains(codeBehind, "ViewModel.DetailsMetadataFields");

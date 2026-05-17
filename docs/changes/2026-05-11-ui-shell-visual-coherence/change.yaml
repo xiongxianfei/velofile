@@ -1,0 +1,79 @@
+id: 2026-05-11-ui-shell-visual-coherence
+title: UI shell visual coherence
+status: branch-ready
+proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
+spec: specs/ui-shell-visual-coherence.md
+plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
+architecture:
+  - docs/architecture/system/architecture.md
+  - docs/adr/0010-shell-visual-coherence-contracts.md
+review:
+  stage: code-review
+  status: clean-with-notes
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r18.md
+  findings: []
+  prior_records:
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/spec-review-r1.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r1.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r2.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r3.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r4.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r5.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r6.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r7.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r8.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r9.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r11.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r12.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r13.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r14.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/spec-review-r2.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/architecture-review-r1.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r3.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r4.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r1.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r2.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r15.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r16.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r17.md
+  resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
+implementation:
+  milestone: M7
+  status: closed
+  summary: M7 preview/details surface treatment implementation passed code-review-r18 with no material findings. All required implementation milestones are closed; optional M8 is not triggered under the amended visual-evidence contract.
+  validation:
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"
+    - dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
+    - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"
+    - dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"
+    - powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    - git diff --check
+history:
+  prior_milestone_validation:
+    M3:
+      - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"
+      - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+      - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid
+      - dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
+      - dotnet test VeloFile.sln -c Debug --filter "FileListResourceContractTests|UiFixture|UiContracts"
+      - dotnet test VeloFile.sln -c Debug --filter "UiContracts|FileList|AppShellContract|DragDrop|Preview"
+      - powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+      - git diff --check
+visual_evidence:
+  - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
+  - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
+explain_change: docs/changes/2026-05-11-ui-shell-visual-coherence/explain-change.md
+verify:
+  status: branch-ready
+  report: docs/changes/2026-05-11-ui-shell-visual-coherence/verify-report.md
+  validation:
+    - dotnet --info
+    - dotnet restore VeloFile.sln
+    - dotnet build VeloFile.sln -c Debug
+    - dotnet test VeloFile.sln -c Debug
+    - pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
+    - git diff --check
+next_stage: pr

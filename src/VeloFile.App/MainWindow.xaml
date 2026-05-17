@@ -9,7 +9,24 @@
     Title="VeloFile">
     <Grid
         x:Name="RootShell"
-        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        RequestedTheme="Dark"
+        Style="{StaticResource VfShellAppRootStyle}">
+        <Grid.Resources>
+            <!-- ui-contract-scope:shell-surface-foundation:start -->
+            <StaticResource x:Key="VfShellSurfaceScopeAppRootStyle" ResourceKey="VfShellAppRootStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeChromeStyle" ResourceKey="VfShellChromeStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeSidebarStyle" ResourceKey="VfShellSidebarStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeContentStyle" ResourceKey="VfShellContentStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeCommandBandContainerStyle" ResourceKey="VfShellCommandBandContainerStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeStatusContainerStyle" ResourceKey="VfShellStatusContainerStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopePreviewContainerStyle" ResourceKey="VfShellPreviewContainerStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeButtonStyle" ResourceKey="VfShellButtonStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeTextBoxStyle" ResourceKey="VfShellTextBoxStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeComboBoxStyle" ResourceKey="VfShellComboBoxStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeToggleSwitchStyle" ResourceKey="VfShellToggleSwitchStyle" />
+            <StaticResource x:Key="VfShellSurfaceScopeRadioButtonStyle" ResourceKey="VfShellRadioButtonStyle" />
+            <!-- ui-contract-scope:shell-surface-foundation:end -->
+        </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
             <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />
@@ -49,8 +66,9 @@
             x:Name="TabStrip"
             Grid.Row="0"
             Grid.ColumnSpan="3"
+            Style="{StaticResource VfShellChromeStyle}"
             BorderThickness="0,0,0,1"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            BorderBrush="{StaticResource VfShellSeparatorBrush}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -74,6 +92,7 @@
                             <TextBlock
                                 MinWidth="140"
                                 Padding="8,4"
+                                Style="{StaticResource VfShellPrimaryTextStyle}"
                                 Text="{Binding Path}" />
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -94,7 +113,7 @@
                             Height="16">
                             <Path
                                 Data="M 12.7,4.3 L 5,12 L 12.7,19.7 L 14.1,18.3 L 7.8,12 L 14.1,5.7 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -108,7 +127,7 @@
                             Height="16">
                             <Path
                                 Data="M 7.3,4.3 L 15,12 L 7.3,19.7 L 5.9,18.3 L 12.2,12 L 5.9,5.7 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -120,7 +139,7 @@
                         <Viewbox Width="16" Height="16">
                             <Path
                                 Data="M 10,4 L 14,4 L 14,10 L 20,10 L 20,14 L 14,14 L 14,20 L 10,20 L 10,14 L 4,14 L 4,10 L 10,10 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -132,7 +151,7 @@
                         <Viewbox Width="16" Height="16">
                             <Path
                                 Data="M 7,3 L 19,3 L 19,15 L 17,15 L 17,5 L 7,5 Z M 5,7 L 15,7 L 15,19 L 5,19 Z M 7,9 L 7,17 L 13,17 L 13,9 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -144,7 +163,7 @@
                         <Viewbox Width="16" Height="16">
                             <Path
                                 Data="M 6.2,4.8 L 12,10.6 L 17.8,4.8 L 19.2,6.2 L 13.4,12 L 19.2,17.8 L 17.8,19.2 L 12,13.4 L 6.2,19.2 L 4.8,17.8 L 10.6,12 L 4.8,6.2 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -156,7 +175,7 @@
                         <Viewbox Width="16" Height="16">
                             <Path
                                 Data="M 18.7,7.1 C 17.2,5.2 14.8,4 12,4 C 7.6,4 4,7.2 4,11.2 C 4,15.6 7.6,19 12,19 C 15.4,19 18.3,16.9 19.4,13.9 L 17.3,13.9 C 16.4,15.8 14.4,17 12,17 C 8.7,17 6,14.5 6,11.2 C 6,8.4 8.7,6 12,6 C 14.2,6 16.1,6.9 17.2,8.4 L 14,8.4 L 14,10.4 L 20,10.4 L 20,4.4 L 18,4.4 L 18,7.1 Z"
-                                Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Fill="{StaticResource VfShellControlForegroundBrush}"
                                 Stretch="Uniform" />
                         </Viewbox>
                     </Button>
@@ -164,10 +183,30 @@
             </Grid>
         </Border>
 
+        <!-- ui-contract-scope:shell-command-band:start -->
         <Grid
             Grid.Row="1"
             Grid.Column="1"
-            Margin="12,8,12,8">
+            Margin="{StaticResource VfCommandBandOuterMargin}"
+            Style="{StaticResource VfCommandBandContainerStyle}">
+            <Grid.Resources>
+                <StaticResource x:Key="TextControlBackground" ResourceKey="VfCommandBandInputBackgroundBrush" />
+                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="VfCommandBandInputHoverBackgroundBrush" />
+                <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="VfCommandBandInputFocusBackgroundBrush" />
+                <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="VfCommandBandInputDisabledBackgroundBrush" />
+                <StaticResource x:Key="TextControlForeground" ResourceKey="VfCommandBandInputForegroundBrush" />
+                <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="VfCommandBandInputForegroundBrush" />
+                <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="VfCommandBandInputForegroundBrush" />
+                <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+                <StaticResource x:Key="TextControlBorderBrush" ResourceKey="VfCommandBandInputBorderBrush" />
+                <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="VfCommandBandInputBorderBrush" />
+                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="VfCommandBandInputFocusBorderBrush" />
+                <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="VfCommandBandInputDisabledBorderBrush" />
+            </Grid.Resources>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -177,38 +216,36 @@
 
             <StackPanel
                 x:Name="NavigationButtons"
-                Orientation="Horizontal"
-                VerticalAlignment="Center"
-                Spacing="4">
-                <Button Width="36" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
-                    <Viewbox Width="16" Height="16">
+                Style="{StaticResource VfCommandBandNavigationGroupStyle}">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 12.7,4.3 L 5,12 L 12.7,19.7 L 14.1,18.3 L 7.8,12 L 14.1,5.7 Z"
-                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 7.3,4.3 L 15,12 L 7.3,19.7 L 5.9,18.3 L 12.2,12 L 5.9,5.7 Z"
-                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 12,5 L 19.7,12.7 L 18.3,14.1 L 13,8.8 L 13,20 L 11,20 L 11,8.8 L 5.7,14.1 L 4.3,12.7 Z"
-                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 18.7,7.1 C 17.2,5.2 14.8,4 12,4 C 7.6,4 4,7.2 4,11.2 C 4,15.6 7.6,19 12,19 C 15.4,19 18.3,16.9 19.4,13.9 L 17.3,13.9 C 16.4,15.8 14.4,17 12,17 C 8.7,17 6,14.5 6,11.2 C 6,8.4 8.7,6 12,6 C 14.2,6 16.1,6.9 17.2,8.4 L 14,8.4 L 14,10.4 L 20,10.4 L 20,4.4 L 18,4.4 L 18,7.1 Z"
-                            Fill="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
@@ -217,7 +254,8 @@
             <ListView
                 x:Name="BreadcrumbPathBar"
                 Grid.Column="1"
-                Margin="8,0,0,0"
+                Margin="{StaticResource VfCommandBandBreadcrumbMargin}"
+                Style="{StaticResource VfCommandBandPathListStyle}"
                 IsItemClickEnabled="True"
                 ItemClick="BreadcrumbPathBar_ItemClick"
                 SelectionMode="None"
@@ -231,7 +269,7 @@
                     <DataTemplate>
                         <Button
                             Content="{Binding DisplayName}"
-                            Padding="8,4"
+                            Style="{StaticResource VfCommandBandBreadcrumbButtonStyle}"
                             AutomationProperties.Name="{Binding DisplayName}" />
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -240,7 +278,8 @@
             <TextBox
                 x:Name="RawPathBox"
                 Grid.Column="2"
-                Margin="12,0"
+                Margin="{StaticResource VfCommandBandPathMargin}"
+                Style="{StaticResource VfCommandBandPathTextBoxStyle}"
                 KeyDown="RawPathBox_KeyDown"
                 PlaceholderText="Type or paste a path"
                 AutomationProperties.Name="Raw path" />
@@ -248,93 +287,178 @@
             <StackPanel
                 x:Name="FileViewModeSelector"
                 Grid.Column="3"
-                Orientation="Horizontal"
-                Spacing="4"
+                Style="{StaticResource VfCommandBandViewModeGroupStyle}"
                 AutomationProperties.Name="File view mode">
-                <RadioButton Content="Details" IsChecked="True" />
-                <RadioButton Content="List" />
-                <RadioButton Content="Icons" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="Details" IsChecked="True" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="List" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="Icons" />
             </StackPanel>
         </Grid>
+        <!-- ui-contract-scope:shell-command-band:end -->
 
+        <!-- ui-contract-scope:shell-sidebar:start -->
         <Border
             x:Name="SidebarPane"
             Grid.Row="1"
             Grid.RowSpan="3"
             Grid.Column="0"
-            Padding="12,8"
-            BorderThickness="0,0,1,0"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}">
+            Style="{StaticResource VfShellSidebarStyle}"
+            Padding="{StaticResource VfSidebarPanePadding}"
+            BorderThickness="{StaticResource VfSidebarPaneBorderThickness}"
+            BorderBrush="{StaticResource VfShellSeparatorBrush}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel x:Name="VisibilityControls" Spacing="6">
-                    <ToggleSwitch
-                        x:Name="ShowHiddenFilesToggle"
-                        Header="Hidden"
-                        AccessKey="H"
-                        Toggled="ShowHiddenFilesToggle_Toggled"
-                        AutomationProperties.Name="Show hidden files" />
-                    <ToggleSwitch
-                        x:Name="ShowSystemFilesToggle"
-                        Header="System"
-                        AccessKey="S"
-                        Toggled="ShowSystemFilesToggle_Toggled"
-                        AutomationProperties.Name="Show protected operating system files" />
-                    <ToggleSwitch
-                        x:Name="ShowExtensionsToggle"
-                        Header="Extensions"
-                        AccessKey="E"
-                        Toggled="ShowExtensionsToggle_Toggled"
-                        AutomationProperties.Name="Show file extensions" />
+                <ListView
+                    x:Name="SidebarLocationsList"
+                    Grid.Row="0"
+                    IsItemClickEnabled="True"
+                    ItemClick="SidebarLocationsList_ItemClick"
+                    Style="{StaticResource VfSidebarNavigationListStyle}"
+                    ItemContainerStyle="{StaticResource VfSidebarItemContainerStyle}"
+                    AutomationProperties.Name="Navigation locations">
+                    <ListView.Resources>
+                        <StaticResource x:Key="ListViewItemBackground" ResourceKey="VfSidebarSurfaceBrush" />
+                        <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="VfSidebarHoverItemBackgroundBrush" />
+                        <StaticResource x:Key="ListViewItemBackgroundSelected" ResourceKey="VfSidebarSelectedItemBackgroundBrush" />
+                        <StaticResource x:Key="ListViewItemBackgroundSelectedPointerOver" ResourceKey="VfSidebarSelectedItemBackgroundBrush" />
+                        <StaticResource x:Key="ListViewItemBackgroundSelectedPressed" ResourceKey="VfSidebarSelectedItemBackgroundBrush" />
+                        <StaticResource x:Key="ListViewItemBackgroundDisabled" ResourceKey="VfSidebarSurfaceBrush" />
+                        <StaticResource x:Key="ListViewItemForeground" ResourceKey="VfSidebarTextPrimaryBrush" />
+                        <StaticResource x:Key="ListViewItemForegroundPointerOver" ResourceKey="VfSidebarTextPrimaryBrush" />
+                        <StaticResource x:Key="ListViewItemForegroundSelected" ResourceKey="VfSidebarTextPrimaryBrush" />
+                        <StaticResource x:Key="ListViewItemForegroundDisabled" ResourceKey="VfShellTextDisabledBrush" />
+                    </ListView.Resources>
+                    <ListView.Header>
+                        <TextBlock
+                            Style="{StaticResource VfSidebarSectionHeaderStyle}"
+                            Text="Locations" />
+                    </ListView.Header>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock
+                                    Style="{StaticResource VfSidebarItemTextStyle}"
+                                    Text="{Binding DisplayName}" />
+                                <TextBlock
+                                    Style="{StaticResource VfSidebarItemKindTextStyle}"
+                                    Text="{Binding Kind}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <StackPanel
+                    x:Name="VisibilityControls"
+                    Grid.Row="1"
+                    Style="{StaticResource VfSidebarSecondarySectionStyle}"
+                    AutomationProperties.Name="Visibility controls">
+                    <TextBlock
+                        Style="{StaticResource VfSidebarSectionHeaderStyle}"
+                        Text="Visibility" />
+                    <Grid Style="{StaticResource VfSidebarSecondaryControlRowStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="Hidden" />
+                        <ToggleSwitch
+                            x:Name="ShowHiddenFilesToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfSidebarToggleStyle}"
+                            AccessKey="H"
+                            Toggled="ShowHiddenFilesToggle_Toggled"
+                            AutomationProperties.Name="Show hidden files" />
+                    </Grid>
+                    <Grid Style="{StaticResource VfSidebarSecondaryControlRowStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="System" />
+                        <ToggleSwitch
+                            x:Name="ShowSystemFilesToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfSidebarToggleStyle}"
+                            AccessKey="S"
+                            Toggled="ShowSystemFilesToggle_Toggled"
+                            AutomationProperties.Name="Show protected operating system files" />
+                    </Grid>
+                    <Grid Style="{StaticResource VfSidebarSecondaryControlRowStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfShellPrimaryTextStyle}"
+                            Text="Extensions" />
+                        <ToggleSwitch
+                            x:Name="ShowExtensionsToggle"
+                            Grid.Column="1"
+                            OnContent=""
+                            OffContent=""
+                            Style="{StaticResource VfSidebarToggleStyle}"
+                            AccessKey="E"
+                            Toggled="ShowExtensionsToggle_Toggled"
+                            AutomationProperties.Name="Show file extensions" />
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel
+                    x:Name="TerminalControls"
+                    Grid.Row="2"
+                    Style="{StaticResource VfSidebarSecondarySectionStyle}"
+                    AutomationProperties.Name="Terminal controls">
+                    <TextBlock
+                        Style="{StaticResource VfSidebarSectionHeaderStyle}"
+                        Text="Terminal" />
                     <ComboBox
                         x:Name="TerminalTargetComboBox"
-                        Header="Terminal"
                         PlaceholderText="Default terminal"
+                        Style="{StaticResource VfSidebarTerminalPickerStyle}"
                         DropDownOpened="TerminalTargetComboBox_DropDownOpened"
                         SelectionChanged="TerminalTargetComboBox_SelectionChanged"
                         AutomationProperties.Name="Terminal target">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" />
+                                <TextBlock
+                                    Style="{StaticResource VfShellSecondaryTextStyle}"
+                                    Text="{Binding DisplayName}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
                 </StackPanel>
 
-                <ListView
-                    x:Name="SidebarLocationsList"
-                    Grid.Row="1"
-                    Margin="0,14,0,0"
-                    IsItemClickEnabled="True"
-                    ItemClick="SidebarLocationsList_ItemClick"
-                    SelectionMode="Single"
-                    AutomationProperties.Name="Sidebar locations">
-                    <ListView.Header>
-                        <TextBlock Text="Locations" />
-                    </ListView.Header>
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding DisplayName}" />
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-
                 <TextBlock
-                    Grid.Row="2"
+                    Grid.Row="3"
+                    Style="{StaticResource VfShellMutedTextStyle}"
                     Text="Ready"
-                    Opacity="0.7" />
+                    Opacity="{StaticResource VfSidebarStatusOpacity}" />
             </Grid>
         </Border>
+        <!-- ui-contract-scope:shell-sidebar:end -->
 
         <Grid
             Grid.Row="2"
             Grid.Column="1"
-            Margin="12,0,12,8">
+            Margin="12,0,12,8"
+            Style="{StaticResource VfShellContentStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -381,54 +505,107 @@
             </InfoBar>
 
             <!-- ui-contract-scope:file-list-first-slice:start -->
-            <ListView
-                x:Name="FileListSurface"
+            <Grid
                 Grid.Row="4"
                 Margin="0,8,0,0"
-                AllowDrop="True"
-                DragOver="FileListSurface_DragOver"
-                DragLeave="FileListSurface_DragLeave"
-                Drop="FileListSurface_Drop"
-                DoubleTapped="FileListSurface_DoubleTapped"
-                ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}"
-                ItemTemplate="{StaticResource VfFileListRowTemplate}"
-                SelectionMode="Extended"
-                SelectionChanged="FileListSurface_SelectionChanged"
-                AutomationProperties.Name="Files">
-                <ListView.Resources>
-                    <SolidColorBrush x:Key="ListViewItemBackground" Color="{Binding Color, Source={StaticResource VfFileListRowBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowHoverBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
-                </ListView.Resources>
-                <ListView.ContextFlyout>
-                    <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
-                        <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open with" Click="OpenWithMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="CutMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="CopyMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="PasteMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="RenameMenuItem" Text="Rename" Click="RenameMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="DeleteMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="PropertiesMenuItem" Text="Properties" Click="PropertiesMenuItem_Click" />
-                        <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="CopyPathMenuItem" Text="Copy path" Click="CopyPathMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="CopyNameMenuItem" Text="Copy name" Click="CopyNameMenuItem_Click" />
-                        <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
-                    </MenuFlyout>
-                </ListView.ContextFlyout>
-            </ListView>
+                RowSpacing="{StaticResource VfSpace1}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid
+                    x:Name="FileListHeader"
+                    Padding="{StaticResource VfFileListHeaderPadding}"
+                    ColumnSpacing="{StaticResource VfSpace3}"
+                    AutomationProperties.Name="File list columns">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="180" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="1"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Name" />
+                    <TextBlock
+                        Grid.Column="2"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Kind" />
+                    <TextBlock
+                        Grid.Column="3"
+                        Style="{StaticResource VfFileListHeaderTextStyle}"
+                        Text="Modified" />
+                </Grid>
+
+                <ListView
+                    x:Name="FileListSurface"
+                    Grid.Row="1"
+                    AllowDrop="True"
+                    DragOver="FileListSurface_DragOver"
+                    DragLeave="FileListSurface_DragLeave"
+                    Drop="FileListSurface_Drop"
+                    DoubleTapped="FileListSurface_DoubleTapped"
+                    ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}"
+                    ItemTemplate="{StaticResource VfFileListRowTemplate}"
+                    SelectionMode="Extended"
+                    SelectionChanged="FileListSurface_SelectionChanged"
+                    AutomationProperties.Name="Files">
+                    <ListView.Resources>
+                        <SolidColorBrush x:Key="ListViewItemBackground" Color="{Binding Color, Source={StaticResource VfFileListRowBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowHoverBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="{Binding Color, Source={StaticResource VfFileListRowSelectedBackground}}" />
+                    </ListView.Resources>
+                    <ListView.ContextFlyout>
+                        <MenuFlyout x:Name="BuiltInFileContextMenu" Opening="BuiltInFileContextMenu_Opening">
+                            <MenuFlyoutItem x:Name="OpenMenuItem" Text="Open" Click="OpenMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="OpenWithMenuItem" Text="Open with" Click="OpenWithMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="CutMenuItem" Text="Cut" Click="CutMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="CopyMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="PasteMenuItem" Text="Paste" Click="PasteMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="RenameMenuItem" Text="Rename" Click="RenameMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="DeleteMenuItem" Text="Delete" Click="DeleteMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="PropertiesMenuItem" Text="Properties" Click="PropertiesMenuItem_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="CopyPathMenuItem" Text="Copy path" Click="CopyPathMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="CopyNameMenuItem" Text="Copy name" Click="CopyNameMenuItem_Click" />
+                            <MenuFlyoutItem x:Name="OpenTerminalMenuItem" Text="Open terminal here" Click="OpenTerminalMenuItem_Click" />
+                        </MenuFlyout>
+                    </ListView.ContextFlyout>
+                </ListView>
+            </Grid>
             <!-- ui-contract-scope:file-list-first-slice:end -->
 
+            <!-- ui-contract-scope:shell-command-band:start -->
             <Grid
                 x:Name="FilterSearchSurface"
                 Grid.Row="3"
-                Margin="0,8,0,0"
-                ColumnSpacing="8">
+                Margin="{StaticResource VfCommandBandFilterSearchMargin}"
+                Style="{StaticResource VfCommandBandSearchContainerStyle}">
+                <Grid.Resources>
+                    <StaticResource x:Key="TextControlBackground" ResourceKey="VfCommandBandInputBackgroundBrush" />
+                    <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="VfCommandBandInputHoverBackgroundBrush" />
+                    <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="VfCommandBandInputFocusBackgroundBrush" />
+                    <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="VfCommandBandInputDisabledBackgroundBrush" />
+                    <StaticResource x:Key="TextControlForeground" ResourceKey="VfCommandBandInputForegroundBrush" />
+                    <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="VfCommandBandInputForegroundBrush" />
+                    <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="VfCommandBandInputForegroundBrush" />
+                    <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+                    <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                    <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                    <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+                    <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+                    <StaticResource x:Key="TextControlBorderBrush" ResourceKey="VfCommandBandInputBorderBrush" />
+                    <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="VfCommandBandInputBorderBrush" />
+                    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="VfCommandBandInputFocusBorderBrush" />
+                    <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="VfCommandBandInputDisabledBorderBrush" />
+                </Grid.Resources>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />
                     <ColumnDefinition Width="220" />
@@ -446,195 +623,223 @@
                 </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
+                    Style="{StaticResource VfCommandBandSearchTextBoxStyle}"
                     PlaceholderText="Filter"
                     TextChanged="CurrentFolderFilterBox_TextChanged"
                     AutomationProperties.Name="Current folder filter" />
                 <TextBox
                     x:Name="RecursiveSearchBox"
                     Grid.Column="1"
+                    Style="{StaticResource VfCommandBandSearchTextBoxStyle}"
                     PlaceholderText="Search"
                     KeyDown="RecursiveSearchBox_KeyDown"
                     AutomationProperties.Name="Recursive search" />
                 <Button
                     x:Name="RecursiveSearchButton"
                     Grid.Column="2"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Search"
                     Click="RecursiveSearchButton_Click"
                     AutomationProperties.Name="Run recursive search" />
                 <Button
                     x:Name="CancelSearchButton"
                     Grid.Column="3"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Cancel"
                     Click="CancelSearchButton_Click"
                     AutomationProperties.Name="Cancel recursive search" />
                 <Button
                     x:Name="ClearSearchButton"
                     Grid.Column="4"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Clear"
                     Click="ClearSearchButton_Click"
                     AutomationProperties.Name="Clear recursive search" />
                 <TextBlock
                     x:Name="RecursiveSearchStatusText"
                     Grid.Column="5"
-                    VerticalAlignment="Center"
-                    Opacity="0.72" />
+                    Style="{StaticResource VfCommandBandStatusTextStyle}" />
                 <ListView
                     x:Name="SkippedLocationsList"
                     Grid.Row="1"
                     Grid.ColumnSpan="6"
-                    Margin="0,6,0,0"
+                    Margin="{StaticResource VfCommandBandSkippedLocationsMargin}"
                     MaxHeight="96"
                     Visibility="Collapsed"
                     AutomationProperties.Name="Skipped search locations">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid ColumnSpacing="8" Padding="4,2">
+                            <Grid ColumnSpacing="{StaticResource VfCommandBandColumnSpacing}" Padding="{StaticResource VfCommandBandSkippedLocationRowPadding}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="140" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding ReasonCode}" />
+                                <TextBlock
+                                    Style="{StaticResource VfCommandBandSkippedLocationTextStyle}"
+                                    Text="{Binding ReasonCode}" />
                                 <TextBlock
                                     Grid.Column="1"
+                                    Style="{StaticResource VfCommandBandSkippedLocationTextStyle}"
                                     Text="{Binding Path}"
                                     TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <StackPanel
+            <!-- ui-contract-scope:shell-command-band:end -->
+                <!-- ui-contract-scope:shell-status-operations:start -->
+                <Border
                     x:Name="RenamePanel"
                     Grid.Row="2"
                     Grid.ColumnSpan="6"
-                    Margin="0,6,0,0"
-                    Orientation="Horizontal"
-                    Spacing="8"
+                    Style="{StaticResource VfOperationSurfaceStyle}"
                     Visibility="Collapsed">
-                    <TextBox
-                        x:Name="RenameTextBox"
-                        Width="260"
-                        TextChanged="RenameTextBox_TextChanged"
-                        KeyDown="RenameTextBox_KeyDown"
-                        AutomationProperties.Name="Rename item" />
-                    <Button
-                        x:Name="CommitRenameButton"
-                        Content="Rename"
-                        Click="CommitRenameButton_Click"
-                        AutomationProperties.Name="Commit rename" />
-                    <Button
-                        x:Name="CancelRenameButton"
-                        Content="Cancel"
-                        Click="CancelRenameButton_Click"
-                        AutomationProperties.Name="Cancel rename" />
-                    <TextBlock
-                        x:Name="RenameErrorText"
-                        VerticalAlignment="Center"
-                        Opacity="0.75" />
-                </StackPanel>
-                <StackPanel
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource VfOperationPanelSpacing}">
+                        <TextBox
+                            x:Name="RenameTextBox"
+                            Width="260"
+                            TextChanged="RenameTextBox_TextChanged"
+                            KeyDown="RenameTextBox_KeyDown"
+                            AutomationProperties.Name="Rename item" />
+                        <Button
+                            x:Name="CommitRenameButton"
+                            Content="Rename"
+                            Style="{StaticResource VfOperationSecondaryButtonStyle}"
+                            Click="CommitRenameButton_Click"
+                            AutomationProperties.Name="Commit rename" />
+                        <Button
+                            x:Name="CancelRenameButton"
+                            Content="Cancel"
+                            Style="{StaticResource VfOperationCancelButtonStyle}"
+                            Click="CancelRenameButton_Click"
+                            AutomationProperties.Name="Cancel rename" />
+                        <TextBlock
+                            x:Name="RenameErrorText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfOperationFailureStyle}" />
+                    </StackPanel>
+                </Border>
+                <Border
                     x:Name="PermanentDeleteConfirmationPanel"
                     Grid.Row="3"
                     Grid.ColumnSpan="6"
-                    Margin="0,6,0,0"
-                    Orientation="Horizontal"
-                    Spacing="8"
+                    Style="{StaticResource VfDestructiveConfirmationStyle}"
                     Visibility="Collapsed">
-                    <TextBlock
-                        x:Name="PermanentDeleteConfirmationText"
-                        VerticalAlignment="Center"
-                        Text="Permanently delete selected items?" />
-                    <Button
-                        x:Name="ConfirmPermanentDeleteButton"
-                        Content="Delete permanently"
-                        Click="ConfirmPermanentDeleteButton_Click"
-                        AutomationProperties.Name="Confirm permanent delete" />
-                    <Button
-                        x:Name="CancelPermanentDeleteButton"
-                        Content="Cancel"
-                        Click="CancelPermanentDeleteButton_Click"
-                        AutomationProperties.Name="Cancel permanent delete" />
-                </StackPanel>
-                <StackPanel
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource VfOperationPanelSpacing}">
+                        <TextBlock
+                            x:Name="PermanentDeleteConfirmationText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfDestructiveConfirmationTextStyle}"
+                            Text="Permanently delete selected items?" />
+                        <Button
+                            x:Name="ConfirmPermanentDeleteButton"
+                            Content="Delete permanently"
+                            Style="{StaticResource VfDestructiveActionButtonStyle}"
+                            Click="ConfirmPermanentDeleteButton_Click"
+                            AutomationProperties.Name="Confirm permanent delete" />
+                        <Button
+                            x:Name="CancelPermanentDeleteButton"
+                            Content="Cancel"
+                            Style="{StaticResource VfOperationCancelButtonStyle}"
+                            Click="CancelPermanentDeleteButton_Click"
+                            AutomationProperties.Name="Cancel permanent delete" />
+                    </StackPanel>
+                </Border>
+                <Border
                     x:Name="FileOperationConflictPanel"
                     Grid.Row="4"
                     Grid.ColumnSpan="6"
-                    Margin="0,6,0,0"
-                    Orientation="Horizontal"
-                    Spacing="8"
+                    Style="{StaticResource VfOperationConflictStyle}"
                     Visibility="Collapsed">
-                    <TextBlock
-                        x:Name="FileOperationConflictText"
-                        VerticalAlignment="Center"
-                        Text="Name conflict" />
-                    <Button
-                        x:Name="SkipConflictButton"
-                        Content="Skip"
-                        Click="SkipConflictButton_Click"
-                        AutomationProperties.Name="Skip conflict" />
-                    <Button
-                        x:Name="ReplaceConflictButton"
-                        Content="Replace"
-                        Click="ReplaceConflictButton_Click"
-                        AutomationProperties.Name="Replace conflict" />
-                    <Button
-                        x:Name="KeepBothConflictButton"
-                        Content="Keep both"
-                        Click="KeepBothConflictButton_Click"
-                        AutomationProperties.Name="Keep both conflict" />
-                </StackPanel>
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource VfOperationPanelSpacing}">
+                        <TextBlock
+                            x:Name="FileOperationConflictText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfOperationConflictStatusTextStyle}"
+                            Text="Name conflict" />
+                        <Button
+                            x:Name="SkipConflictButton"
+                            Content="Skip"
+                            Style="{StaticResource VfOperationSecondaryButtonStyle}"
+                            Click="SkipConflictButton_Click"
+                            AutomationProperties.Name="Skip conflict" />
+                        <Button
+                            x:Name="ReplaceConflictButton"
+                            Content="Replace"
+                            Style="{StaticResource VfDestructiveActionButtonStyle}"
+                            Click="ReplaceConflictButton_Click"
+                            AutomationProperties.Name="Replace conflict" />
+                        <Button
+                            x:Name="KeepBothConflictButton"
+                            Content="Keep both"
+                            Style="{StaticResource VfOperationSecondaryButtonStyle}"
+                            Click="KeepBothConflictButton_Click"
+                            AutomationProperties.Name="Keep both conflict" />
+                    </StackPanel>
+                </Border>
             </Grid>
 
-            <Grid Grid.Row="5" Margin="0,8,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock
-                    x:Name="LoadingState"
-                    Text="Loading"
-                    Opacity="0.75" />
-                <TextBlock
-                    x:Name="EmptyFolderState"
-                    Grid.Column="1"
-                    Text="Empty folder"
-                    Opacity="0.75" />
-                <TextBlock
-                    x:Name="FailedState"
-                    Grid.Column="2"
-                    Text="Unable to open location"
-                    Opacity="0.75" />
-                <StackPanel
-                    Grid.Row="1"
-                    Grid.ColumnSpan="3"
-                    Margin="0,6,0,0"
-                    Orientation="Horizontal"
-                    Spacing="8">
+            <Border Grid.Row="5" Style="{StaticResource VfStatusSurfaceStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <TextBlock
-                        x:Name="FileOperationStatusText"
-                        VerticalAlignment="Center"
-                        Opacity="0.75" />
+                        x:Name="LoadingState"
+                        Style="{StaticResource VfStatusMutedTextStyle}"
+                        Text="Loading" />
                     <TextBlock
-                        x:Name="LaunchStatusText"
-                        VerticalAlignment="Center"
-                        Opacity="0.75" />
+                        x:Name="EmptyFolderState"
+                        Grid.Column="1"
+                        Style="{StaticResource VfStatusMutedTextStyle}"
+                        Text="Empty folder" />
                     <TextBlock
-                        x:Name="DropActionIndicatorText"
-                        VerticalAlignment="Center"
-                        Opacity="0.75"
-                        Visibility="Collapsed" />
-                    <Button
-                        x:Name="CancelFileOperationButton"
-                        Content="Cancel operation"
-                        Click="CancelFileOperationButton_Click"
-                        Visibility="Collapsed"
-                        AutomationProperties.Name="Cancel file operation" />
-                </StackPanel>
-            </Grid>
+                        x:Name="FailedState"
+                        Grid.Column="2"
+                        Style="{StaticResource VfStatusFailureTextStyle}"
+                        Text="Unable to open location" />
+                    <StackPanel
+                        Grid.Row="1"
+                        Grid.ColumnSpan="3"
+                        Margin="{StaticResource VfStatusMessageSpacing}"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource VfOperationPanelSpacing}">
+                        <TextBlock
+                            x:Name="FileOperationStatusText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfOperationProgressStyle}" />
+                        <TextBlock
+                            x:Name="LaunchStatusText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfStatusTextStyle}" />
+                        <TextBlock
+                            x:Name="DropActionIndicatorText"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource VfStatusTextStyle}"
+                            Visibility="Collapsed" />
+                        <Button
+                            x:Name="CancelFileOperationButton"
+                            Content="Cancel operation"
+                            Style="{StaticResource VfOperationCancelButtonStyle}"
+                            Click="CancelFileOperationButton_Click"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Cancel file operation" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <!-- ui-contract-scope:shell-status-operations:end -->
         </Grid>
 
         <TextBlock
@@ -642,20 +847,20 @@
             Grid.Column="1"
             Margin="12,0"
             VerticalAlignment="Center"
+            Style="{StaticResource VfShellMutedTextStyle}"
             Text="0 items selected"
             Opacity="0.7" />
 
+        <!-- ui-contract-scope:shell-preview-details:start -->
         <Border
             x:Name="PreviewPane"
             Grid.Row="1"
             Grid.RowSpan="3"
             Grid.Column="2"
-            Padding="12,8"
-            BorderThickness="1,0,0,0"
-            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+            Style="{StaticResource VfPreviewPaneStyle}"
             Visibility="Collapsed"
             AutomationProperties.Name="Preview pane">
-            <Grid RowSpacing="8">
+            <Grid Style="{StaticResource VfPreviewLayoutStyle}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -663,70 +868,72 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <TextBlock
-                    Text="Preview"
-                    FontWeight="SemiBold" />
+                    Style="{StaticResource VfPreviewHeaderStyle}"
+                    Text="Preview" />
                 <TextBlock
                     x:Name="PreviewStatusText"
                     Grid.Row="1"
-                    Text="Preview unavailable"
-                    Opacity="0.75" />
+                    Style="{StaticResource VfPreviewStatusStyle}"
+                    Text="Preview unavailable" />
                 <StackPanel
                     Grid.Row="2"
-                    Spacing="6">
+                    Style="{StaticResource VfPreviewContentStackStyle}">
                     <TextBlock
                         x:Name="PreviewContentText"
-                        TextWrapping="WrapWholeWords"
-                        TextTrimming="CharacterEllipsis"
+                        Style="{StaticResource VfPreviewContentTextStyle}"
                         AutomationProperties.Name="Preview content" />
                     <StackPanel
                         x:Name="PdfPageNavigationPanel"
-                        Orientation="Horizontal"
-                        Spacing="8"
+                        Style="{StaticResource VfPreviewPdfNavigationStyle}"
                         Visibility="Collapsed"
                         AutomationProperties.Name="PDF page navigation">
                         <Button
                             x:Name="PdfPreviousPageButton"
                             Content="Previous"
+                            Style="{StaticResource VfPreviewPdfButtonStyle}"
                             Click="PdfPreviousPageButton_Click"
                             AutomationProperties.Name="Previous PDF page" />
                         <TextBlock
                             x:Name="PdfPageIndicatorText"
-                            VerticalAlignment="Center"
-                            Opacity="0.75" />
+                            Style="{StaticResource VfPreviewPdfPageIndicatorStyle}" />
                         <Button
                             x:Name="PdfNextPageButton"
                             Content="Next"
+                            Style="{StaticResource VfPreviewPdfButtonStyle}"
                             Click="PdfNextPageButton_Click"
                             AutomationProperties.Name="Next PDF page" />
                     </StackPanel>
                     <Image
                         x:Name="PreviewImageSurface"
-                        MaxHeight="240"
-                        Stretch="Uniform"
+                        Style="{StaticResource VfPreviewImageStyle}"
                         Visibility="Collapsed"
                         AutomationProperties.Name="Rendered preview" />
                 </StackPanel>
                 <ListView
                     x:Name="PreviewMetadataList"
                     Grid.Row="3"
+                    Style="{StaticResource VfPreviewMetadataStyle}"
                     AutomationProperties.Name="Preview metadata">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid Padding="0,3" ColumnSpacing="8">
+                            <Grid Style="{StaticResource VfPreviewMetadataRowStyle}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="92" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Label}" Opacity="0.72" />
+                                <TextBlock
+                                    Style="{StaticResource VfPreviewMetadataLabelStyle}"
+                                    Text="{Binding Label}" />
                                 <TextBlock
                                     Grid.Column="1"
-                                    Text="{Binding Value}"
-                                    TextTrimming="CharacterEllipsis" />
+                                    Style="{StaticResource VfPreviewMetadataValueStyle}"
+                                    Text="{Binding Value}" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
             </Grid>
         </Border>
+        <!-- ui-contract-scope:shell-preview-details:end -->
     </Grid>
 </Window>
