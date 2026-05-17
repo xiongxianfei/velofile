@@ -127,4 +127,38 @@ The approved M4 contract requires the command band to read as one intentional na
 ## Deferred By Design
 
 - M4 does not change Core, Windows adapters, file operations, preview, sidebar ordering, status/operation surfaces, or command route behavior.
-- M4 is not ready for code review until accepted `shell-filter-active` and `shell-search-active` full-shell visual evidence is recorded for `shell-standard-1440x900-100`.
+- The later approved visual-evidence gate amendment supersedes the earlier M4 full-shell visual-evidence gate. Visual artifacts are optional supporting context, not a closeout requirement.
+
+## M7: Preview and Details Surface Treatment
+
+M7 implements the preview/details visual-resource slice while preserving the existing preview controller, providers, selection behavior, and PDF navigation routes.
+
+## What Changed
+
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml` with governed preview pane, status, loading, ready, unsupported, failed, content, image, PDF navigation, metadata list, metadata row, label, and value resources.
+- Merged the preview resource dictionary through `src/VeloFile.App/App.xaml`.
+- Updated the preview pane in `src/VeloFile.App/MainWindow.xaml` with `shell-preview-details` scope markers and applied preview styles to the pane, status/content text, PDF navigation/buttons/page indicator, rendered image, and metadata list rows.
+- Added `ApplyPreviewStatusStyle` in `src/VeloFile.App/MainWindow.xaml.cs` so loading, success, unsupported, and failed preview states use distinct VeloFile preview style resources.
+- Activated `shell-preview-details` in `docs/ui/ui-contract-scopes.v1.json`.
+- Updated valid UI-contract fixtures and `ShellVisualCoherenceContractTests` so production and fixture validation agree that the preview/details scope is active.
+- Added `tests/VeloFile.App.Tests/UiDesign/PreviewResourceContractTests.cs` to prove dictionary merge, required preview resources, scoped preview XAML usage, preview status-style mapping, route preservation, and active scope metadata.
+
+## Why This Changed
+
+The approved M7 contract requires preview/details surfaces to share the shell surface foundation while keeping loading, success, unsupported, failed, metadata, image/text/PDF, and page-navigation states visually distinguishable. M7 keeps the existing preview behavior intact and moves the visual treatment into governed WinUI resources.
+
+## Validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"` failed before implementation for the expected missing M7 resources/scope, then passed: 4 tests.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` initially failed on an inline preview border-thickness literal, then passed after tokenizing it as `VfPreviewNoBorderThickness`.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid` passed.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"` passed: 19 tests.
+- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"` passed for matching App, Core, Windows, and Corpus tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
+- `git diff --check` passed with CRLF normalization warnings only.
+
+## Deferred By Design
+
+- M7 does not change Core preview providers, the preview controller, Windows adapters, file-list row templates, preview selection behavior, PDF navigation behavior, or preview command route methods.
+- M7 does not add required screenshot/manual visual evidence because the approved visual-evidence gate amendment makes those artifacts optional supporting context.

@@ -17,12 +17,132 @@
     <!-- ui-contract-scope:file-list-first-slice:end -->
     <!-- ui-contract-scope:shell-command-band:start -->
     <Grid Style="{StaticResource VfCommandBandContainerStyle}">
+      <Grid.Resources>
+        <StaticResource x:Key="TextControlBackground" ResourceKey="VfCommandBandInputBackgroundBrush" />
+        <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="VfCommandBandInputHoverBackgroundBrush" />
+        <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="VfCommandBandInputFocusBackgroundBrush" />
+        <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="VfCommandBandInputDisabledBackgroundBrush" />
+        <StaticResource x:Key="TextControlForeground" ResourceKey="VfCommandBandInputForegroundBrush" />
+        <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="VfCommandBandInputForegroundBrush" />
+        <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="VfCommandBandInputForegroundBrush" />
+        <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="VfCommandBandInputPlaceholderBrush" />
+        <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="VfCommandBandInputDisabledForegroundBrush" />
+        <StaticResource x:Key="TextControlBorderBrush" ResourceKey="VfCommandBandInputBorderBrush" />
+        <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="VfCommandBandInputBorderBrush" />
+        <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="VfCommandBandInputFocusBorderBrush" />
+        <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="VfCommandBandInputDisabledBorderBrush" />
+      </Grid.Resources>
       <Button Style="{StaticResource VfCommandBandButtonStyle}" />
       <TextBox Style="{StaticResource VfCommandBandInputStyle}" />
-      <TextBox Style="{StaticResource VfCommandBandPathStyle}" />
+      <TextBox Style="{StaticResource VfCommandBandPathTextBoxStyle}" />
+      <TextBox Style="{StaticResource VfCommandBandSearchTextBoxStyle}" />
       <TextBlock Style="{StaticResource VfCommandBandStatusTextStyle}" />
     </Grid>
     <!-- ui-contract-scope:shell-command-band:end -->
+    <!-- ui-contract-scope:shell-sidebar:start -->
+    <Border
+        x:Name="SidebarPane"
+        Padding="{StaticResource VfSidebarPanePadding}"
+        BorderThickness="{StaticResource VfSidebarPaneBorderThickness}">
+      <Grid>
+        <ListView
+            x:Name="SidebarLocationsList"
+            Style="{StaticResource VfSidebarNavigationListStyle}"
+            ItemContainerStyle="{StaticResource VfSidebarItemContainerStyle}"
+            AutomationProperties.Name="Navigation locations">
+          <ListView.Resources>
+            <StaticResource x:Key="ListViewItemBackground" ResourceKey="VfSidebarSurfaceBrush" />
+            <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="VfSidebarHoverItemBackgroundBrush" />
+            <StaticResource x:Key="ListViewItemBackgroundSelected" ResourceKey="VfSidebarSelectedItemBackgroundBrush" />
+          </ListView.Resources>
+          <ListView.Header>
+            <TextBlock Style="{StaticResource VfSidebarSectionHeaderStyle}" Text="Locations" />
+          </ListView.Header>
+          <ListView.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Style="{StaticResource VfSidebarItemTextStyle}" Text="{Binding DisplayName}" />
+            </DataTemplate>
+          </ListView.ItemTemplate>
+        </ListView>
+        <StackPanel
+            x:Name="VisibilityControls"
+            Style="{StaticResource VfSidebarSecondarySectionStyle}"
+            AutomationProperties.Name="Visibility controls">
+          <TextBlock Style="{StaticResource VfSidebarSectionHeaderStyle}" Text="Visibility" />
+          <Grid Style="{StaticResource VfSidebarSecondaryControlRowStyle}">
+            <ToggleSwitch x:Name="ShowHiddenFilesToggle" Style="{StaticResource VfSidebarToggleStyle}" AutomationProperties.Name="Show hidden files" />
+          </Grid>
+        </StackPanel>
+        <StackPanel
+            x:Name="TerminalControls"
+            Style="{StaticResource VfSidebarSecondarySectionStyle}"
+            AutomationProperties.Name="Terminal controls">
+          <ComboBox x:Name="TerminalTargetComboBox" Style="{StaticResource VfSidebarTerminalPickerStyle}" AutomationProperties.Name="Terminal target" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <!-- ui-contract-scope:shell-sidebar:end -->
+    <!-- ui-contract-scope:shell-status-operations:start -->
+    <Border x:Name="RenamePanel" Style="{StaticResource VfOperationSurfaceStyle}">
+      <StackPanel>
+        <TextBlock x:Name="RenameErrorText" Style="{StaticResource VfOperationFailureStyle}" />
+      </StackPanel>
+    </Border>
+    <Border x:Name="PermanentDeleteConfirmationPanel" Style="{StaticResource VfDestructiveConfirmationStyle}">
+      <StackPanel>
+        <TextBlock x:Name="PermanentDeleteConfirmationText" Style="{StaticResource VfDestructiveConfirmationTextStyle}" />
+        <Button x:Name="ConfirmPermanentDeleteButton" Style="{StaticResource VfDestructiveActionButtonStyle}" />
+        <Button x:Name="CancelPermanentDeleteButton" Style="{StaticResource VfOperationCancelButtonStyle}" />
+      </StackPanel>
+    </Border>
+    <Border x:Name="FileOperationConflictPanel" Style="{StaticResource VfOperationConflictStyle}">
+      <StackPanel>
+        <TextBlock x:Name="FileOperationConflictText" Style="{StaticResource VfOperationConflictStatusTextStyle}" />
+        <Button x:Name="SkipConflictButton" Style="{StaticResource VfOperationSecondaryButtonStyle}" />
+        <Button x:Name="ReplaceConflictButton" Style="{StaticResource VfDestructiveActionButtonStyle}" />
+        <Button x:Name="KeepBothConflictButton" Style="{StaticResource VfOperationSecondaryButtonStyle}" />
+      </StackPanel>
+    </Border>
+    <Border Style="{StaticResource VfStatusSurfaceStyle}">
+      <Grid>
+        <TextBlock x:Name="LoadingState" Style="{StaticResource VfStatusMutedTextStyle}" />
+        <TextBlock x:Name="FailedState" Style="{StaticResource VfStatusFailureTextStyle}" />
+        <TextBlock x:Name="FileOperationStatusText" Style="{StaticResource VfOperationProgressStyle}" />
+        <TextBlock x:Name="LaunchStatusText" Style="{StaticResource VfStatusTextStyle}" />
+        <Button x:Name="CancelFileOperationButton" Style="{StaticResource VfOperationCancelButtonStyle}" />
+      </Grid>
+    </Border>
+    <!-- ui-contract-scope:shell-status-operations:end -->
+    <!-- ui-contract-scope:shell-preview-details:start -->
+    <Border x:Name="PreviewPane" Style="{StaticResource VfPreviewPaneStyle}">
+      <Grid Style="{StaticResource VfPreviewLayoutStyle}">
+        <TextBlock Style="{StaticResource VfPreviewHeaderStyle}" />
+        <TextBlock x:Name="PreviewStatusText" Style="{StaticResource VfPreviewLoadingStyle}" />
+        <StackPanel Style="{StaticResource VfPreviewContentStackStyle}">
+          <TextBlock x:Name="PreviewContentText" Style="{StaticResource VfPreviewContentTextStyle}" />
+          <StackPanel x:Name="PdfPageNavigationPanel" Style="{StaticResource VfPreviewPdfNavigationStyle}">
+            <Button x:Name="PdfPreviousPageButton" Style="{StaticResource VfPreviewPdfButtonStyle}" />
+            <TextBlock x:Name="PdfPageIndicatorText" Style="{StaticResource VfPreviewPdfPageIndicatorStyle}" />
+            <Button x:Name="PdfNextPageButton" Style="{StaticResource VfPreviewPdfButtonStyle}" />
+          </StackPanel>
+          <Image x:Name="PreviewImageSurface" Style="{StaticResource VfPreviewImageStyle}" />
+        </StackPanel>
+        <ListView x:Name="PreviewMetadataList" Style="{StaticResource VfPreviewMetadataStyle}">
+          <ListView.ItemTemplate>
+            <DataTemplate>
+              <Grid Style="{StaticResource VfPreviewMetadataRowStyle}">
+                <TextBlock Style="{StaticResource VfPreviewMetadataLabelStyle}" />
+                <TextBlock Style="{StaticResource VfPreviewMetadataValueStyle}" />
+              </Grid>
+            </DataTemplate>
+          </ListView.ItemTemplate>
+        </ListView>
+      </Grid>
+    </Border>
+    <!-- ui-contract-scope:shell-preview-details:end -->
   </Grid>
   <Window.Resources>
     <SolidColorBrush x:Key="LegacyUnrelatedBrush" Color="#111111" />

@@ -4,11 +4,11 @@
 
 active
 
-Readiness is not Done. Plan review is approved and the matching test spec is active; M1 and M2 are closed, M3 implementation is complete, and the M3 full-shell visual evidence requirement is deferred to M8 by the 2026-05-17 spec/plan amendment.
+Readiness is not Done. M1-M6 are closed, the 2026-05-17 amendment removing mandatory visual-evidence gates is approved by spec-review-r2, architecture-review-r1, plan-review-r4, and test-spec-review-r2, and M7 implementation is ready for code review.
 
 ## Purpose / Big Picture
 
-This plan turns the approved UI shell visual-coherence spec into reviewable implementation slices. The work extends the accepted first UI design-system slice from file-list resources into the whole WinUI shell: app root, chrome, sidebar, command band, file list, status/operation surfaces, preview/details, deterministic fixture icons, and full-shell visual evidence.
+This plan turns the UI shell visual-coherence spec into reviewable implementation slices. The work extends the accepted first UI design-system slice from file-list resources into the whole WinUI shell: app root, chrome, sidebar, command band, file list, status/operation surfaces, preview/details, deterministic fixture icons, and optional visual-review artifact guardrails.
 
 The main risk is mixing visual redesign with behavior changes. This plan keeps the contract/tooling work first, applies the shell surface foundation before region polish, preserves App/Core/Windows behavior routes, and treats screenshots as soft review evidence rather than proof of real platform behavior.
 
@@ -17,14 +17,14 @@ The main risk is mixing visual redesign with behavior changes. This plan keeps t
 | Artifact | Path | Status |
 |---|---|---|
 | Proposal | [2026-05-11-shell-visual-coherence-follow-up.md](../proposals/2026-05-11-shell-visual-coherence-follow-up.md) | accepted |
-| Feature spec | [specs/ui-shell-visual-coherence.md](../../specs/ui-shell-visual-coherence.md) | approved |
+| Feature spec | [specs/ui-shell-visual-coherence.md](../../specs/ui-shell-visual-coherence.md) | visual-evidence amendment approved by spec-review-r2 |
 | First-slice UI spec | [specs/ui-design-system-shell-redesign.md](../../specs/ui-design-system-shell-redesign.md) | approved; remains authoritative for first-slice scope |
-| Architecture package | [docs/architecture/system/architecture.md](../architecture/system/architecture.md) | approved; amended for shell visual coherence |
-| ADR 0010 | [0010-shell-visual-coherence-contracts.md](../adr/0010-shell-visual-coherence-contracts.md) | accepted |
+| Architecture package | [docs/architecture/system/architecture.md](../architecture/system/architecture.md) | visual-evidence amendment approved by architecture-review-r1 |
+| ADR 0010 | [0010-shell-visual-coherence-contracts.md](../adr/0010-shell-visual-coherence-contracts.md) | accepted; visual-evidence amendment approved by architecture-review-r1 |
 | Existing UI plan | [2026-05-11-ui-design-system-shell-redesign.md](2026-05-11-ui-design-system-shell-redesign.md) | active; branch-ready for PR handoff |
-| Test spec | [specs/ui-shell-visual-coherence.test.md](../../specs/ui-shell-visual-coherence.test.md) | active |
+| Test spec | [specs/ui-shell-visual-coherence.test.md](../../specs/ui-shell-visual-coherence.test.md) | visual-evidence amendment approved by test-spec-review-r2 |
 
-Proposal review, spec review, architecture review, plan review, and test-spec authoring are complete. M1 and M2 are closed; M3 implementation is ready for code review under the 2026-05-17 M3 visual-evidence deferral amendment.
+Proposal review, spec review, architecture review, plan review, and test-spec authoring were complete for the prior contract. The 2026-05-17 amendment removes mandatory visual-evidence gates; spec-review-r2 approved the feature-spec amendment, architecture-review-r1 approved the architecture/ADR amendment, plan-review-r4 approved the plan amendment, and test-spec-review-r2 approved the test-spec amendment. M4 code review can rely on the amended contract.
 
 ## Context and Orientation
 
@@ -42,7 +42,7 @@ Each region milestone should compare the production shell against the reference 
 
 Reference comparison must not override approved V1 behavior, architecture, accessibility, performance, security, privacy, or Windows-native constraints. The goal is to meet or exceed the reference quality using VeloFile-owned WinUI resources, fixtures, validation, and evidence. A VeloFile region may intentionally differ when the production design is more readable, more accessible, more Windows-native, more performant, easier to maintain, or better aligned with approved V1 behavior.
 
-Formal milestone evidence must be privacy-safe. Diagnostic screenshots that expose private local paths, real user profile names, unrelated foreground windows, or the wrong review profile may be useful debugging evidence, but they are not accepted milestone evidence. Accepted evidence should use guarded fixture states, sanitized screenshots, or a recorded manual review at the required profile.
+Optional visual-review artifacts must be privacy-safe. Diagnostic screenshots that expose private local paths, real user profile names, or unrelated foreground windows may be useful debugging evidence, but they are not accepted public artifacts. Optional evidence should use guarded fixture states, sanitized screenshots, or a recorded manual note.
 
 ## Non-Goals
 
@@ -70,34 +70,32 @@ Formal milestone evidence must be privacy-safe. Diagnostic screenshots that expo
 | Sidebar behavior and visual hierarchy | R50-R56, AC14 | M5 |
 | Status, operation, and destructive surfaces | R57-R61 | M6 |
 | Preview/details pane | R62-R65 | M7 |
-| Full-shell visual evidence and sidecars | R66-R77, AC9-AC13 | M8 |
+| Optional visual artifacts and sidecar guardrails | R66-R77, AC9-AC13 | Optional M8 when artifacts are used |
 | Behavior-preservation matrix | R78-R82, AC17-AC18, AC20 | M1-M8 through the matching test spec |
 | Security, privacy, accessibility, performance | S1-S6, A11Y1-A11Y9, P1-P7, O1-O5 | M1-M8 |
 
 ## Milestones
 
-## Region-Slice Visual Evidence Rule
+## Optional Visual Artifact Rule
 
-Each shell visual-coherence region milestone must produce full-shell visual evidence before closeout. The evidence may be an automated current screenshot, a recorded manual screenshot review, or a documented visual-review note when automation is not yet stable.
+Shell visual-coherence region milestones do not require screenshots or manual full-shell visual-review notes before closeout. Region slices close through static resource validation, behavior-preservation tests, accessibility checks, and required deviation records.
 
-The evidence must show the whole shell, not only the touched component, so reviewers can identify new mismatches between redesigned and non-redesigned regions. If a mismatch is accepted temporarily, it must be recorded in `docs/ui/design-deviations.md`.
+Screenshots, sidecars, and manual visual-review notes may still be recorded as optional supporting review artifacts. When present, they must be privacy-safe, labeled as supporting context, and must not be treated as behavior or release proof.
 
-M3 exception: by maintainer request on 2026-05-17, the M3 file-list polish and deterministic fixture icon slice may proceed to code review without accepted `shell-file-list-selected-focused` full-shell visual evidence. This deferral does not claim whole-shell visual acceptance for M3. M3 code review is limited to static icon/resource contracts, file-list behavior preservation, and evidence-deferral traceability. M8 must still capture or manually review `shell-file-list-selected-focused` before final closeout.
-
-M8 remains the consolidation and baseline-inventory milestone. M8 is not the first milestone where region screenshots are produced.
+The prior M3-only visual-evidence deferral is superseded by this rule. Optional M8 visual-artifact consolidation is needed only if this initiative records optional screenshots, sidecars, or manual visual notes that need inventory or baseline guardrail review.
 
 ### M1. Shell Contract and Validator Extension
 
 - Milestone state: closed
-- Goal: Extend the existing V1 UI contract chain for shell-wide scopes, fixture icon invariants, screenshot sidecar metadata, and behavior-preservation matrix hooks before changing shell visuals.
+- Goal: Extend the existing V1 UI contract chain for shell-wide scopes, fixture icon invariants, optional screenshot sidecar metadata, and behavior-preservation matrix hooks before changing shell visuals.
 - Requirements: R1-R15, R66-R82, O1-O5, S1-S6, AC2-AC5, AC7, AC12, AC17-AC20, ADR 0010.
 - Files/components likely touched: `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `docs/ui/design-deviations.md`, `tools/VeloFile.UiContracts/`, `tests/fixtures/ui-contracts/`, `tests/VeloFile.Corpus.Tests/UiContracts/`, `tests/VeloFile.App.Tests/`.
 - Dependencies: approved plan review; matching test spec must define traceable tests before implementation.
-- Tests to add/update: failing tests for additive shell tokens/scopes, forbidden raw/default governed visuals, forbidden icon controls/text chips, required fixture icon resource keys, sidecar required fields/privacy, and behavior-matrix inventory shape.
+- Tests to add/update: failing tests for additive shell tokens/scopes, forbidden raw/default governed visuals, forbidden icon controls/text chips, required fixture icon resource keys, optional sidecar required fields/privacy when sidecars are used, and behavior-matrix inventory shape.
 - Implementation steps:
   - Add additive shell-wide token entries or document why existing tokens cover the governed shell region.
   - Add additive governed scopes for shell foundation, command band, sidebar, status/operation, preview/details, and fixture icon resources as those scopes become active.
-  - Extend `tools/VeloFile.UiContracts` so it can validate shell scopes, icon-resource invariants, and full-shell screenshot sidecars without launching the app.
+  - Extend `tools/VeloFile.UiContracts` so it can validate shell scopes, icon-resource invariants, and optional full-shell screenshot sidecars without launching the app.
   - Add controlled valid/invalid fixtures for `<SymbolIcon`, `<PathIcon`, private-use glyph usage, ellipsized icon chips, unapproved icon sizes, missing sidecar fields, and sidecar privacy violations.
   - Add or update `docs/ui/design-deviations.md` templates for temporary shell-region mismatch records.
 - Validation commands:
@@ -105,7 +103,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet build VeloFile.sln -c Debug`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
-- Expected observable result: Shell-wide static validation fails fast for governed contract, icon, and sidecar violations while legacy out-of-scope XAML remains outside enforcement.
+- Expected observable result: Shell-wide static validation fails fast for governed contract, icon, and optional sidecar violations while legacy out-of-scope XAML remains outside enforcement.
 - Commit message: `M1: extend shell UI contract validation`
 - Milestone closeout:
   - validation passed
@@ -137,21 +135,16 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "ShellSurface|UiDesign|Accessibility"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Accessibility"`
-  - Produce current full-shell `shell-default` evidence for `shell-standard-1440x900-100`, or record a manual screenshot review note if automation is not stable.
-  - Produce `shell-default` evidence for `shell-min-900x560-100` when the slice changes layout, surface sizes, titlebar/sidebar width, command-band height, content bounds, or minimum-window behavior.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: The default shell no longer mixes raw light/default chrome or sidebar surfaces with the dark file list, and existing shell routes remain present.
 - Commit message: `M2: apply shell surface foundation`
 - Milestone closeout:
   - validation passed
-  - current full-shell `shell-default` screenshot or manual screenshot review recorded at `shell-standard-1440x900-100`
-  - `shell-min-900x560-100` evidence recorded if the slice changes layout, surface sizes, or minimum-window behavior
-  - shell-default evidence shows the app is readable and usable
+  - shell-default resource/static checks show the app is readable and usable
   - no garbled or localized toggle state text is visible
   - no raw light-theme control surface dominates the dark shell
   - any remaining reference-quality gap is assigned to M3-M7 or recorded as a deviation
   - no new light/dark split or surface mismatch introduced without a deviation record
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -165,7 +158,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 - Milestone state: closed
 - Goal: Complete the file-list follow-on polish and replace placeholder-like fixture icon chips with governed deterministic XAML vector resources.
-- Requirements: R22A, R28-R43, R66, A11Y1-A11Y3, A11Y8, P1-P4, AC6-AC8, AC16, AC21.
+- Requirements: R28-R43, A11Y1-A11Y3, A11Y8, P1-P4, AC6-AC8, AC16, AC21.
 - Files/components likely touched: `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml`, `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `src/VeloFile.App/MainWindow.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiFixtures/`, `tests/VeloFile.App.Tests/UiDesign/`.
 - Dependencies: M1 validator support and M2 shell foundation.
 - Tests to add/update: icon invariant tests rejecting `SymbolIcon`, `PathIcon`, private-use glyphs, arbitrary icon resource keys, text chips, missing required `VfIconGeometry*` resources, missing icon container/path styles, and row-height changes across fixture icon kinds.
@@ -181,18 +174,16 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixture"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|FileList|AppShellContract|DragDrop|Preview"`
-  - Record the approved M3 visual-evidence deferral note for `shell-file-list-selected-focused`; do not claim M3 whole-shell visual acceptance.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: Fixture file-list rows use deterministic vector icons and polished row states without changing V1 file-list behavior.
 - Commit message: `M3: add deterministic file-list fixture icons`
 - Milestone closeout:
   - validation passed
-  - M3 visual-evidence deferral recorded for `shell-file-list-selected-focused`, with M8 named as the required replacement gate
   - details-view header, column rhythm, metadata treatment, selection/focus, hidden/protected treatment, long names, and empty-folder state are covered by tests or evidence where touched
-  - deterministic fixture icons covered by static resource/fixture tests; whole-shell visual confirmation deferred to M8
+  - deterministic fixture icons covered by static resource/fixture tests; whole-shell visual confirmation is optional
   - no placeholder text chips such as `P...`, `D...`, or `T...` remain in governed visual fixtures
   - focus and selection are visibly distinct and not error-like
-  - no M3 whole-shell visual acceptance is claimed before the deferred evidence exists
+  - optional visual artifacts, if any, are labeled as supporting context only
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -204,7 +195,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M4. Command Band Visual Coherence
 
-- Milestone state: visual-evidence-needed
+- Milestone state: closed
 - Goal: Redesign navigation/path/filter/search controls as one intentional command band while preserving existing commands and accessibility routes.
 - Requirements: R16-R22, R44-R49, R66-R77, R78-R82, A11Y1-A11Y6, AC9-AC13, AC15, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/MainWindow.xaml.cs`, `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -221,18 +212,14 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"`
-  - Produce current full-shell `shell-filter-active` and `shell-search-active` evidence for `shell-standard-1440x900-100`, or record manual screenshot review notes if automation is not stable.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: The top shell controls read as one navigation/search band and all existing command routes remain available.
 - Commit message: `M4: style the shell command band`
 - Milestone closeout:
   - validation passed
-  - full-shell `shell-filter-active` evidence recorded
-  - full-shell `shell-search-active` evidence recorded
   - path, filter, search, cancel, and clear controls remain reachable and visually integrated
   - navigation buttons, breadcrumb/path, filter, search, and action controls share a coherent height, radius, spacing, and state model
   - disabled states are readable and not confused with unavailable app state
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -244,7 +231,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M5. Navigation-First Sidebar
 
-- Milestone state: planned
+- Milestone state: closed
 - Goal: Reorder and style the sidebar as navigation-first while preserving access, keyboard order, accessible names, and discoverability for existing sidebar functions.
 - Requirements: R16-R22, R50-R56, R66-R77, R78-R82, A11Y1-A11Y6, AC9-AC14, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/MainWindow.xaml.cs`, `src/VeloFile.App/ViewModels/AppShellViewModel.cs` only if existing view state needs presentation grouping, `src/VeloFile.App/Resources/Components/VeloFile.Sidebar.xaml`, `tests/VeloFile.App.Tests/AppShellContractTests.cs`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -261,19 +248,16 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Sidebar|AppShellContract|Accessibility"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Terminal|Accessibility"`
-  - Produce current full-shell `shell-sidebar-focused` or `shell-default` evidence for `shell-standard-1440x900-100`, or record a manual screenshot review note if automation is not stable.
   - Record keyboard order and accessible-name evidence for locations, favorites, recents, drives, visibility toggles, and terminal controls.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: Sidebar hierarchy is navigation-first, visually integrated with the shell, and all previous sidebar controls remain discoverable and keyboard reachable.
 - Commit message: `M5: make the sidebar navigation first`
 - Milestone closeout:
   - validation passed
-  - full-shell sidebar-focused or default-shell evidence recorded
   - keyboard order and accessible names for locations, favorites, recents, drives, visibility toggles, and terminal controls recorded or tested
   - navigation remains primary and settings-like controls remain discoverable but secondary
   - section headers, selected/hover/focus states, and secondary controls are visually integrated with the shell surface model
   - no existing sidebar route is removed without spec approval
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -285,11 +269,11 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M6. Status, Operation, and Destructive Surfaces
 
-- Milestone state: planned
+- Milestone state: closed
 - Goal: Bring operation progress, conflict/failure, cancellation, and destructive confirmation visuals into the shell surface system without changing operation behavior.
 - Requirements: R16-R22, R57-R61, R66-R77, R78-R82, A11Y1-A11Y3, A11Y6, A11Y9, AC9-AC13, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.Status.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.Operations.xaml`, `tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs`, operation route tests in `tests/VeloFile.Core.Tests/` or `tests/VeloFile.App.Tests/` as needed.
-- Dependencies: M2 shell foundation; M4/M5 if screenshots need coherent command/sidebar context.
+- Dependencies: M2 shell foundation; M4/M5 if optional screenshots need coherent command/sidebar context.
 - Tests to add/update: static resource tests for status/operation/danger treatment, operation-route preservation tests, destructive confirmation route tests, no danger styling for ordinary focus.
 - Implementation steps:
   - Add tokenized status/operation resources for running, cancelled, failed, conflict, progress, cancellation, and destructive confirmation surfaces.
@@ -301,18 +285,14 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 - Validation commands:
   - `dotnet test VeloFile.sln -c Debug --filter "Operation|FileOperation|Status|Accessibility"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
-  - Produce current full-shell `shell-operation-running` and `shell-destructive-confirmation` evidence for `shell-standard-1440x900-100`, or record manual screenshot review notes if automation is not stable.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: Operation and destructive states are visually distinct, tokenized, and behavior-preserving.
 - Commit message: `M6: style status and operation surfaces`
 - Milestone closeout:
   - validation passed
-  - full-shell `shell-operation-running` evidence recorded
-  - full-shell `shell-destructive-confirmation` evidence recorded
   - cancel, progress, failure, and destructive states remain visible without unexpectedly covering primary navigation
   - danger, warning, progress, and ordinary focus/accent states remain visually distinct
   - permanent-delete confirmation hierarchy is readable and visually distinct from ordinary actions
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -324,7 +304,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M7. Preview and Details Surface Treatment
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Integrate preview/details loading, success, unsupported, failed, metadata, image, text, and PDF states into the shell surface system without destabilizing file-list layout.
 - Requirements: R16-R22, R62-R65, R66-R77, R78-R82, A11Y1-A11Y6, P1-P2, AC9-AC13, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml`, `tests/VeloFile.App.Tests/Preview/`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -341,19 +321,15 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"`
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"`
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`
-  - Produce current full-shell `shell-preview-open` evidence for `shell-standard-1440x900-100`, or record a manual screenshot review note if automation is not stable.
-  - Produce `shell-preview-open` evidence for `shell-min-900x560-100` when preview layout affects minimum layout or content bounds.
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
 - Expected observable result: Preview/details surfaces visually belong to the shell and existing preview behavior remains intact.
 - Commit message: `M7: style preview and details surfaces`
 - Milestone closeout:
   - validation passed
-  - full-shell `shell-preview-open` evidence recorded
   - preview open state does not obscure file-list usability or primary navigation
   - preview empty, loading, unsupported, failed, metadata, image/text/PDF, and page navigation states are covered by tests or evidence where touched
   - loading, failed, unsupported, and metadata states remain visually distinct where touched
   - any accepted preview/layout mismatch is recorded as a deviation
-  - full-shell visual evidence recorded for the touched region/state/profile, or an explicit manual visual-review note recorded with reason
   - any accepted mismatch or reference deviation recorded in `docs/ui/design-deviations.md`
   - existing behavior-preservation tests for touched routes still pass
   - progress updated
@@ -363,37 +339,35 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 - Risks: Preview layout can hide file-list selection/focus or introduce clipped text at required profiles.
 - Rollback/recovery: Revert preview resource/layout edits; preview providers and Core behavior are unchanged.
 
-### M8. Full-Shell Evidence Consolidation and Baseline Inventory
+### M8. Optional Visual Artifact Guardrails
 
-- Milestone state: planned
-- Goal: Consolidate required full-shell screenshot states, sidecars, evidence inventory validation, and profile classification after M2-M7 have already produced region-slice visual evidence.
+- Milestone state: optional
+- Goal: Consolidate optional full-shell screenshot states, sidecars, evidence inventory validation, and profile classification only if optional visual artifacts are recorded during M2-M7.
 - Requirements: R66-R82, O3-O4, S3-S6, A11Y6-A11Y7, AC9-AC13, AC17-AC20.
-- Files/components likely touched: `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, screenshot capture helpers if present, `scripts/update-ui-baselines.ps1`, `tests/visual/baselines/winui/shell-min-900x560-100/`, `tests/visual/baselines/winui/shell-standard-1440x900-100/`, `tests/visual/baselines/winui/shell-standard-1440x900-200/` or manual evidence records, `tests/VeloFile.Corpus.Tests/UiContracts/`.
-- Dependencies: M2-M7 visual regions; M1 sidecar validation.
-- Tests to add/update: visual inventory tests for seven required states, sidecar metadata/privacy tests, generated-output ignore tests, `200%` automated-or-manual classification tests, and behavior-preservation matrix citation checks from the matching test spec.
+- Files/components likely touched if optional artifacts are used: `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, screenshot capture helpers if present, `scripts/update-ui-baselines.ps1`, `tests/visual/baselines/winui/` or manual evidence records, `tests/VeloFile.Corpus.Tests/UiContracts/`.
+- Dependencies: optional visual artifacts from M2-M7; M1 sidecar validation.
+- Tests to add/update: optional visual inventory tests, sidecar metadata/privacy tests, generated-output ignore tests, optional profile classification tests, and behavior-preservation matrix citation checks from the matching test spec.
 - Implementation steps:
-  - Add or extend deterministic full-shell fixture states for any required state not already covered by M2-M7: `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation`.
-  - Validate that all required current screenshots from M2-M7 exist or have recorded manual evidence.
-  - Capture/review any missing `shell-min-900x560-100` and `shell-standard-1440x900-100` evidence.
-  - Capture `shell-standard-1440x900-200` if automation is stable; otherwise record it as manual/release review evidence with sidecar expectations.
+  - Add or extend deterministic full-shell fixture states only when optional screenshots are useful for review.
+  - Validate optional current screenshots or manual evidence records only when they exist.
+  - Record optional `shell-min-900x560-100`, `shell-standard-1440x900-100`, or `shell-standard-1440x900-200` artifacts only when they are useful for a review question.
   - Validate sidecars for profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, review ID, and privacy exclusions.
   - Validate that deviation records exist for accepted visual mismatches.
   - Validate that each M2-M7 region has a reference-comparison note or an explicit no-reference-comparison rationale.
   - Consolidate reference-comparison notes into an evidence inventory that records reference patterns considered, production decisions, intentional differences, deviation links, and behavior routes preserved.
   - Confirm generated current/diff outputs remain uncommitted.
-- Validation commands:
+- Validation commands when optional visual artifacts exist:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "Visual|UiContracts"`
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile shell-standard-1440x900-100 -ReviewId <review-id>`
-  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile shell-min-900x560-100 -ReviewId <review-id>`
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile shell-standard-1440x900-100 -ReviewId <review-id>` only when reviewed current screenshots exist
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\update-ui-baselines.ps1 -Suite winui -Profile shell-min-900x560-100 -ReviewId <review-id>` only when reviewed current screenshots exist
   - `git status --short -- tests\visual\current tests\visual\diffs`
   - `dotnet test VeloFile.sln -c Debug --filter "Visual|UiContracts|Accessibility"`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`
-- Expected observable result: Required full-shell visual evidence from M2-M7 is inventoried, sidecars are safe and complete, baseline review is traceable, and behavior-preservation citations remain separate.
-- Commit message: `M8: consolidate full-shell visual evidence`
+- Expected observable result: Optional full-shell visual artifacts, if any, are inventoried, sidecars are safe and complete, baseline review is traceable, and behavior-preservation citations remain separate.
+- Commit message: `M8: consolidate optional visual artifacts`
 - Milestone closeout:
   - validation passed
-  - required screenshot or manual visual evidence inventory from M2-M7 is complete
-  - deferred M3 `shell-file-list-selected-focused` evidence has been replaced by captured or manual-review evidence
+  - optional screenshot or manual visual artifact inventory is complete if artifacts exist
   - sidecars are complete and privacy-safe
   - deviation records are complete for accepted mismatches
   - region reference-comparison notes are complete
@@ -444,7 +418,7 @@ Validation is layered:
 - XAML/resource build and App shell route validation start in M2.
 - Fixture icon invariant validation starts in M3.
 - Region-specific behavior preservation runs in M4-M7.
-- Full-shell screenshot and sidecar inventory validation runs in M8.
+- Optional full-shell screenshot and sidecar inventory validation runs in M8 only when optional visual artifacts are recorded.
 - Broad V1 regression validation runs after production shell changes.
 
 Minimum recurring commands after M2:
@@ -458,8 +432,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
 
 Manual/review evidence:
 
-- Review full-shell screenshots for required states and profiles.
-- Record `shell-standard-1440x900-200` as manual/release evidence if automation cannot reliably set 200% scale.
+- Review chosen optional full-shell screenshots for their recorded states and profiles when visual artifacts are recorded.
+- Use static/resource tests, app tests, or explicit manual behavior notes for touched high-DPI risk when automation cannot reliably set 200% scale.
 - Confirm generated `tests/visual/current/` and `tests/visual/diffs/` outputs remain uncommitted.
 - Record meaningful reference or temporary-region deviations in `docs/ui/design-deviations.md`.
 
@@ -467,9 +441,9 @@ Manual/review evidence:
 
 - Risk: visual work changes V1 behavior. Recovery: require touched behavior-preservation rows and existing App/Core/Windows tests before accepting each slice.
 - Risk: shell scope validation blocks legacy XAML. Recovery: keep `docs/ui/ui-contract-scopes.v1.json` additive and region-scoped; activate only implemented regions.
-- Risk: icons repeat the prior glyph defect class. Recovery: enforce raw vector fixture icons, reject `SymbolIcon`/`PathIcon`/private-use glyphs in governed icon scopes, and require screenshot proof.
-- Risk: screenshots are noisy or subjective. Recovery: keep them soft evidence and rely on static contracts, sidecars, and behavior tests as hard proof.
-- Risk: high-DPI capture is unstable. Recovery: classify `shell-standard-1440x900-200` as manual/release evidence until automation is stable; do not silently drop the profile.
+- Risk: icons repeat the prior glyph defect class. Recovery: enforce raw vector fixture icons and reject `SymbolIcon`/`PathIcon`/private-use glyphs in governed icon scopes through static invariant tests.
+- Risk: screenshots are noisy or subjective. Recovery: keep them optional soft-review artifacts and rely on static contracts, sidecars when present, and behavior tests as hard proof.
+- Risk: high-DPI capture is unstable. Recovery: rely on static resource/layout tests or explicit manual behavior notes for touched high-DPI risk; optional screenshots may support review when available.
 - Risk: sidebar reordering harms keyboard flow or discoverability. Recovery: treat sidebar grouping as observable behavior, preserve accessible names and keyboard order, and revert the sidebar slice if access regresses.
 - Risk: region slices leave the shell mismatched. Recovery: record temporary deviations and prioritize the next dependent region, or revert the mismatching slice if it cannot be justified.
 
@@ -481,8 +455,8 @@ No data migration is expected. Rollback is per governed region by reverting that
 - `specs/ui-shell-visual-coherence.test.md` must exist and be reviewed before implementation starts.
 - The first UI design-system slice should remain authoritative for first-slice token/file-list row contracts.
 - The existing UI design-system branch-ready plan may need to land or be rebased before this follow-on implementation to avoid resource and visual-baseline conflicts.
-- Windows/.NET local validation is required. Full-shell screenshots require a local environment capable of launching the WinUI app.
-- `shell-standard-1440x900-200` automation may depend on reliable high-DPI environment control; manual/release evidence is acceptable until that stabilizes.
+- Windows/.NET local validation is required. Optional full-shell screenshots require a local environment capable of launching the WinUI app when maintainers choose to record them.
+- `shell-standard-1440x900-200` automation may depend on reliable high-DPI environment control; optional visual artifacts may support review when that stabilizes.
 
 ## Progress
 
@@ -496,23 +470,23 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] M1 closed.
 - [x] M2 closed.
 - [x] M3 closed.
-- [ ] M4 closed.
-- [ ] M5 closed.
-- [ ] M6 closed.
+- [x] M4 closed.
+- [x] M5 closed.
+- [x] M6 closed.
 - [ ] M7 closed.
 - [ ] M8 closed.
 - [ ] Lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-Current milestone: M4. Command Band Visual Coherence
-Current milestone state: visual-evidence-needed
-Last reviewed milestone: M3 (closed)
-Review status: M3 code-review clean-with-notes in `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`
-Remaining in-scope implementation milestones: M4-M8
-Next stage: record M4 `shell-filter-active` and `shell-search-active` full-shell visual evidence, then return M4 to `review-requested`
+Current milestone: M7. Preview and Details Surface Treatment
+Current milestone state: review-requested
+Last reviewed milestone: M6 (clean-with-notes)
+Review status: code-review-r17 closed M6 with no material findings; M6 requires no review-resolution
+Remaining in-scope implementation milestones: M7; M8 is optional only if visual artifacts are recorded
+Next stage: code-review M7
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1-M3 are closed, but M4-M8 are not closed. M4 code/static validation passed, but M4 full-shell visual evidence is still missing. M3 full-shell visual evidence also remains deferred to M8 by approved amendment.
+Reason final closeout is or is not ready: M1-M6 are closed, but M7 is implemented and not yet reviewed. M8 remains optional only if visual artifacts are recorded.
 
 ## Decision Log
 
@@ -525,7 +499,9 @@ Reason final closeout is or is not ready: M1-M3 are closed, but M4-M8 are not cl
 | 2026-05-11 | Treat M9 as lifecycle closeout, not implementation. | Final closeout must not hide unfinished region work. |
 | 2026-05-11 | Reuse existing first-slice dark comfortable tokens for M2 shell foundation instead of adding new token IDs. | Existing V1 tokens already cover the M2 surface, text, focus, selection, hover, disabled, danger, warning, success, spacing, radius, sizing, and focus-thickness needs. |
 | 2026-05-16 | Use allowlisted `FileListIconKind` values and `Resources/Icons/VeloFile.FixtureIcons.xaml` geometry resources for M3 file-list icons. | This closes the placeholder text-chip class without introducing arbitrary resource-key fixture input or glyph-font/private-use icon rendering. |
-| 2026-05-17 | Defer M3 `shell-file-list-selected-focused` full-shell visual evidence to M8. | Maintainer requested skipping the M3 evidence gate so code review can assess deterministic icon/resource and behavior-preservation work now; M3 must not claim whole-shell visual acceptance and M8 remains blocked until the state is captured or manually reviewed. |
+| 2026-05-17 | Defer M3 `shell-file-list-selected-focused` full-shell visual evidence to M8. | Maintainer requested skipping the M3 evidence gate so code review can assess deterministic icon/resource and behavior-preservation work now. This decision is superseded by the later visual-evidence-gate removal amendment if approved. |
+| 2026-05-17 | Draft removal of mandatory visual-evidence gates. | Maintainer requested removing the visual evidence requirement entirely; screenshots/manual visual notes become optional supporting artifacts and static/behavior/accessibility validation remains the hard closeout proof. |
+| 2026-05-17 | Resolve CR-008 by wiring command-band state resources instead of narrowing the spec. | The M4 contract requires tokenized hover, pressed, disabled, focused, and input-border states; key existence alone was insufficient proof. |
 
 ## Surprises and Discoveries
 
@@ -543,8 +519,9 @@ Planning validation:
 PR-001 review-resolution:
 
 - Added the region-slice visual evidence rule.
-- Updated M2-M7 with full-shell visual evidence validation and closeout requirements.
+- Updated M2-M7 with full-shell visual evidence validation and closeout requirements under the prior contract.
 - Reframed M8 as consolidation and baseline inventory.
+- 2026-05-17 amendment supersedes the region-slice visual evidence rule and makes M8 optional only when visual artifacts are recorded.
 
 Test-spec authoring:
 
@@ -665,6 +642,7 @@ M3 implementation validation:
 - Activated the `fixture-icons` UI contract scope and added the M3 icon/template/header resource keys to `docs/ui/ui-contract-scopes.v1.json`.
 - Updated the valid UI-contract fixture and targeted scope fixture so active M3 header/icon resources are represented in `scripts/ci.ps1`.
 - Recorded deferred M3 visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md`; M3 whole-shell visual acceptance is not claimed, and the deferred state remains required for M8.
+- 2026-05-17 amendment supersedes the M3 visual-evidence deferral as a closeout requirement.
 - Validation passed:
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"`: passed, 21 tests.
   - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
@@ -677,14 +655,16 @@ M3 implementation validation:
 
 M3 evidence deferral amendment:
 
-- `shell-file-list-selected-focused` full-shell visual evidence is deferred to M8 by maintainer request.
+- `shell-file-list-selected-focused` full-shell visual evidence was deferred to M8 by maintainer request under the prior contract.
 - M3 code review may proceed, but M3 must not claim whole-shell visual acceptance.
-- M8 remains blocked until the deferred state has captured or manual-review evidence.
+- M8 remained blocked until the deferred state had captured or manual-review evidence under the prior contract.
+- 2026-05-17 amendment supersedes this M8 blocker if approved.
 
 M3 code review:
 
 - `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`: clean-with-notes, no findings.
-- M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; M8 remains blocked until `shell-file-list-selected-focused` has captured or manual-review evidence.
+- M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; the M8 blocker is superseded by the visual-evidence-gate removal amendment if approved.
+- 2026-05-17 amendment supersedes this M8 blocker if approved.
 
 M4 implementation validation:
 
@@ -703,7 +683,118 @@ M4 implementation validation:
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"`: passed, 67 tests.
   - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"`: passed; App 64, Core 6, and Corpus 20 matching tests passed; Windows had no matching tests for this filter.
   - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 153, Windows 52, and Corpus 90 tests passed.
-- M4 is not ready for code review yet because the required `shell-filter-active` and `shell-search-active` full-shell visual evidence has not been recorded.
+- M4 code/static validation is complete. Under the approved visual-evidence-gate removal amendment, M4 no longer needs `shell-filter-active` and `shell-search-active` visual evidence before code review.
+
+M4 code review:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r11.md`: changes-requested.
+- CR-005: M4 lacked required `shell-filter-active` and `shell-search-active` full-shell visual evidence under the prior contract; it is resolved/superseded by the approved visual-evidence-gate removal amendment.
+- CR-006: resolved by moving older M3 validation under `history.prior_milestone_validation.M3` and keeping one current M4 `implementation.validation` key.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r12.md`: changes-requested; CR-005 remains open and CR-006 resolution is confirmed.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r13.md`: blocked; CR-007 requires upstream amendment review before M4 code review can rely on the visual-evidence gate removal.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/spec-review-r2.md`: approved; feature-spec amendment has no material findings.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/architecture-review-r1.md`: approved; canonical architecture and ADR amendment have no material findings.
+- PR-002: resolved by making active validation wording conditional on optional visual artifacts and normalizing the stale M4 milestone state.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r4.md`: approved; plan amendment has no material findings.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r1.md`: revise; TSR-001 required stale test-spec readiness wording to be updated before test-spec review can approve the amendment.
+- TSR-001: resolved by replacing stale M1 readiness wording with amendment-specific test-spec review readiness and recording upstream approvals in the test spec follow-on artifacts.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r2.md`: approved; test-spec amendment has no material findings.
+- CR-005: resolved/superseded by the approved visual-evidence gate removal amendment.
+- CR-007: resolved by the approved spec, architecture, plan, and test-spec review chain.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r14.md`: changes-requested; CR-008 requires command-band state tokens to be consumed by governed controls or the spec to narrow the requirement.
+- CR-008: resolved by wiring `VfCommandBandButtonStyle` to a governed button template that consumes hover, pressed, disabled foreground/background, and disabled opacity resources; by adding scoped WinUI `TextControl*` resource aliases around governed command-band TextBoxes for normal, hover, focused, disabled, placeholder, and border states; and by adding focused tests that fail when state resources are only declared.
+- CR-008 validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~CommandBandResourceContractTests"`: passed, 7 tests.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"`: passed, 70 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"`: passed; Core 6, App 64, and Corpus 20 matching tests passed; Windows had no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 156, Windows 52, and Corpus 90 tests passed.
+  - `git diff --check`: passed with CRLF normalization warnings only.
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r15.md`: clean-with-notes; M4 closed with no material findings.
+
+M5 implementation validation:
+
+- Added `tests/VeloFile.App.Tests/UiDesign/SidebarResourceContractTests.cs` first. The focused M5 tests failed before implementation with missing `Resources/Components/VeloFile.Sidebar.xaml`, inactive `shell-sidebar` scope metadata, missing sidebar scope markers, and missing sidebar resource references.
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Sidebar.xaml` with governed sidebar surface, section header, navigation list, item text/container, selected/hover/focus/disabled, secondary control row, compact toggle, and terminal picker resources.
+- Merged the sidebar dictionary from `src/VeloFile.App/App.xaml`.
+- Scoped the sidebar in `src/VeloFile.App/MainWindow.xaml` with `shell-sidebar` markers, moved `SidebarLocationsList` before `VisibilityControls` and `TerminalControls`, and applied sidebar styles without changing existing item-click, visibility-toggle, or terminal-target handlers.
+- Activated the `shell-sidebar` scope in `docs/ui/ui-contract-scopes.v1.json` and updated the valid UI-contract fixtures to keep `scripts/ci.ps1` aligned with the active production scope.
+- Updated `ShellSurfaceResourceContractTests` so M2 compact toggle coverage accepts `VfSidebarToggleStyle` as the M5 sidebar-specific style based on `VfShellToggleSwitchStyle`.
+- Updated `ShellVisualCoherenceContractTests` so `shell-sidebar` is expected to be active for M5.
+- Keyboard/accessibility evidence recorded through static XAML checks:
+  - visual and XAML focus order is navigation first: `SidebarLocationsList`, then `VisibilityControls`, then `TerminalControls`;
+  - accessible names are present for `Navigation locations`, `Visibility controls`, `Show hidden files`, `Show protected operating system files`, `Show file extensions`, `Terminal controls`, and `Terminal target`;
+  - access keys remain present for visibility toggles: `H`, `S`, and `E`;
+  - existing sidebar routes remain wired through `SidebarLocationsList_ItemClick`, `ShowHiddenFilesToggle_Toggled`, `ShowSystemFilesToggle_Toggled`, `ShowExtensionsToggle_Toggled`, `TerminalTargetComboBox_DropDownOpened`, and `TerminalTargetComboBox_SelectionChanged`.
+- Full CI initially exposed a fixture-view-model race where `File_list_fixture_view_model_renders_fixture_rows_without_disk_backing` asserted `ThumbnailFallback` before thumbnail generation updated the row view models. The test now waits for the rendered fallback icon state before asserting it.
+- Validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~SidebarResourceContractTests"`: passed, 4 tests after initial expected failures.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Sidebar|AppShellContract|Accessibility"`: passed, 25 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellContract|Terminal|Accessibility"`: passed; Core 11, App 27, Windows 3, and Corpus 20 matching tests passed.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~File_list_fixture_view_model_renders_fixture_rows_without_disk_backing"`: passed, 1 test.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 160, Windows 52, and Corpus 90 tests passed.
+- M5 static/resource validation is complete. Under the approved visual-evidence-gate removal amendment, M5 does not need sidebar-focused visual evidence before code review.
+
+M5 code review:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r16.md`: clean-with-notes; M5 closed with no material findings.
+
+M6 implementation validation:
+
+- Added `tests/VeloFile.App.Tests/UiDesign/StatusOperationResourceContractTests.cs` first. The focused M6 tests failed before implementation with missing `Resources/Components/VeloFile.Status.xaml`, missing `Resources/Components/VeloFile.Operations.xaml`, inactive `shell-status-operations` scope metadata, and missing `shell-status-operations` scope markers.
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Status.xaml` with governed status surface, muted status, normal status, failure status, focus, spacing, and border resources.
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Operations.xaml` with governed operation surface, progress, completed, cancelled, failed, conflict, destructive confirmation, destructive action, cancel button, secondary button, danger, and focus resources.
+- Merged the status and operations dictionaries from `src/VeloFile.App/App.xaml`.
+- Scoped operation/status XAML in `src/VeloFile.App/MainWindow.xaml` with `shell-status-operations` markers and applied status/operation/destructive styles to rename, permanent-delete confirmation, file-operation conflict, status text, launch status, drop indicator, and cancel-operation controls without changing existing click handlers or operation services.
+- Added `ApplyFileOperationStatusStyle` in `src/VeloFile.App/MainWindow.xaml.cs` so `FileOperationStatus.Running/Cancelling`, `Completed`, `Cancelled`, `Failed`, `WaitingForConflict`, and `WaitingForConfirmation` map to distinct VeloFile style resources.
+- Activated the `shell-status-operations` scope in `docs/ui/ui-contract-scopes.v1.json` and updated the valid UI-contract fixtures to keep `scripts/ci.ps1` aligned with the active production scope.
+- Updated `ShellVisualCoherenceContractTests` so `shell-status-operations` is expected to be active for M6.
+- Behavior preservation remains covered by existing operation route tests in the M6 filtered solution run; M6 did not change Core operation services, Windows adapters, or command route methods.
+- Validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~StatusOperationResourceContractTests"`: failed before implementation for the expected missing M6 resources/scope, then passed, 4 tests.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+  - `dotnet test VeloFile.sln -c Debug --filter "Operation|FileOperation|Status|Accessibility"`: passed; App 37, Core 22, Windows 16, and Corpus 1 matching tests passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 164, Windows 52, and Corpus 90 tests passed.
+  - `git diff --check`: passed with CRLF normalization warnings only.
+- M6 static/resource and behavior-preservation validation is complete. Under the approved visual-evidence-gate removal amendment, M6 does not need operation-running or destructive-confirmation visual evidence before code review.
+
+M6 code review:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r17.md`: clean-with-notes; M6 closed with no material findings.
+
+Visual-evidence gate amendment:
+
+- Revised `specs/ui-shell-visual-coherence.md`, `specs/ui-shell-visual-coherence.test.md`, `docs/architecture/system/architecture.md`, and `docs/adr/0010-shell-visual-coherence-contracts.md` so screenshots/manual visual notes are optional supporting artifacts rather than closeout gates.
+- Updated this plan so M4-M7 no longer require visual evidence before closeout and M8 is optional only if visual artifacts are recorded.
+
+M7 implementation validation:
+
+- Added `tests/VeloFile.App.Tests/UiDesign/PreviewResourceContractTests.cs` first. The focused M7 tests failed before implementation with missing `Resources/Components/VeloFile.Preview.xaml`, missing `shell-preview-details` scope markers, inactive `shell-preview-details` scope metadata, and missing `App.xaml` resource merge.
+- Added `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml` with governed preview pane, layout, header, status, loading, ready, unsupported, failed, content, image, PDF navigation, metadata list, metadata row, label, and value resources.
+- Merged the preview dictionary from `src/VeloFile.App/App.xaml`.
+- Scoped the preview pane in `src/VeloFile.App/MainWindow.xaml` with `shell-preview-details` markers and applied preview styles to the pane, status text, content text, PDF navigation/buttons/page indicator, rendered image, and metadata list/rows without changing preview provider/controller behavior.
+- Added `ApplyPreviewStatusStyle` in `src/VeloFile.App/MainWindow.xaml.cs` so `PreviewStatus.Loading`, `Success`, `Unsupported`, and `Failed` map to distinct VeloFile style resources.
+- Activated the `shell-preview-details` scope in `docs/ui/ui-contract-scopes.v1.json` and updated the valid UI-contract fixtures to keep `scripts/ci.ps1` aligned with the active production scope.
+- Updated `ShellVisualCoherenceContractTests` so `shell-preview-details` is expected to be active for M7.
+- Reference comparison note: the production decision uses a Windows-native pane with tokenized status hierarchy, metadata rhythm, compact PDF navigation, and existing shell button/text styles rather than trying to reproduce `hifi-design/` pixel parity. No accepted preview/layout deviation is recorded for M7.
+- Behavior preservation remains covered by existing preview route tests in the M7 filtered app and solution runs. M7 did not change Core preview providers, the preview controller, Windows adapters, file-list row templates, or preview command route methods.
+- Validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"`: failed before implementation for the expected missing M7 resources/scope, then passed, 4 tests.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: initially failed on inline `BorderThickness="0"` in `VeloFile.Preview.xaml`; fixed by adding `VfPreviewNoBorderThickness`; then passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "Preview|PreviewSurface|Accessibility"`: passed, 19 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|Preview|FileListResourceContractTests"`: passed; App 30, Core 24, Windows 16, and Corpus 26 matching tests passed.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 168, Windows 52, and Corpus 90 tests passed.
+  - `git diff --check`: passed with CRLF normalization warnings only.
+- M7 static/resource and behavior-preservation validation is complete. Under the approved visual-evidence-gate removal amendment, M7 does not need `shell-preview-open` visual evidence before code review.
 
 ## Outcome and Retrospective
 
@@ -711,4 +802,4 @@ Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M4 needs full-shell visual evidence before it can move to code review. This plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M7 implementation is ready for code review. This plan is not ready for final closeout, verification, PR handoff, or Done.

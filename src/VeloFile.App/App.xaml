@@ -19,6 +19,10 @@
                 <ResourceDictionary Source="Resources/Tokens/VeloFile.Motion.xaml" />
                 <ResourceDictionary Source="Resources/Components/VeloFile.Shell.xaml" />
                 <ResourceDictionary Source="Resources/Components/VeloFile.CommandBand.xaml" />
+                <ResourceDictionary Source="Resources/Components/VeloFile.Sidebar.xaml" />
+                <ResourceDictionary Source="Resources/Components/VeloFile.Status.xaml" />
+                <ResourceDictionary Source="Resources/Components/VeloFile.Operations.xaml" />
+                <ResourceDictionary Source="Resources/Components/VeloFile.Preview.xaml" />
                 <ResourceDictionary Source="Resources/Icons/VeloFile.FixtureIcons.xaml" />
                 <ResourceDictionary Source="Resources/Components/VeloFile.FileList.xaml" />
             </ResourceDictionary.MergedDictionaries>

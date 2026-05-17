@@ -774,6 +774,7 @@ public sealed partial class MainWindow : Window
             SkippedLocationsList.ItemsSource = ViewModel.SearchSkippedLocations;
             SkippedLocationsList.Visibility = ViewModel.SearchSkippedLocationsVisible ? Visibility.Visible : Visibility.Collapsed;
             FileOperationStatusText.Text = ViewModel.FileOperationStatusText;
+            ApplyFileOperationStatusStyle();
             LaunchStatusText.Text = ViewModel.LaunchStatusText;
             DropActionIndicatorText.Text = ViewModel.DropActionIndicatorText;
             DropActionIndicatorText.Visibility = ViewModel.DropActionIndicatorVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -781,6 +782,7 @@ public sealed partial class MainWindow : Window
             PreviewPane.Visibility = ViewModel.IsPreviewPaneOpen ? Visibility.Visible : Visibility.Collapsed;
             AutomationProperties.SetName(PreviewPane, ViewModel.PreviewAccessibilityName);
             PreviewStatusText.Text = ViewModel.PreviewStatusText;
+            ApplyPreviewStatusStyle();
             PreviewContentText.Text = ViewModel.PreviewContentText;
             PdfPageNavigationPanel.Visibility = ViewModel.CanNavigatePdfPages ? Visibility.Visible : Visibility.Collapsed;
             PdfPageIndicatorText.Text = ViewModel.PreviewContentText;
@@ -822,6 +824,50 @@ public sealed partial class MainWindow : Window
         {
             _isRefreshingShellBindings = false;
         }
+    }
+
+    private void ApplyFileOperationStatusStyle()
+    {
+        var styleKey = FileOperationStatusStyleKey(ViewModel.FileOperation.Status);
+        if (Application.Current.Resources.TryGetValue(styleKey, out var resource) && resource is Style style)
+        {
+            FileOperationStatusText.Style = style;
+        }
+    }
+
+    private static string FileOperationStatusStyleKey(FileOperationStatus status)
+    {
+        return status switch
+        {
+            FileOperationStatus.Running or FileOperationStatus.Cancelling => "VfOperationProgressStyle",
+            FileOperationStatus.Completed => "VfOperationCompletedStyle",
+            FileOperationStatus.Cancelled => "VfOperationCancelledStyle",
+            FileOperationStatus.Failed => "VfOperationFailureStyle",
+            FileOperationStatus.WaitingForConflict => "VfOperationConflictStatusTextStyle",
+            FileOperationStatus.WaitingForConfirmation => "VfDestructiveStatusTextStyle",
+            _ => "VfStatusTextStyle"
+        };
+    }
+
+    private void ApplyPreviewStatusStyle()
+    {
+        var styleKey = PreviewStatusStyleKey(ViewModel.PreviewStatus);
+        if (Application.Current.Resources.TryGetValue(styleKey, out var resource) && resource is Style style)
+        {
+            PreviewStatusText.Style = style;
+        }
+    }
+
+    private static string PreviewStatusStyleKey(PreviewStatus status)
+    {
+        return status switch
+        {
+            PreviewStatus.Loading => "VfPreviewLoadingStyle",
+            PreviewStatus.Success => "VfPreviewReadyStyle",
+            PreviewStatus.Unsupported => "VfPreviewUnsupportedStyle",
+            PreviewStatus.Failed => "VfPreviewFailedStyle",
+            _ => "VfPreviewStatusStyle"
+        };
     }
 
     private void ApplyUiFixturePresentationState()

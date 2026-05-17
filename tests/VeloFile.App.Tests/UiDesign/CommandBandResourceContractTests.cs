@@ -29,15 +29,23 @@ public sealed class CommandBandResourceContractTests
             "x:Key=\"VfCommandBandSearchGroupStyle\"",
             "x:Key=\"VfCommandBandButtonStyle\"",
             "x:Key=\"VfCommandBandIconButtonStyle\"",
+            "x:Key=\"VfCommandBandTextBoxStyle\"",
             "x:Key=\"VfCommandBandInputStyle\"",
+            "x:Key=\"VfCommandBandPathTextBoxStyle\"",
             "x:Key=\"VfCommandBandPathStyle\"",
+            "x:Key=\"VfCommandBandSearchTextBoxStyle\"",
             "x:Key=\"VfCommandBandBreadcrumbButtonStyle\"",
             "x:Key=\"VfCommandBandStatusTextStyle\"",
             "x:Key=\"VfCommandBandButtonHoverBackgroundBrush\"",
             "x:Key=\"VfCommandBandButtonPressedBackgroundBrush\"",
             "x:Key=\"VfCommandBandButtonDisabledBackgroundBrush\"",
             "x:Key=\"VfCommandBandInputBorderBrush\"",
+            "x:Key=\"VfCommandBandInputHoverBackgroundBrush\"",
+            "x:Key=\"VfCommandBandInputFocusBackgroundBrush\"",
             "x:Key=\"VfCommandBandInputFocusBorderBrush\"",
+            "x:Key=\"VfCommandBandInputDisabledBackgroundBrush\"",
+            "x:Key=\"VfCommandBandInputDisabledForegroundBrush\"",
+            "x:Key=\"VfCommandBandInputDisabledBorderBrush\"",
             "x:Key=\"VfCommandBandDisabledOpacity\""
         })
         {
@@ -57,6 +65,71 @@ public sealed class CommandBandResourceContractTests
         {
             StringAssert.Contains(xaml, requiredSetter);
         }
+    }
+
+    [TestMethod]
+    public void Command_band_button_style_consumes_state_resources()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.CommandBand.xaml");
+        var buttonStyle = ExtractNamedStyle(xaml, "VfCommandBandButtonStyle");
+
+        foreach (var requiredStateReference in new[]
+        {
+            "VisualState x:Name=\"PointerOver\"",
+            "VisualState x:Name=\"Pressed\"",
+            "VisualState x:Name=\"Disabled\"",
+            "Setter Target=\"RootGrid.Background\" Value=\"{StaticResource VfCommandBandButtonHoverBackgroundBrush}\"",
+            "Setter Target=\"RootGrid.Background\" Value=\"{StaticResource VfCommandBandButtonPressedBackgroundBrush}\"",
+            "Setter Target=\"RootGrid.Background\" Value=\"{StaticResource VfCommandBandButtonDisabledBackgroundBrush}\"",
+            "Setter Target=\"ContentPresenter.Foreground\" Value=\"{StaticResource VfCommandBandButtonDisabledForegroundBrush}\"",
+            "Setter Target=\"RootGrid.Opacity\" Value=\"{StaticResource VfCommandBandDisabledOpacity}\""
+        })
+        {
+            StringAssert.Contains(buttonStyle, requiredStateReference);
+        }
+    }
+
+    [TestMethod]
+    public void Command_band_scopes_input_state_resources_for_text_boxes()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
+        var region = ExtractScopeRegions(xaml, "shell-command-band");
+
+        foreach (var requiredStateResource in new[]
+        {
+            "x:Key=\"TextControlBackground\" ResourceKey=\"VfCommandBandInputBackgroundBrush\"",
+            "x:Key=\"TextControlBackgroundPointerOver\" ResourceKey=\"VfCommandBandInputHoverBackgroundBrush\"",
+            "x:Key=\"TextControlBackgroundFocused\" ResourceKey=\"VfCommandBandInputFocusBackgroundBrush\"",
+            "x:Key=\"TextControlBackgroundDisabled\" ResourceKey=\"VfCommandBandInputDisabledBackgroundBrush\"",
+            "x:Key=\"TextControlForegroundDisabled\" ResourceKey=\"VfCommandBandInputDisabledForegroundBrush\"",
+            "x:Key=\"TextControlBorderBrushFocused\" ResourceKey=\"VfCommandBandInputFocusBorderBrush\"",
+            "x:Key=\"TextControlBorderBrushDisabled\" ResourceKey=\"VfCommandBandInputDisabledBorderBrush\""
+        })
+        {
+            StringAssert.Contains(region, requiredStateResource);
+        }
+
+        StringAssert.Contains(region, "Style=\"{StaticResource VfCommandBandPathTextBoxStyle}\"");
+        StringAssert.Contains(region, "Style=\"{StaticResource VfCommandBandSearchTextBoxStyle}\"");
+    }
+
+    [TestMethod]
+    public void Command_band_disabled_state_consumes_disabled_resources()
+    {
+        var xaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.CommandBand.xaml");
+        var mainWindowXaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
+        var buttonStyle = ExtractNamedStyle(xaml, "VfCommandBandButtonStyle");
+        var textBoxStyle = ExtractNamedStyle(xaml, "VfCommandBandTextBoxStyle");
+        var region = ExtractScopeRegions(mainWindowXaml, "shell-command-band");
+
+        StringAssert.Contains(buttonStyle, "VfCommandBandButtonDisabledBackgroundBrush");
+        StringAssert.Contains(buttonStyle, "VfCommandBandButtonDisabledForegroundBrush");
+        StringAssert.Contains(buttonStyle, "VfCommandBandDisabledOpacity");
+        StringAssert.Contains(textBoxStyle, "VfCommandBandInputBackgroundBrush");
+        StringAssert.Contains(textBoxStyle, "VfCommandBandInputForegroundBrush");
+        StringAssert.Contains(region, "VfCommandBandInputDisabledBackgroundBrush");
+        StringAssert.Contains(region, "VfCommandBandInputDisabledForegroundBrush");
+        StringAssert.Contains(region, "VfCommandBandInputDisabledBorderBrush");
     }
 
     [TestMethod]
@@ -88,9 +161,9 @@ public sealed class CommandBandResourceContractTests
             "Style=\"{StaticResource VfCommandBandNavigationGroupStyle}\"",
             "Style=\"{StaticResource VfCommandBandIconButtonStyle}\"",
             "Style=\"{StaticResource VfCommandBandPathListStyle}\"",
-            "Style=\"{StaticResource VfCommandBandPathStyle}\"",
+            "Style=\"{StaticResource VfCommandBandPathTextBoxStyle}\"",
             "Style=\"{StaticResource VfCommandBandSearchContainerStyle}\"",
-            "Style=\"{StaticResource VfCommandBandInputStyle}\"",
+            "Style=\"{StaticResource VfCommandBandSearchTextBoxStyle}\"",
             "Style=\"{StaticResource VfCommandBandButtonStyle}\"",
             "Style=\"{StaticResource VfCommandBandStatusTextStyle}\""
         })
@@ -154,7 +227,23 @@ public sealed class CommandBandResourceContractTests
         StringAssert.Contains(scopes, "\"VfCommandBandButtonStyle\"");
         StringAssert.Contains(scopes, "\"VfCommandBandInputStyle\"");
         StringAssert.Contains(scopes, "\"VfCommandBandPathStyle\"");
+        StringAssert.Contains(scopes, "\"VfCommandBandPathTextBoxStyle\"");
+        StringAssert.Contains(scopes, "\"VfCommandBandSearchTextBoxStyle\"");
         StringAssert.Contains(scopes, "\"VfCommandBandStatusTextStyle\"");
+    }
+
+    private static string ExtractNamedStyle(string xaml, string styleKey)
+    {
+        var keyIndex = xaml.IndexOf($"x:Key=\"{styleKey}\"", StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, keyIndex, $"Missing style '{styleKey}'.");
+
+        var styleStart = xaml.LastIndexOf("<Style", keyIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, styleStart, $"Could not find style start for '{styleKey}'.");
+
+        var styleEnd = xaml.IndexOf("</Style>", keyIndex, StringComparison.Ordinal);
+        Assert.IsGreaterThanOrEqualTo(0, styleEnd, $"Style '{styleKey}' must not be self-closing.");
+
+        return xaml.Substring(styleStart, styleEnd - styleStart + "</Style>".Length);
     }
 
     private static string ReadRepoFile(params string[] relativePath)

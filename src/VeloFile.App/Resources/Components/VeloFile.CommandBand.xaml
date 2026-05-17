@@ -14,7 +14,12 @@
     <StaticResource x:Key="VfCommandBandInputForegroundBrush" ResourceKey="VfShellControlForegroundBrush" />
     <StaticResource x:Key="VfCommandBandInputPlaceholderBrush" ResourceKey="VfShellTextMutedBrush" />
     <StaticResource x:Key="VfCommandBandInputBorderBrush" ResourceKey="VfShellControlBorderBrush" />
+    <StaticResource x:Key="VfCommandBandInputHoverBackgroundBrush" ResourceKey="VfShellControlHoverBackgroundBrush" />
+    <StaticResource x:Key="VfCommandBandInputFocusBackgroundBrush" ResourceKey="VfShellControlBackgroundBrush" />
     <StaticResource x:Key="VfCommandBandInputFocusBorderBrush" ResourceKey="VfShellAccentBrush" />
+    <StaticResource x:Key="VfCommandBandInputDisabledBackgroundBrush" ResourceKey="VfShellControlDisabledBackgroundBrush" />
+    <StaticResource x:Key="VfCommandBandInputDisabledForegroundBrush" ResourceKey="VfShellControlDisabledForegroundBrush" />
+    <StaticResource x:Key="VfCommandBandInputDisabledBorderBrush" ResourceKey="VfShellControlBorderBrush" />
     <StaticResource x:Key="VfCommandBandStatusTextBrush" ResourceKey="VfShellTextMutedBrush" />
     <StaticResource x:Key="VfCommandBandFocusBrush" ResourceKey="VfShellFocusBrush" />
     <StaticResource x:Key="VfCommandBandFocusThickness" ResourceKey="VfShellFocusThickness" />
@@ -74,6 +79,57 @@
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="FocusVisualPrimaryBrush" Value="{StaticResource VfCommandBandFocusBrush}" />
         <Setter Property="FocusVisualPrimaryThickness" Value="{StaticResource VfCommandBandFocusThickness}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid
+                        x:Name="RootGrid"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootGrid.Background" Value="{StaticResource VfCommandBandButtonHoverBackgroundBrush}" />
+                                        <Setter Target="ContentPresenter.BorderBrush" Value="{StaticResource VfCommandBandButtonBorderBrush}" />
+                                        <Setter Target="ContentPresenter.Foreground" Value="{StaticResource VfCommandBandButtonForegroundBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootGrid.Background" Value="{StaticResource VfCommandBandButtonPressedBackgroundBrush}" />
+                                        <Setter Target="ContentPresenter.BorderBrush" Value="{StaticResource VfCommandBandButtonBorderBrush}" />
+                                        <Setter Target="ContentPresenter.Foreground" Value="{StaticResource VfCommandBandButtonForegroundBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootGrid.Background" Value="{StaticResource VfCommandBandButtonDisabledBackgroundBrush}" />
+                                        <Setter Target="RootGrid.Opacity" Value="{StaticResource VfCommandBandDisabledOpacity}" />
+                                        <Setter Target="ContentPresenter.BorderBrush" Value="{StaticResource VfCommandBandButtonBorderBrush}" />
+                                        <Setter Target="ContentPresenter.Foreground" Value="{StaticResource VfCommandBandButtonDisabledForegroundBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <ContentPresenter
+                            x:Name="ContentPresenter"
+                            AutomationProperties.AccessibilityView="Raw"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            ContentTransitions="{TemplateBinding ContentTransitions}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            Padding="{TemplateBinding Padding}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="VfCommandBandIconButtonStyle" TargetType="Button" BasedOn="{StaticResource VfCommandBandButtonStyle}">
@@ -86,7 +142,7 @@
         <Setter Property="Padding" Value="{StaticResource VfCommandBandBreadcrumbPadding}" />
     </Style>
 
-    <Style x:Key="VfCommandBandInputStyle" TargetType="TextBox">
+    <Style x:Key="VfCommandBandTextBoxStyle" TargetType="TextBox">
         <Setter Property="MinHeight" Value="{StaticResource VfCommandBandControlHeight}" />
         <Setter Property="Padding" Value="{StaticResource VfCommandBandControlPadding}" />
         <Setter Property="Background" Value="{StaticResource VfCommandBandInputBackgroundBrush}" />
@@ -100,9 +156,17 @@
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="FocusVisualPrimaryBrush" Value="{StaticResource VfCommandBandFocusBrush}" />
         <Setter Property="FocusVisualPrimaryThickness" Value="{StaticResource VfCommandBandFocusThickness}" />
+        <Setter Property="SelectionHighlightColor" Value="{StaticResource VfCommandBandInputFocusBorderBrush}" />
+        <Setter Property="SelectionHighlightColorWhenNotFocused" Value="{StaticResource VfCommandBandInputBorderBrush}" />
     </Style>
 
-    <Style x:Key="VfCommandBandPathStyle" TargetType="TextBox" BasedOn="{StaticResource VfCommandBandInputStyle}" />
+    <Style x:Key="VfCommandBandInputStyle" TargetType="TextBox" BasedOn="{StaticResource VfCommandBandTextBoxStyle}" />
+
+    <Style x:Key="VfCommandBandPathTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource VfCommandBandTextBoxStyle}" />
+
+    <Style x:Key="VfCommandBandPathStyle" TargetType="TextBox" BasedOn="{StaticResource VfCommandBandPathTextBoxStyle}" />
+
+    <Style x:Key="VfCommandBandSearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource VfCommandBandTextBoxStyle}" />
 
     <Style x:Key="VfCommandBandPathListStyle" TargetType="ListView">
         <Setter Property="MinHeight" Value="{StaticResource VfCommandBandControlHeight}" />

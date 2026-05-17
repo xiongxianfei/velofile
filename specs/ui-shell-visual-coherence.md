@@ -2,7 +2,7 @@
 
 ## Status
 
-approved; amended 2026-05-17 for M3 visual-evidence deferral
+approved; amended 2026-05-17 to remove mandatory visual-evidence gates by spec-review-r2
 
 ## Related proposal
 
@@ -11,7 +11,7 @@ approved; amended 2026-05-17 for M3 visual-evidence deferral
 
 ## Goal and context
 
-This spec defines the shell-wide visual-coherence contract for VeloFile's WinUI shell after the first UI design-system slice. It governs how the app root, chrome, sidebar, command/path/search band, file list, status/operation surfaces, preview/details pane, dialogs, flyouts, deterministic fixture icons, and full-shell visual evidence should behave as one product surface.
+This spec defines the shell-wide visual-coherence contract for VeloFile's WinUI shell after the first UI design-system slice. It governs how the app root, chrome, sidebar, command/path/search band, file list, status/operation surfaces, preview/details pane, dialogs, flyouts, deterministic fixture icons, and optional visual-review artifacts should behave as one product surface.
 
 The existing first-slice spec remains authoritative for first-slice token resources, file-list row resources, deterministic file-list fixtures, and initial visual baselines. This spec is a separate follow-on contract. It extends the accepted VeloFile-owned design-system model across the whole shell without rewriting the first-slice spec or changing approved V1 file-manager behavior.
 
@@ -26,9 +26,8 @@ The existing first-slice spec remains authoritative for first-slice token resour
 - **Governed region**: a XAML/resource scope listed in `docs/ui/ui-contract-scopes.v1.json` where token and literal rules apply.
 - **Fixture icon kind**: an allowlisted deterministic identifier such as `Folder` or `Pdf` used by fixture rows to select a named vector icon resource.
 - **Effective window size**: the app-window layout size in effective pixels, not physical display pixels.
-- **Review profile**: a named screenshot evidence profile combining effective window size, scale, theme, and density.
-- **Soft-review evidence**: screenshots and sidecars used for human review before pixel comparison is stable enough to be a hard gate.
-- **M3 visual-evidence deferral**: a maintainer-approved exception that lets the M3 file-list polish/icon slice proceed to code review without accepted full-shell visual evidence, while keeping the deferred `shell-file-list-selected-focused` state required for M8 evidence consolidation and final closeout.
+- **Review profile**: a named optional screenshot profile combining effective window size, scale, theme, and density.
+- **Optional visual-review artifact**: a screenshot, sidecar, or manual visual note that may support human review but is not a milestone, final-closeout, or release-readiness gate under this spec.
 
 ## Examples first
 
@@ -53,20 +52,20 @@ When a keyboard user traverses the sidebar
 Then locations, favorites, recent entries, drives, visibility toggles, and terminal controls remain reachable
 And each reachable group/control has an accessible name that matches its purpose.
 
-### Example E4: minimum shell profile remains usable
+### Example E4: minimum shell layout remains usable
 
-Given the shell is captured at `shell-min-900x560-100`
-When the file-list selected/focused state is visible
+Given the shell runs at the supported minimum layout size
+When the file-list selected/focused state is visible or exercised by focused layout/resource checks
 Then primary navigation controls are not clipped
 And the path/search band remains reachable
 And the sidebar does not obscure the content region.
 
-### Example E5: high-DPI review remains required
+### Example E5: optional screenshots do not become gates
 
-Given automated screenshot capture cannot reliably set `200%` scale
-When the follow-on visual evidence is collected
-Then `shell-standard-1440x900-200` is recorded as manual/release review evidence
-And it is not silently dropped from the evidence set.
+Given automated screenshot capture is unavailable, noisy, or not maintained for the shell slice
+When the slice is reviewed
+Then the slice can still close through static resource checks, behavior-preservation tests, accessibility checks, and deviation records
+And any optional screenshot or manual visual note that is recorded is labeled as supporting review context only.
 
 ### Example E6: behavior preservation is explicit
 
@@ -75,13 +74,12 @@ When the slice is reviewed
 Then the behavior-preservation matrix identifies affected navigation, path entry, filter/search, accessibility, and diagnostics routes
 And cites tests or manual evidence for each touched behavior.
 
-### Example E7: M3 visual evidence is deferred without claiming visual acceptance
+### Example E7: visual-review artifacts are optional across milestones
 
-Given the maintainer chooses to skip M3 full-shell visual evidence before M3 code review
-When the M3 file-list/icon slice is reviewed
-Then static icon/resource tests and behavior-preservation tests remain required
-And the M3 evidence note records that `shell-file-list-selected-focused` visual acceptance is deferred to M8
-And M3 code review does not claim whole-shell visual acceptance for that state.
+Given a region milestone changes the file list, command band, sidebar, status surface, or preview pane
+When the milestone is reviewed
+Then static resource tests, behavior-preservation tests, accessibility checks, and design-deviation records remain required
+And the absence of screenshots or manual visual notes does not block the milestone.
 
 ## Requirements
 
@@ -91,7 +89,7 @@ R1. This spec MUST be a separate follow-on contract and MUST NOT rewrite or supe
 
 R2. `specs/ui-design-system-shell-redesign.md` MUST remain authoritative for first-slice token and file-list row work unless a later approved spec explicitly changes that scope.
 
-R3. This spec MUST govern shell-wide surface foundation, command band, sidebar, status/operation surfaces, preview/details visual treatment, deterministic fixture icon strategy, and full-shell visual evidence.
+R3. This spec MUST govern shell-wide surface foundation, command band, sidebar, status/operation surfaces, preview/details visual treatment, deterministic fixture icon strategy, and optional visual-review artifact guardrails.
 
 R4. `hifi-design/` MUST remain reference input only and MUST NOT become the production source of truth for tokens, component anatomy, layout, copy, implementation strategy, or acceptance criteria.
 
@@ -133,9 +131,9 @@ R20. File and folder icon surfaces in governed fixture/file-list scopes MUST be 
 
 R21. Sidebar hierarchy MUST present navigation before secondary visibility/settings controls.
 
-R22. Full-shell screenshots for a region slice MUST show no new mismatch between redesigned and non-redesigned regions, or the mismatch MUST be recorded as a temporary or accepted design deviation.
+R22. Region-slice visual coherence MUST be evaluated through static resource contracts, behavior-preservation evidence, accessibility checks, and design-deviation records. Optional full-shell screenshots or manual visual notes MAY support review, but their absence MUST NOT block milestone closeout.
 
-R22A. The M3 file-list polish/icon slice MAY proceed to code review without accepted `shell-file-list-selected-focused` full-shell visual evidence only when an approved plan amendment records a maintainer-directed deferral to M8, the M3 visual-evidence note states that no whole-shell visual acceptance is claimed, static icon/resource validation and touched behavior-preservation validation pass, and M8 remains required to capture or manually review the deferred state before final closeout.
+R22A. No shell visual-coherence region slice requires a visual-evidence deferral record. Prior M3-only visual-evidence deferral rules are superseded by this amendment.
 
 ### Shell surface foundation
 
@@ -145,7 +143,7 @@ R24. Shell surface foundation MUST define and apply a coherent surface family fo
 
 R25. Shell surface foundation MUST define or reuse tokenized values for row height, toolbar height, path bar height, sidebar width, control radius, spacing rhythm, and focus thickness.
 
-R26. Shell surface foundation MUST make the app root, chrome, sidebar, command band, file list, status area, and preview/details region visually compatible in the default shell screenshot.
+R26. Shell surface foundation MUST make the app root, chrome, sidebar, command band, file list, status area, and preview/details region visually compatible through governed resources, focused UI contract tests, and behavior-preservation checks.
 
 R27. Shell surface foundation MUST NOT remove or hide existing V1 routes for navigation, tabs/session restore, listing, selection, filter/search, context menu, file operations, drag/drop, preview, terminal launch, diagnostics, or accessibility.
 
@@ -217,7 +215,7 @@ R56. Sidebar selected, hover, focus, and disabled states in governed scope MUST 
 
 R57. Status and operation surfaces MUST share the shell surface foundation and MUST NOT look like unrelated default platform controls.
 
-R58. Active operation state MUST be visible without obscuring primary navigation controls in required review profiles.
+R58. Active operation state MUST be visible without obscuring primary navigation controls in supported shell layouts.
 
 R59. Destructive confirmation state MUST be visually distinct from ordinary navigation and operation states.
 
@@ -235,27 +233,27 @@ R64. Preview/details pane visual changes MUST NOT destabilize file-list row heig
 
 R65. Preview/details pane visual changes MUST preserve existing preview selection, loading, timeout, unsupported, failed, and PDF navigation behavior unless another accepted spec changes that behavior.
 
-### Full-shell visual evidence
+### Optional visual-review artifacts
 
-R66. The first required full-shell screenshot set MUST include `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation` before M8 evidence consolidation and final closeout. An M3 visual-evidence deferral does not remove `shell-file-list-selected-focused` from this required set.
+R66. Full-shell screenshots and manual visual-review notes are optional supporting artifacts. They MUST NOT be required before region milestone closeout, M8 closeout, final closeout, verification, or release readiness unless a later accepted spec reinstates a visual-evidence gate.
 
-R67. Each required full-shell screenshot SHOULD be captured for `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200` when automation supports the profile.
+R67. Optional full-shell screenshots MAY use states such as `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation` when they are useful for review.
 
-R68. If automation cannot reliably capture `shell-standard-1440x900-200`, that profile MUST be recorded as manual/release review evidence and MUST NOT be silently omitted.
+R68. Optional screenshots MAY use review profiles such as `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`, but missing profile coverage MUST NOT block a milestone.
 
-R69. `shell-min-900x560-100` MUST prove that primary navigation controls are not clipped, the file list remains usable, the sidebar does not obscure content, the path/search band remains reachable, selected/focused rows remain visible, and destructive or operation status surfaces do not cover primary navigation.
+R69. Minimum-size and high-DPI usability MUST be protected by static resource/layout checks, focused app tests, accessibility checks, or explicit manual behavior notes when touched. Optional screenshots MAY support that review but are not the required proof.
 
-R70. `shell-standard-1440x900-100` MUST be the primary visual baseline for whole-shell coherence.
+R70. If optional screenshots are recorded, `shell-standard-1440x900-100` SHOULD be treated as the primary review profile unless the reviewer records another profile rationale.
 
-R71. `shell-standard-1440x900-200` MUST prove high-DPI readability and scaling behavior: readable text, crisp icons, visible focus ring, no clipped controls from scale conversion, and stable row rhythm/spacing.
+R71. If optional `shell-standard-1440x900-200` evidence is recorded, it SHOULD be used to review readable text, crisp icons, visible focus ring, no clipped controls from scale conversion, and stable row rhythm/spacing.
 
 R72. `shell-stress-720x500-100` MAY be used as advisory stress evidence but MUST NOT be treated as a required pass/fail profile unless a later accepted spec lowers VeloFile's supported minimum.
 
-R73. Screenshot evidence MUST remain soft-review evidence until visual comparison stability is accepted by a later spec or architecture decision.
+R73. Screenshot evidence MUST remain optional soft-review evidence until visual comparison stability is accepted by a later spec or architecture decision.
 
-R74. Screenshot sidecars MUST include profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
+R74. If screenshot sidecars are committed or referenced as review artifacts, they MUST include profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
 
-R75. Screenshot sidecars MUST NOT include raw local user file paths, usernames, secrets, file contents, terminal commands, clipboard contents, or preview text.
+R75. Screenshot sidecars and manual visual notes MUST NOT include raw local user file paths, usernames, secrets, file contents, terminal commands, clipboard contents, or preview text.
 
 R76. Generated current screenshots and diffs MUST NOT be committed.
 
@@ -269,7 +267,7 @@ R79. Each shell region slice MUST identify which behavior-preservation matrix ro
 
 R80. Each touched behavior row MUST cite automated tests or explicit manual evidence before the slice is accepted.
 
-R81. Fixture-only visual evidence MUST NOT be presented as proof of real filesystem, Windows adapter, drag/drop, preview, file-operation, terminal, or diagnostics behavior.
+R81. Fixture-only visual artifacts MUST NOT be presented as proof of real filesystem, Windows adapter, drag/drop, preview, file-operation, terminal, or diagnostics behavior.
 
 R82. Existing V1 behavior tests MUST remain applicable and MUST NOT be replaced by screenshot-only or fixture-only proof.
 
@@ -286,8 +284,8 @@ R82. Existing V1 behavior tests MUST remain applicable and MUST NOT be replaced 
 - WinUI resource dictionaries for shell, component, and icon resources.
 - Deterministic fixture launch arguments and fixture rows.
 - Environment variable `VELOFILE_ENABLE_TEST_UI_FIXTURES`.
-- Current screenshots and sidecar metadata under generated visual-output directories.
-- Maintainer review ID for visual baseline updates.
+- Optional current screenshots and sidecar metadata under generated visual-output directories.
+- Maintainer review ID for optional visual baseline updates.
 
 ### Outputs
 
@@ -295,7 +293,7 @@ R82. Existing V1 behavior tests MUST remain applicable and MUST NOT be replaced 
 - Checked-in shell, component, and fixture icon resource dictionaries.
 - Static UI contract validation output for governed shell and fixture icon scopes.
 - Deterministic full-shell fixture UI when fixture mode is allowed.
-- Full-shell screenshot evidence and sidecar metadata.
+- Optional full-shell screenshot artifacts and sidecar metadata.
 - Design deviation records for meaningful reference or implementation deviations.
 - User-visible shell UI that preserves approved V1 behavior.
 
@@ -317,7 +315,7 @@ I7. Deterministic fixture icon selection uses allowlisted icon kinds, not arbitr
 
 I8. Fixture mode remains non-production and guarded by the existing fixture-mode rules.
 
-I9. Full-shell screenshots are review evidence until hard comparison gates are specified later.
+I9. Full-shell screenshots are optional review artifacts until hard comparison gates are specified by a later accepted contract.
 
 I10. Generated current screenshots and diffs remain uncommitted.
 
@@ -328,12 +326,12 @@ I10. Generated current screenshots and diffs remain uncommitted.
 - Governed region uses an unapproved local visual literal: validation fails nonzero and reports the file and rule.
 - Governed fixture icon resource uses `SymbolIcon`, `PathIcon`, private-use glyph font, or ellipsized chip text: validation fails nonzero and reports the offending file and rule.
 - Fixture row requests an unknown icon kind: fixture launch or fixture validation fails nonzero and does not fall back to arbitrary resource lookup.
-- Required screenshot sidecar is missing profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, or review ID: visual evidence validation fails or marks the screenshot unusable for review.
-- Automated `200%` scale capture is unavailable: the evidence set records `shell-standard-1440x900-200` as manual/release evidence rather than dropping the profile.
-- Screenshot dimensions or sidecar effective window size do not match the declared profile: visual evidence validation fails or marks the capture unusable for that profile.
-- A required full-shell state cannot be produced by deterministic fixture mode: the follow-on plan must mark the state blocked or manual and cannot claim full automated evidence for that state.
-- M3 closes without accepted `shell-file-list-selected-focused` evidence and without an approved M3 visual-evidence deferral record: M3 review fails.
-- M8 closes while the M3 `shell-file-list-selected-focused` evidence remains deferred, missing, or not manually reviewed: M8 review fails.
+- Optional screenshot sidecar is missing profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, or review ID: optional artifact validation fails or marks the screenshot unusable for review.
+- Automated `200%` scale capture is unavailable: the milestone may still close; optional high-DPI review can use static checks, app tests, or manual notes when high-DPI risk is touched.
+- Screenshot dimensions or sidecar effective window size do not match the declared profile: optional artifact validation fails or marks the capture unusable for that profile.
+- A full-shell state cannot be produced by deterministic fixture mode: the follow-on plan must not claim automated visual artifact coverage for that state.
+- A milestone closes without screenshots or manual visual notes: the milestone remains valid when static resource validation, behavior-preservation checks, accessibility checks, and required deviation records pass.
+- Optional visual artifacts are presented as behavior or release proof: review fails because visual artifacts are supporting context only.
 - Sidebar reordering removes access to an existing sidebar function: the slice fails behavior preservation.
 - A visual slice changes Core/Windows behavior without an accepted behavior spec: the change is out of scope and must be reverted or respecified.
 
@@ -347,9 +345,9 @@ C3. This spec MUST NOT add persisted theme or density settings.
 
 C4. This spec MUST NOT introduce a new token major version unless an incompatible token semantics change, renamed resource contract, or deliberate redesign reset is approved.
 
-C5. Rollback MUST be possible per governed region by reverting that region's resources, scoped XAML usage, tests, and visual evidence without changing Core or Windows adapters.
+C5. Rollback MUST be possible per governed region by reverting that region's resources, scoped XAML usage, tests, and optional visual artifacts without changing Core or Windows adapters.
 
-C6. Existing first-slice visual baselines remain valid for the first-slice scope; follow-on full-shell baselines supplement rather than replace them.
+C6. Existing first-slice visual baselines remain valid for the first-slice scope; optional follow-on full-shell baselines supplement rather than replace them when they exist.
 
 C7. Real Windows Shell icons remain future integration evidence and are not required for deterministic fixture baselines.
 
@@ -359,9 +357,9 @@ O1. UI contract validation failures MUST identify the file, scope or token, expe
 
 O2. Fixture icon validation failures MUST identify the fixture icon kind or resource usage that violated the allowlist.
 
-O3. Screenshot sidecars MUST make evidence traceable by profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
+O3. Screenshot sidecars, when recorded, MUST make optional artifacts traceable by profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
 
-O4. Baseline update commands MUST make baseline mutation traceable through the supplied review ID.
+O4. Baseline update commands, when used, MUST make baseline mutation traceable through the supplied review ID.
 
 O5. This spec MUST NOT add telemetry upload, remote diagnostics, or external reporting.
 
@@ -371,9 +369,9 @@ S1. Fixture mode MUST NOT accept arbitrary fixture data paths or arbitrary icon 
 
 S2. Fixture mode MUST NOT be enabled in production builds.
 
-S3. Full-shell screenshot sidecars MUST NOT include raw local user paths, usernames, secrets, file contents, terminal commands, clipboard contents, or preview text.
+S3. Full-shell screenshot sidecars and manual visual notes MUST NOT include raw local user paths, usernames, secrets, file contents, terminal commands, clipboard contents, or preview text.
 
-S4. Deterministic fixture file names, folder names, and metadata used for visual evidence MUST be synthetic and non-sensitive.
+S4. Deterministic fixture file names, folder names, and metadata used for optional visual artifacts MUST be synthetic and non-sensitive.
 
 S5. UI contract validation MUST treat file paths passed on the command line as local validation inputs only and MUST NOT upload token, XAML, screenshot, or sidecar content.
 
@@ -391,9 +389,9 @@ A11Y4. Icon-only or ambiguous controls in governed shell regions MUST have acces
 
 A11Y5. Sidebar reordered groups and controls MUST have accessible names and keyboard order matching visual grouping unless a deviation is accepted.
 
-A11Y6. Text in required review profiles MUST remain readable and must not overlap adjacent controls.
+A11Y6. Text in governed shell regions MUST remain readable and must not overlap adjacent controls.
 
-A11Y7. The `shell-standard-1440x900-200` profile MUST verify high-DPI readability for text, icons, focus rings, and clipped controls either through automated or manual/release evidence.
+A11Y7. High-DPI readability for text, icons, focus rings, and clipped controls MUST be covered by static/resource tests, app tests, or explicit manual notes when a touched region creates high-DPI risk.
 
 A11Y8. Hidden/protected file-list visual treatment MUST NOT make file names unreadable.
 
@@ -433,19 +431,19 @@ EC7. Governed icon resources use `SymbolIcon`, `PathIcon`, or private-use glyph 
 
 EC8. Governed icon resources hardcode local foreground/background colors or icon sizes when tokenized resources exist.
 
-EC9. `shell-min-900x560-100` clips primary navigation controls.
+EC9. Minimum supported shell size clips primary navigation controls.
 
-EC10. `shell-min-900x560-100` lets the sidebar obscure the content/file-list region.
+EC10. Minimum supported shell size lets the sidebar obscure the content/file-list region.
 
-EC11. `shell-standard-1440x900-200` shows clipped controls or unreadable text.
+EC11. High-DPI execution shows clipped controls or unreadable text in a touched region.
 
-EC12. Automated `200%` capture is unavailable and the evidence set silently omits the profile.
+EC12. Optional screenshot automation is unavailable or noisy.
 
-EC13. Screenshot sidecar scale does not match the declared profile.
+EC13. Optional screenshot sidecar scale does not match the declared profile.
 
-EC14. Screenshot sidecar includes raw local paths or user-identifying data.
+EC14. Optional screenshot sidecar or manual visual note includes raw local paths or user-identifying data.
 
-EC15. Full-shell screenshots show a new mismatch between redesigned and non-redesigned regions.
+EC15. Optional full-shell screenshots show a new mismatch between redesigned and non-redesigned regions.
 
 EC16. Sidebar reordering hides visibility toggles or terminal controls.
 
@@ -499,13 +497,13 @@ AC7. Static validation fails if governed fixture/file-list icon resources use `S
 
 AC8. Deterministic fixture rows use allowlisted icon kinds for `FileGeneric`, `Folder`, `Pdf`, `Image`, `Text`, `Spreadsheet`, `Executable`, `Markdown`, and `ThumbnailFallback`.
 
-AC9. Full-shell visual evidence includes the seven required screenshot states.
+AC9. Region milestones can close without screenshot or manual visual-review artifacts when static resource validation, behavior-preservation checks, accessibility checks, and required deviation records pass.
 
-AC10. Full-shell visual evidence includes `shell-min-900x560-100` and `shell-standard-1440x900-100` automated or reviewed screenshots.
+AC10. Optional screenshot or manual visual-review artifacts, when recorded, are labeled as supporting review context and not behavior or release proof.
 
-AC11. `shell-standard-1440x900-200` exists as automated evidence or is explicitly recorded as manual/release review evidence.
+AC11. Optional profile coverage gaps, including `shell-standard-1440x900-200`, do not block closeout unless a later accepted spec reinstates a visual-evidence gate.
 
-AC12. Required screenshot sidecars include profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
+AC12. Screenshot sidecars that are committed or referenced include profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID.
 
 AC13. Generated current screenshots and diffs remain uncommitted.
 
@@ -523,31 +521,31 @@ AC19. Design deviations are recorded for meaningful mismatches between the refer
 
 AC20. Existing V1 behavior tests remain applicable and are not replaced by fixture-only visual evidence.
 
-AC21. If M3 uses the visual-evidence deferral, the M3 plan and visual-evidence note record the deferral, no M3 whole-shell visual acceptance is claimed, and M8 remains blocked until `shell-file-list-selected-focused` is captured or manually reviewed.
+AC21. Prior M3-only visual-evidence deferral records remain historical context only and no longer block M8 or final closeout.
 
 ## Open questions
 
-None blocking spec review.
+This amendment removes mandatory visual-evidence gates and should return to `spec-review` before implementation reviews rely on the changed contract.
 
-The exact vector geometry path data, exact fixture row-to-icon examples, and whether the `200%` profile is automated in the first implementation slice or recorded as manual/release evidence are downstream architecture, test-spec, and plan details.
+The exact vector geometry path data and exact fixture row-to-icon examples are downstream architecture, test-spec, and plan details.
 
 ## Next artifacts
 
 - `spec-review` for this spec.
-- Architecture or ADR update for shell-wide additive token/scope validation, fixture icon resources, full-shell visual evidence, and high-DPI evidence handling if the existing architecture does not already cover them.
+- Architecture or ADR update for shell-wide additive token/scope validation, fixture icon resources, optional visual-review artifact guardrails, and high-DPI behavior handling if the existing architecture does not already cover them.
 - Matching test spec at `specs/ui-shell-visual-coherence.test.md`.
 - Execution plan at `docs/plans/2026-05-11-ui-shell-visual-coherence.md` after spec and architecture review.
 
 ## Follow-on artifacts
 
-- Spec review completed with status `approved` and no material findings.
+- Spec reviews completed with status `approved` and no material findings, including spec-review-r2 for the 2026-05-17 visual-evidence gate removal amendment.
 - Architecture update drafted in [docs/architecture/system/architecture.md](../docs/architecture/system/architecture.md).
 - ADR 0010 drafted at [docs/adr/0010-shell-visual-coherence-contracts.md](../docs/adr/0010-shell-visual-coherence-contracts.md).
-- 2026-05-17 amendment approved an M3-only visual-evidence deferral while keeping M8 full-shell evidence consolidation required.
+- 2026-05-17 amendment drafted to remove mandatory visual-evidence gates and make screenshots/manual visual notes optional supporting artifacts.
 
 ## Readiness
 
-Approved by `spec-review` and amended for an M3-only visual-evidence deferral. The spec defines the shell visual-coherence contract, preserves existing V1 behavior, keeps first-slice artifacts authoritative for their scope, and keeps deferred full-shell evidence required before M8/final closeout.
+Spec-review approved for the 2026-05-17 amendment that removes mandatory visual-evidence gates. The amended contract preserves V1 behavior, keeps first-slice artifacts authoritative for their scope, and treats screenshots/manual visual notes as optional supporting review artifacts rather than closeout gates. Next required repository stage is architecture-review for the matching architecture and ADR amendment.
 
 ## References
 

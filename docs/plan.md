@@ -13,7 +13,7 @@
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
 | [2026-05-16 test runtime optimization](plans/2026-05-16-test-runtime-optimization.md) | Split validation tiers, optimize corpus test runtime, preserve public script smoke and release evidence, and record runtime evidence. | active; branch-ready | `pr` |
-| [2026-05-11 UI shell visual coherence](plans/2026-05-11-ui-shell-visual-coherence.md) | Implement the follow-on shell-wide visual-coherence work: shell surface foundation, deterministic fixture icons, command band, sidebar, status/operation, preview/details, and full-shell visual evidence. | active; M1-M3 closed; M4 visual evidence needed; M3 visual evidence deferred to M8 | record M4 visual evidence |
+| [2026-05-11 UI shell visual coherence](plans/2026-05-11-ui-shell-visual-coherence.md) | Implement the follow-on shell-wide visual-coherence work: shell surface foundation, deterministic fixture icons, command band, sidebar, status/operation, preview/details, and optional visual-review artifacts. | active; M1-M6 closed; M7 review-requested; visual-evidence amendment approved; CR-005/CR-006/CR-007/CR-008/PR-002/TSR-001 resolved | `code-review M7` |
 | [2026-05-11 UI design-system and shell redesign](plans/2026-05-11-ui-design-system-shell-redesign.md) | Implement the first UI design-system slice: repo-owned tokens, WinUI resources, file-list row redesign, fixture mode, and visual evidence. | active; branch-ready | `pr` |
 
 ## Blocked

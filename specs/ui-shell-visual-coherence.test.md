@@ -2,9 +2,9 @@
 
 ## Status
 
-active
+active; amended 2026-05-17 to remove mandatory visual-evidence gates by test-spec-review-r2
 
-This test spec is the active proof plan for the approved shell visual-coherence follow-on. It is not implementation evidence by itself; implementation must add or update the tests and visual/manual evidence described here.
+This test spec is the proof plan for the shell visual-coherence follow-on. It is not implementation evidence by itself; implementation must add or update the tests described here. Screenshots and manual visual-review notes are optional supporting artifacts, not milestone or final-closeout gates under the amended spec.
 
 ## Related Spec and Plan
 
@@ -18,12 +18,12 @@ This test spec is the active proof plan for the approved shell visual-coherence 
 
 The proof strategy is layered:
 
-- Contract tests validate additive shell tokens, governed scopes, deviation records, icon-resource invariants, visual sidecars, and behavior-preservation matrix inventory.
-- Tool tests validate `tools/VeloFile.UiContracts` with controlled valid and invalid XAML, sidecar, and icon fixtures before production shell regions are trusted.
+- Contract tests validate additive shell tokens, governed scopes, deviation records, icon-resource invariants, optional visual-artifact guardrails, and behavior-preservation matrix inventory.
+- Tool tests validate `tools/VeloFile.UiContracts` with controlled valid and invalid XAML, optional sidecar, and icon fixtures before production shell regions are trusted.
 - Static WinUI tests validate production resource dictionaries, merged app resources, governed region markers, resource references, and forbidden raw/default visuals.
 - App-shell tests validate fixture launch guards, allowlisted fixture icon kinds, synthetic fixture state, command/sidebar/preview/operation route preservation, and accessibility metadata.
-- Visual inventory tests validate required full-shell states, effective-pixel profiles, sidecar metadata, generated-output ignore rules, and reviewed/manual `200%` evidence classification.
-- Manual/review checks validate whole-shell visual coherence, minimum-size usability, high-DPI readability, focus/selection clarity, and accepted deviation records while screenshots remain soft evidence.
+- Optional visual-artifact tests validate sidecar metadata, generated-output ignore rules, and privacy/non-mutation guardrails only when screenshots or manual visual notes are recorded.
+- Manual/review checks may support whole-shell visual coherence, minimum-size usability, high-DPI readability, focus/selection clarity, and accepted deviation records, but they are not required for milestone closeout.
 - Existing V1 behavior tests remain the regression surface for real navigation, listing, selection, search, context menu, file operations, drag/drop, preview, terminal launch, diagnostics, persistence, and accessibility behavior.
 
 ## Requirement Coverage Map
@@ -34,20 +34,20 @@ The proof strategy is layered:
 | R5 | TSC015, TSC016, TSC017, TSC018, TSC021 |
 | R6-R8 | TSC001, TSC002, TSC018 |
 | R9-R15 | TSC002, TSC003, TSC004, TSC005, TSC018 |
-| R16-R22 | TSC006, TSC007, TSC013, TSC014, TSC018, TSC020 |
-| R22A | TSC013, TSC014, TSC020 |
-| R23-R27 | TSC006, TSC013, TSC015, TSC018 |
-| R28-R34 | TSC007, TSC008, TSC013, TSC015, TSC020 |
-| R35-R43 | TSC008, TSC009, TSC010, TSC013 |
-| R44-R49 | TSC011, TSC013, TSC015, TSC016, TSC020 |
-| R50-R56 | TSC012, TSC013, TSC015, TSC016, TSC020 |
-| R57-R61 | TSC013, TSC015, TSC016, TSC020 |
-| R62-R65 | TSC013, TSC015, TSC016, TSC020 |
-| R66-R77 | TSC003, TSC004, TSC013, TSC014, TSC018, TSC019, TSC020 |
+| R16-R22 | TSC006, TSC007, TSC013, TSC018, TSC020 |
+| R22A | TSC013 |
+| R23-R27 | TSC006, TSC015, TSC018 |
+| R28-R34 | TSC007, TSC008, TSC015, TSC020 |
+| R35-R43 | TSC008, TSC009, TSC010 |
+| R44-R49 | TSC011, TSC015, TSC016, TSC020 |
+| R50-R56 | TSC012, TSC015, TSC016, TSC020 |
+| R57-R61 | TSC015, TSC016, TSC020 |
+| R62-R65 | TSC015, TSC016, TSC020 |
+| R66-R77 | TSC013, TSC014, TSC018, TSC019, TSC020 |
 | R78-R82 | TSC015, TSC016, TSC017, TSC018, TSC021 |
 | I1-I6 | TSC001, TSC002, TSC015, TSC018 |
 | I7-I8 | TSC009, TSC010 |
-| I9-I10 | TSC003, TSC004, TSC013, TSC014, TSC019 |
+| I9-I10 | TSC003, TSC004, TSC014, TSC019 |
 | C1-C7 | TSC001, TSC015, TSC018, TSC021 |
 | O1-O5 | TSC003, TSC004, TSC009, TSC014, TSC019 |
 | S1-S6 | TSC004, TSC009, TSC010, TSC014, TSC019 |
@@ -55,7 +55,7 @@ The proof strategy is layered:
 | P1-P7 | TSC007, TSC008, TSC010, TSC013, TSC014, TSC015, TSC021 |
 | AC1-AC5 | TSC001, TSC002, TSC003, TSC005, TSC006 |
 | AC6-AC8 | TSC008, TSC009, TSC010 |
-| AC9-AC13 | TSC003, TSC004, TSC013, TSC014, TSC019 |
+| AC9-AC13 | TSC013, TSC014, TSC019 |
 | AC14-AC16 | TSC007, TSC011, TSC012, TSC015, TSC016, TSC020 |
 | AC17-AC20 | TSC015, TSC016, TSC017, TSC018, TSC021 |
 
@@ -63,11 +63,11 @@ The proof strategy is layered:
 
 | Example | Tests / verification |
 |---|---|
-| E1 | TSC006, TSC013, TSC020 |
+| E1 | TSC006, TSC020 |
 | E2 | TSC008, TSC009, TSC010, TSC013 |
 | E3 | TSC012, TSC016, TSC020 |
-| E4 | TSC013, TSC020 |
-| E5 | TSC004, TSC014, TSC019, TSC020 |
+| E4 | TSC006, TSC015, TSC020 |
+| E5 | TSC013, TSC014, TSC019 |
 | E6 | TSC015, TSC016, TSC017, TSC021 |
 
 ## Edge Case Coverage
@@ -75,17 +75,17 @@ The proof strategy is layered:
 | Edge case | Tests / verification |
 |---|---|
 | EC1 | TSC003, TSC006, TSC020 |
-| EC2 | TSC007, TSC013, TSC020 |
-| EC3 | TSC008, TSC009, TSC013 |
+| EC2 | TSC007, TSC020 |
+| EC3 | TSC008, TSC009 |
 | EC4-EC5 | TSC009, TSC010 |
 | EC6-EC8 | TSC008, TSC009 |
-| EC9-EC11 | TSC013, TSC020 |
+| EC9-EC11 | TSC015, TSC020 |
 | EC12-EC14 | TSC004, TSC014, TSC019 |
-| EC15 | TSC005, TSC013, TSC020 |
+| EC15 | TSC005, TSC020 |
 | EC16-EC17 | TSC012, TSC016, TSC020 |
 | EC18 | TSC011, TSC016 |
-| EC19 | TSC013, TSC016, TSC020 |
-| EC20 | TSC007, TSC013, TSC016, TSC020 |
+| EC19 | TSC016, TSC020 |
+| EC20 | TSC007, TSC016, TSC020 |
 | EC21 | TSC015, TSC017, TSC021 |
 | EC22 | TSC005, TSC018, TSC020 |
 | EC23 | TSC002, TSC003 |
@@ -100,12 +100,12 @@ Each implementation milestone must mark touched rows, then cite automated tests 
 | Navigation | touched | observe | touched | touched | observe | observe | `AppShellCommandRouteTests`, `AppShellContractTests`, manual keyboard route notes when needed |
 | Tabs/session restore | observe | observe | observe | observe | observe | observe | existing App/Core shell startup/session tests or explicit not-touched note |
 | Listing/virtualization | observe | touched | observe | observe | observe | touched | `FileListResourceContractTests`, listing/virtualization regression tests, no custom row-control check |
-| Selection | observe | touched | observe | observe | observe | touched | file-list selection mapper/tests, selected/focused visual evidence |
-| Filter/search | observe | observe | touched | observe | observe | observe | `AppShellCommandRouteTests`, search/filter tests, `shell-filter-active`, `shell-search-active` evidence |
+| Selection | observe | touched | observe | observe | observe | touched | file-list selection mapper/tests and optional selected/focused review notes |
+| Filter/search | observe | observe | touched | observe | observe | observe | `AppShellCommandRouteTests`, search/filter tests, and optional filter/search review notes |
 | Context menu | observe | touched | observe | observe | observe | observe | context flyout route checks and existing app-shell tests |
-| File operations | observe | observe | observe | observe | touched | observe | Core/App file-operation tests, operation/destructive shell evidence |
+| File operations | observe | observe | observe | observe | touched | observe | Core/App file-operation tests and optional operation/destructive review notes |
 | Drag/drop | observe | touched | observe | observe | observe | observe | existing Core/Windows/App drag/drop tests; screenshots do not prove this row |
-| Preview | observe | touched | observe | observe | observe | touched | App/Core preview tests, `shell-preview-open` evidence |
+| Preview | observe | touched | observe | observe | observe | touched | App/Core preview tests and optional `shell-preview-open` review notes |
 | Terminal launch | observe | observe | observe | touched | observe | observe | terminal command route tests or manual evidence if automation unavailable |
 | Diagnostics | observe | observe | observe | observe | observe | observe | existing diagnostics tests or explicit no-route-change note |
 | Persistence | observe | observe | observe | observe | observe | observe | existing persistence/session tests; no new theme/density persistence assertions |
@@ -144,19 +144,19 @@ TSC003. UI contract tool rejects governed shell visual drift
 - Failure proves: The static gate either misses shell drift or overreaches into legacy XAML.
 - Automation location: `tests/VeloFile.Corpus.Tests/UiContracts/UiContractTests.cs` and new shell fixture cases.
 
-TSC004. Screenshot sidecar contract and privacy validation
+TSC004. Optional screenshot sidecar contract and privacy validation
 - Covers: R66-R77, O3-O4, S3-S6, AC9-AC13, EC12-EC14, E5
 - Level: contract
-- Fixture/setup: Sidecar JSON fixtures for current, baseline, automated, and manual/release visual evidence.
-- Steps: Validate required sidecar fields: profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID. Assert profile size/scale consistency, no raw local paths/usernames/secrets/file contents/terminal commands/clipboard/preview text, and explicit manual/release classification for unavailable `shell-standard-1440x900-200`.
-- Expected result: Sidecars are traceable, safe, and cannot silently omit required high-DPI evidence.
-- Failure proves: Screenshot evidence is unsafe or not reviewable.
+- Fixture/setup: Optional sidecar JSON fixtures for current, baseline, automated, and manual visual artifacts.
+- Steps: When sidecars exist, validate required sidecar fields: profile, effective window size, scale, theme, density, fixture, evidence kind, dynamic regions, and review ID. Assert profile size/scale consistency and no raw local paths/usernames/secrets/file contents/terminal commands/clipboard/preview text.
+- Expected result: Optional sidecars are traceable, safe, and cannot be mistaken for required behavior or release proof.
+- Failure proves: Optional screenshot artifacts are unsafe or not reviewable.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/ShellVisualSidecarTests.cs`.
 
 TSC005. Design deviation records for accepted mismatches
 - Covers: R15, R22, AC19, EC15, EC22
 - Level: contract | manual
-- Fixture/setup: `docs/ui/design-deviations.md`, full-shell screenshot evidence notes.
+- Fixture/setup: `docs/ui/design-deviations.md`, optional full-shell screenshot notes when present.
 - Steps: For each accepted reference deviation or temporary redesigned/non-redesigned mismatch, assert the record names the affected region, reference pattern, VeloFile decision, reason, user impact, verification evidence, status, and review ID.
 - Expected result: Meaningful visual differences are reviewable rather than accidental drift.
 - Failure proves: Reviewers cannot distinguish intentional product decisions from regressions.
@@ -188,7 +188,7 @@ TSC008. Fixture icon resource dictionary exposes required vector resources
 - Fixture/setup: `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml`.
 - Steps: Assert the icon dictionary exists, is merged when needed, defines `VfFileListIconContainerStyle`, `VfFileListIconPathStyle`, `VfFileListFixtureIconTemplate`, and named `VfIconGeometry*` resources for `FileGeneric`, `Folder`, `Pdf`, `Image`, `Text`, `Spreadsheet`, `Executable`, `Markdown`, and `ThumbnailFallback`. Assert resources use raw `Path` geometry in a fixed container and tokenized foreground/background/size resources.
 - Expected result: Fixture icons are deterministic XAML vector resources, not text chips or platform/glyph controls.
-- Failure proves: Visual evidence may repeat the prior icon defect class.
+- Failure proves: Optional visual artifacts and fixture rendering may repeat the prior icon defect class.
 - Automation location: `tests/VeloFile.App.Tests/UiDesign/FixtureIconResourceContractTests.cs`.
 
 TSC009. Icon invariant checker rejects forbidden icon rendering paths
@@ -227,24 +227,24 @@ TSC012. Navigation-first sidebar preserves access and accessibility
 - Failure proves: A visual sidebar change introduced an observable behavior/accessibility regression.
 - Automation location: `tests/VeloFile.App.Tests/UiDesign/SidebarResourceContractTests.cs`; keyboard/accessibility manual notes for M5 if automation is incomplete.
 
-### Visual Evidence, Profiles, And Manual Review
+### Optional Visual Artifacts, Profiles, And Manual Review
 
-TSC013. Region-slice full-shell evidence exists before milestone closeout
-- Covers: R16-R22A, R26, R30-R33, R58-R65, R66-R73, A11Y1-A11Y9, P5-P7, AC9-AC11, AC16, AC21, EC1-EC3, EC9-EC11, EC15, EC19-EC20, E1-E5, E7
-- Level: manual | smoke | contract
-- Fixture/setup: Required current screenshots or manual review notes from M2-M7.
-- Steps: For each region milestone, assert required full-shell evidence exists before closeout: M2 `shell-default`; M4 `shell-filter-active` and `shell-search-active`; M5 `shell-sidebar-focused` or `shell-default`; M6 `shell-operation-running` and `shell-destructive-confirmation`; M7 `shell-preview-open`. For M3, accept either `shell-file-list-selected-focused` evidence or an approved M3 visual-evidence deferral record that names M8 as the required replacement gate and states that M3 code review does not claim whole-shell visual acceptance. Assert screenshots show the whole shell and any accepted mismatch has a deviation record.
-- Expected result: Region slices are reviewed in whole-shell context when visual evidence is present; the M3 exception is explicit, traceable, and cannot be mistaken for accepted visual evidence.
-- Failure proves: A milestone can close without visual evidence for shell coherence.
-- Automation location: `tests/VeloFile.Corpus.Tests/Visual/ShellVisualEvidenceInventoryTests.cs` plus manual review notes.
+TSC013. Region-slice closeout does not require visual artifacts
+- Covers: R16-R22A, R26, R66-R73, AC9-AC11, AC21, EC12-EC15, E5, E7
+- Level: contract
+- Fixture/setup: Plan milestone closeout notes and optional visual-artifact records when present.
+- Steps: Assert M2-M7 closeout criteria do not require screenshots or manual full-shell visual-review notes. Assert optional visual artifacts, if present, are labeled as supporting review context and not as behavior or release proof.
+- Expected result: Region slices can close through static resource validation, behavior-preservation evidence, accessibility checks, and deviation records without screenshot/manual visual evidence.
+- Failure proves: A milestone still has a hidden visual-evidence gate.
+- Automation location: plan/review contract checks under `tests/VeloFile.Corpus.Tests/UiContracts/` if implemented.
 
-TSC014. Required profile and baseline inventory validation
-- Covers: R22A, R66-R77, O3-O4, S3-S6, A11Y6-A11Y7, AC9-AC13, AC21, EC12-EC14, E4-E5, E7
+TSC014. Optional profile and sidecar guardrail validation
+- Covers: R66-R77, O3-O4, S3-S6, A11Y6-A11Y7, AC10-AC13, EC12-EC14, E5
 - Level: contract | script
-- Fixture/setup: `tests/visual/baselines/winui/<profile>/`, `tests/visual/current/`, `tests/visual/diffs/`, `scripts/update-ui-baselines.ps1`.
-- Steps: Assert the seven required shell states exist or have approved manual evidence; assert `shell-min-900x560-100` and `shell-standard-1440x900-100` are captured/reviewed; assert `shell-standard-1440x900-200` is captured or explicitly manual/release; assert generated current/diff outputs are ignored and normal CI does not mutate baselines. An M3 visual-evidence deferral is acceptable before M8, but M8/final closeout must fail if `shell-file-list-selected-focused` still has only a deferral record and no captured or manual-review evidence.
-- Expected result: Visual evidence inventory is complete, traceable, and non-mutating in normal CI.
-- Failure proves: Screenshot evidence is incomplete or baseline mutation is uncontrolled.
+- Fixture/setup: optional `tests/visual/baselines/winui/<profile>/`, `tests/visual/current/`, `tests/visual/diffs/`, `scripts/update-ui-baselines.ps1`.
+- Steps: If optional screenshots/sidecars are present, assert sidecars include required metadata, do not leak private data, and classify evidence kind correctly. Assert generated current/diff outputs are ignored and normal CI does not mutate baselines.
+- Expected result: Optional visual artifacts are traceable, privacy-safe, and non-mutating in normal CI.
+- Failure proves: Optional screenshot artifacts can be mistaken for required proof or can mutate/leak data.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/VisualBaselineInventoryTests.cs` and script tests.
 
 TSC015. Behavior-preservation matrix enforcement
@@ -265,11 +265,11 @@ TSC016. Region route preservation tests
 - Failure proves: A visual region slice changed product behavior.
 - Automation location: `tests/VeloFile.App.Tests/`, `tests/VeloFile.Core.Tests/`, and `tests/VeloFile.Windows.Tests/`.
 
-TSC017. Fixture-only evidence is labeled and limited
+TSC017. Fixture-only and visual artifacts are labeled and limited
 - Covers: R78-R82, AC17-AC20, EC21
 - Level: contract
-- Fixture/setup: screenshot sidecars, visual evidence notes, milestone validation notes.
-- Steps: Assert fixture visual evidence uses `evidenceKind` values that do not imply release/integration proof; assert behavior rows require separate automated/manual evidence; assert reports do not call fixture screenshots proof of real filesystem, Shell icon, drag/drop, preview, file-operation, terminal, diagnostics, or persistence behavior.
+- Fixture/setup: optional screenshot sidecars, visual notes, milestone validation notes.
+- Steps: Assert optional fixture/visual artifacts use `evidenceKind` values that do not imply release/integration proof; assert behavior rows require separate automated/manual evidence; assert reports do not call fixture screenshots proof of real filesystem, Shell icon, drag/drop, preview, file-operation, terminal, diagnostics, or persistence behavior.
 - Expected result: Review evidence cannot be misread as platform integration proof.
 - Failure proves: The project is over-trusting deterministic fixtures.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/ShellVisualEvidenceClassificationTests.cs`.
@@ -278,12 +278,12 @@ TSC018. Compatibility and rollback safety scan
 - Covers: R1-R15, C1-C7, I1-I6, AC19-AC20, EC22-EC23
 - Level: contract | regression
 - Fixture/setup: changed files per milestone, architecture/ADR, plan closeout notes.
-- Steps: Assert no Core/Windows adapter boundary changes are introduced by visual slices unless separately specified; assert no settings/session/favorites/recent/diagnostics schema migration is required; assert each region can be rolled back by reverting region resources, scoped XAML, tests, and visual evidence.
+- Steps: Assert no Core/Windows adapter boundary changes are introduced by visual slices unless separately specified; assert no settings/session/favorites/recent/diagnostics schema migration is required; assert each region can be rolled back by reverting region resources, scoped XAML, tests, and optional visual artifacts.
 - Expected result: Visual-coherence work stays compatible with V1 and rollback remains region-local.
 - Failure proves: The change has become architecture or migration work beyond this spec.
 - Automation location: corpus/static architecture tests plus code review checklist.
 
-TSC019. Visual evidence security and baseline update guardrails
+TSC019. Optional visual artifact security and baseline update guardrails
 - Covers: R74-R77, O3-O5, S3-S6, AC12-AC13, EC12-EC14
 - Level: security | script
 - Fixture/setup: baseline update script, sidecar fixtures, generated output directories.
@@ -292,12 +292,12 @@ TSC019. Visual evidence security and baseline update guardrails
 - Failure proves: Visual artifacts can be mutated or leaked without review.
 - Automation location: `tests/VeloFile.Corpus.Tests/Visual/UpdateUiBaselinesScriptTests.cs` or `tests/validation/UpdateUiBaselines.Tests.ps1`.
 
-TSC020. Manual full-shell visual review checklist
+TSC020. Optional manual full-shell visual review checklist
 - Covers: R16-R22, R26, R29-R33, R44-R49, R52-R56, R58-R65, R69-R73, A11Y1-A11Y9, E1-E5
 - Level: manual | smoke
-- Fixture/setup: App launched in allowed fixture mode; required profiles and shell states; design-deviation log.
-- Steps: Review required full-shell states for one coherent dark comfortable surface model, current-location/action/file hierarchy, no raw/default governed controls, deterministic polished icons, no placeholder chips, focus/selection not danger-like, sidebar navigation-first hierarchy, operation/destructive clarity, preview balance, minimum-size usability, and high-DPI readability or manual/release notes.
-- Expected result: A reviewer can judge whole-shell coherence without pixel-perfect gating.
+- Fixture/setup: App launched in allowed fixture mode if optional visual review is performed; optional profiles and shell states; design-deviation log.
+- Steps: When optional manual visual review is performed, review chosen full-shell states for one coherent dark comfortable surface model, current-location/action/file hierarchy, no raw/default governed controls, deterministic polished icons, no placeholder chips, focus/selection not danger-like, sidebar navigation-first hierarchy, operation/destructive clarity, preview balance, minimum-size usability, and high-DPI readability or manual notes.
+- Expected result: A reviewer can use optional visual artifacts to judge whole-shell coherence without making them pixel-perfect or closeout gates.
 - Failure proves: Static checks passed but the shell still looks visually fragmented or inaccessible.
 - Automation location: manual review notes and `tests/visual/baselines/winui/<profile>/`.
 
@@ -312,11 +312,11 @@ TSC021. Existing broad V1 regression validation
 
 ## Fixtures and Data
 
-- `tests/fixtures/ui-contracts/valid/`: controlled valid token, shell scope, sidecar, and icon resource dictionaries.
-- `tests/fixtures/ui-contracts/invalid/`: invalid shell literals, raw/default controls, missing resources, forbidden icon controls, ellipsized chips, sidecar privacy leaks, profile mismatches, and missing review IDs.
+- `tests/fixtures/ui-contracts/valid/`: controlled valid token, shell scope, optional sidecar, and icon resource dictionaries.
+- `tests/fixtures/ui-contracts/invalid/`: invalid shell literals, raw/default controls, missing resources, forbidden icon controls, ellipsized chips, optional sidecar privacy leaks, profile mismatches, and missing review IDs when sidecars are used.
 - `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml`: production fixture icon resource dictionary for deterministic first evidence.
-- Full-shell fixture states: `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation`.
-- Review profiles: `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`.
+- Optional full-shell fixture states: `shell-default`, `shell-file-list-selected-focused`, `shell-filter-active`, `shell-search-active`, `shell-preview-open`, `shell-operation-running`, and `shell-destructive-confirmation`.
+- Optional review profiles: `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`.
 - `tests/visual/current/` and `tests/visual/diffs/`: generated, ignored, uncommitted screenshot outputs.
 - `docs/ui/design-deviations.md`: accepted or temporary reference and whole-shell mismatch records.
 
@@ -333,7 +333,7 @@ Fixture rules:
 - App-shell fixture tests may use fake view models, fake row data, fake operation state, fake preview state, and test dispatchers to force deterministic visual states.
 - Existing Core and Windows adapter behavior must not be mocked away when proving V1 behavior preservation; use existing real-boundary tests or explicit manual evidence.
 - Screenshot tests may classify dynamic regions through sidecar metadata, but must not hide deterministic shell controls, icon surfaces, row text, selected/focused state, operation danger hierarchy, or sidebar grouping as dynamic.
-- If full WinUI process capture or `200%` scaling cannot be automated locally, record manual/release evidence and keep static/fixture-sidecar tests automated.
+- If full WinUI process capture or `200%` scaling cannot be automated locally, do not block closeout; use static/resource tests, app tests, or explicit manual behavior notes for touched high-DPI risk.
 
 ## Migration or Compatibility Tests
 
@@ -389,11 +389,11 @@ Covered by TSC007, TSC008, TSC010, TSC014, TSC015, TSC018, TSC020, and TSC021.
 
 ## Manual QA Checklist
 
-Manual review is required when screenshot capture, high-DPI scaling, keyboard traversal, or accessibility metadata cannot be fully automated.
+Manual behavior/accessibility notes are required only when touched keyboard traversal, accessibility metadata, or high-DPI behavior cannot be fully automated. Manual visual review and screenshots remain optional supporting context.
 
 - Review `shell-default` at `shell-standard-1440x900-100` for one coherent app/chrome/sidebar/content/command/file-list/status/preview surface model.
 - Review `shell-min-900x560-100` when layout or minimum-size behavior changes; confirm no primary navigation clipping, usable file list, unobscured content, reachable path/search band, visible selected/focused row, and non-obscuring operation/destructive surfaces.
-- Review `shell-standard-1440x900-200` as automated or manual/release evidence; confirm readable text, crisp icons, visible focus ring, no clipped controls, and stable row rhythm.
+- When optional `shell-standard-1440x900-200` artifacts are recorded, confirm readable text, crisp icons, visible focus ring, no clipped controls, and stable row rhythm.
 - Review deterministic icons; confirm no `P...`, `D...`, `T...`, `SymbolIcon`, `PathIcon`, private-use glyph, or real Shell icon dependency appears in governed fixture evidence.
 - Review sidebar grouping; confirm locations, favorites, recents, and drives are primary while visibility toggles and terminal controls remain discoverable and keyboard reachable.
 - Review command band active filter/search states; confirm path, filter, search, cancel, clear, and disabled states remain reachable and visually integrated.
@@ -420,13 +420,17 @@ Implementation still needs to choose exact class names for some new tests, the f
 
 ## Next Artifacts
 
-- `implement` after this test spec is accepted for use by the milestone implementation workflow.
-- M1 implementation in [2026-05-11-ui-shell-visual-coherence.md](../docs/plans/2026-05-11-ui-shell-visual-coherence.md), starting with shell contract and validator extension.
+- Test-spec review for the 2026-05-17 visual-evidence gate removal amendment.
+- If test-spec review approves the amendment, return M4 to code review under the amended proof model.
 
 ## Follow-on Artifacts
 
-None yet.
+- [spec-review-r2](../docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/spec-review-r2.md): approved the feature-spec amendment with no material findings.
+- [architecture-review-r1](../docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/architecture-review-r1.md): approved the architecture and ADR amendment with no material findings.
+- [plan-review-r4](../docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/plan-review-r4.md): approved the plan amendment with no material findings.
+- [test-spec-review-r1](../docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r1.md): requested stale readiness wording cleanup through TSR-001.
+- [test-spec-review-r2](../docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r2.md): approved the amended proof model with no material findings.
 
 ## Readiness
 
-Active and ready for `implement` at M1. M1 should begin test-first against TSC001-TSC005, TSC009, TSC014, TSC015, TSC017, and TSC019.
+Test-spec review approved for the 2026-05-17 visual-evidence gate removal amendment. The amended proof plan keeps screenshots and manual visual notes optional, preserves static/resource validation and behavior-preservation checks as hard proof, and is ready to support returning M4 to code review under the amended proof model.

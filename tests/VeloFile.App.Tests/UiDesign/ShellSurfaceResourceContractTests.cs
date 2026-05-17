@@ -134,6 +134,7 @@ public sealed class ShellSurfaceResourceContractTests
     public void Sidebar_visibility_toggles_hide_visible_on_off_content_and_keep_accessible_names()
     {
         var xaml = ReadRepoFile("src", "VeloFile.App", "MainWindow.xaml");
+        var sidebarXaml = ReadRepoFile("src", "VeloFile.App", "Resources", "Components", "VeloFile.Sidebar.xaml");
 
         foreach (var toggleName in new[]
         {
@@ -145,13 +146,16 @@ public sealed class ShellSurfaceResourceContractTests
             var toggle = ExtractNamedElement(xaml, toggleName);
             StringAssert.Contains(toggle, "OnContent=\"\"");
             StringAssert.Contains(toggle, "OffContent=\"\"");
-            StringAssert.Contains(toggle, "Style=\"{StaticResource VfShellToggleSwitchStyle}\"");
+            StringAssert.Contains(toggle, "Style=\"{StaticResource VfSidebarToggleStyle}\"");
             StringAssert.Contains(toggle, "AutomationProperties.Name=");
             Assert.IsFalse(toggle.Contains("OnContent=\"On\"", StringComparison.Ordinal));
             Assert.IsFalse(toggle.Contains("OffContent=\"Off\"", StringComparison.Ordinal));
             Assert.IsFalse(toggle.Contains("开", StringComparison.Ordinal));
             Assert.IsFalse(toggle.Contains("关", StringComparison.Ordinal));
         }
+
+        StringAssert.Contains(sidebarXaml, "x:Key=\"VfSidebarToggleStyle\"");
+        StringAssert.Contains(sidebarXaml, "BasedOn=\"{StaticResource VfShellToggleSwitchStyle}\"");
     }
 
     [TestMethod]

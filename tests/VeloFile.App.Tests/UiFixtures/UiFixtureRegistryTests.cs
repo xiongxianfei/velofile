@@ -132,6 +132,7 @@ public sealed class UiFixtureRegistryTests
         var viewModel = UiFixtureRegistry.CreateFileListV1ViewModel();
 
         await WaitUntilAsync(() => viewModel.FileListRows.Count >= 10);
+        await WaitUntilAsync(() => viewModel.FileListRows.Any(row => row.IconKind == FileListIconKind.ThumbnailFallback));
 
         Assert.AreEqual(@"C:\VeloFileFixture", viewModel.ActivePath);
         Assert.IsTrue(viewModel.FileListRows.Any(row => row.DisplayName == "Document.pdf"));
