@@ -25,6 +25,20 @@ VeloFile V1 is implemented behind a Windows App SDK app shell with Core and Wind
 - .NET SDK 10.x.
 - Visual Studio 2022 with WinUI / Windows App SDK C# tooling.
 
+## Run Locally
+
+From a Windows developer shell at the repository root:
+
+```powershell
+dotnet restore VeloFile.sln
+dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug -p:Platform=x64
+dotnet run --project src\VeloFile.App\VeloFile.App.csproj -c Debug -p:Platform=x64
+```
+
+You can also open `VeloFile.sln` in Visual Studio 2022, set `VeloFile.App` as the startup project, choose `x64`, and press F5.
+
+The local Debug run is unpackaged. Use the release commands below when you need an MSIX package.
+
 ## Build And Test
 
 ```powershell
