@@ -4,7 +4,7 @@
 
 active
 
-Readiness is not Done. M1-M6 are closed, the 2026-05-17 amendment removing mandatory visual-evidence gates is approved by spec-review-r2, architecture-review-r1, plan-review-r4, and test-spec-review-r2, and M7 implementation is ready for code review.
+Readiness is not Done. M1-M7 are closed, the 2026-05-17 amendment removing mandatory visual-evidence gates is approved by spec-review-r2, architecture-review-r1, plan-review-r4, and test-spec-review-r2, and optional M8 is not triggered because no optional visual artifacts require consolidation.
 
 ## Purpose / Big Picture
 
@@ -304,7 +304,7 @@ The prior M3-only visual-evidence deferral is superseded by this rule. Optional 
 
 ### M7. Preview and Details Surface Treatment
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Integrate preview/details loading, success, unsupported, failed, metadata, image, text, and PDF states into the shell surface system without destabilizing file-list layout.
 - Requirements: R16-R22, R62-R65, R66-R77, R78-R82, A11Y1-A11Y6, P1-P2, AC9-AC13, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/Resources/Components/VeloFile.Preview.xaml`, `tests/VeloFile.App.Tests/Preview/`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -341,7 +341,7 @@ The prior M3-only visual-evidence deferral is superseded by this rule. Optional 
 
 ### M8. Optional Visual Artifact Guardrails
 
-- Milestone state: optional
+- Milestone state: optional; not triggered
 - Goal: Consolidate optional full-shell screenshot states, sidecars, evidence inventory validation, and profile classification only if optional visual artifacts are recorded during M2-M7.
 - Requirements: R66-R82, O3-O4, S3-S6, A11Y6-A11Y7, AC9-AC13, AC17-AC20.
 - Files/components likely touched if optional artifacts are used: `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, screenshot capture helpers if present, `scripts/update-ui-baselines.ps1`, `tests/visual/baselines/winui/` or manual evidence records, `tests/VeloFile.Corpus.Tests/UiContracts/`.
@@ -385,7 +385,7 @@ The prior M3-only visual-evidence deferral is superseded by this rule. Optional 
 - Goal: Close the shell visual-coherence initiative only after all implementation milestones are closed or explicitly removed by reviewed plan revision, review findings are resolved, durable rationale exists, and final verification passes.
 - Requirements: all acceptance criteria after M1-M8.
 - Files/components likely touched: this plan, change records, explain-change artifact, PR notes; no new product behavior.
-- Dependencies: M1-M8 closed, code-review/review-resolution complete for each implementation milestone.
+- Dependencies: M1-M7 closed, optional M8 closed only if triggered, and code-review/review-resolution complete for each implementation milestone.
 - Tests to add/update: none unless review findings require remediation.
 - Implementation steps:
   - Ensure each in-scope implementation milestone is `closed`.
@@ -473,20 +473,20 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] M4 closed.
 - [x] M5 closed.
 - [x] M6 closed.
-- [ ] M7 closed.
-- [ ] M8 closed.
+- [x] M7 closed.
+- [x] M8 not triggered under the amended optional visual-artifact rule.
 - [ ] Lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-Current milestone: M7. Preview and Details Surface Treatment
-Current milestone state: review-requested
-Last reviewed milestone: M6 (clean-with-notes)
-Review status: code-review-r17 closed M6 with no material findings; M6 requires no review-resolution
-Remaining in-scope implementation milestones: M7; M8 is optional only if visual artifacts are recorded
-Next stage: code-review M7
+Current milestone: M9. Lifecycle Closeout and Regression Verification
+Current milestone state: lifecycle-closeout
+Last reviewed milestone: M7 (clean-with-notes)
+Review status: code-review-r18 closed M7 with no material findings; M7 requires no review-resolution
+Remaining in-scope implementation milestones: none; M8 is optional and not triggered
+Next stage: explain-change
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1-M6 are closed, but M7 is implemented and not yet reviewed. M8 remains optional only if visual artifacts are recorded.
+Reason final closeout is or is not ready: M1-M7 are closed and optional M8 is not triggered, but lifecycle closeout still needs explain-change, final verification, and PR handoff work.
 
 ## Decision Log
 
@@ -499,7 +499,7 @@ Reason final closeout is or is not ready: M1-M6 are closed, but M7 is implemente
 | 2026-05-11 | Treat M9 as lifecycle closeout, not implementation. | Final closeout must not hide unfinished region work. |
 | 2026-05-11 | Reuse existing first-slice dark comfortable tokens for M2 shell foundation instead of adding new token IDs. | Existing V1 tokens already cover the M2 surface, text, focus, selection, hover, disabled, danger, warning, success, spacing, radius, sizing, and focus-thickness needs. |
 | 2026-05-16 | Use allowlisted `FileListIconKind` values and `Resources/Icons/VeloFile.FixtureIcons.xaml` geometry resources for M3 file-list icons. | This closes the placeholder text-chip class without introducing arbitrary resource-key fixture input or glyph-font/private-use icon rendering. |
-| 2026-05-17 | Defer M3 `shell-file-list-selected-focused` full-shell visual evidence to M8. | Maintainer requested skipping the M3 evidence gate so code review can assess deterministic icon/resource and behavior-preservation work now. This decision is superseded by the later visual-evidence-gate removal amendment if approved. |
+| 2026-05-17 | Defer M3 `shell-file-list-selected-focused` full-shell visual evidence to M8. | Maintainer requested skipping the M3 evidence gate so code review can assess deterministic icon/resource and behavior-preservation work now. This decision is superseded by the approved visual-evidence-gate removal amendment. |
 | 2026-05-17 | Draft removal of mandatory visual-evidence gates. | Maintainer requested removing the visual evidence requirement entirely; screenshots/manual visual notes become optional supporting artifacts and static/behavior/accessibility validation remains the hard closeout proof. |
 | 2026-05-17 | Resolve CR-008 by wiring command-band state resources instead of narrowing the spec. | The M4 contract requires tokenized hover, pressed, disabled, focused, and input-border states; key existence alone was insufficient proof. |
 
@@ -641,7 +641,7 @@ M3 implementation validation:
 - Added a tokenized file-list details header in the governed file-list scope to improve column rhythm without changing selection, context-menu, drag/drop, thumbnail, or preview routes.
 - Activated the `fixture-icons` UI contract scope and added the M3 icon/template/header resource keys to `docs/ui/ui-contract-scopes.v1.json`.
 - Updated the valid UI-contract fixture and targeted scope fixture so active M3 header/icon resources are represented in `scripts/ci.ps1`.
-- Recorded deferred M3 visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md`; M3 whole-shell visual acceptance is not claimed, and the deferred state remains required for M8.
+- Recorded deferred M3 visual evidence at `docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md`; M3 whole-shell visual acceptance is not claimed, and the deferred state was required for M8 only under the prior contract.
 - 2026-05-17 amendment supersedes the M3 visual-evidence deferral as a closeout requirement.
 - Validation passed:
   - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"`: passed, 21 tests.
@@ -658,13 +658,13 @@ M3 evidence deferral amendment:
 - `shell-file-list-selected-focused` full-shell visual evidence was deferred to M8 by maintainer request under the prior contract.
 - M3 code review may proceed, but M3 must not claim whole-shell visual acceptance.
 - M8 remained blocked until the deferred state had captured or manual-review evidence under the prior contract.
-- 2026-05-17 amendment supersedes this M8 blocker if approved.
+- The approved 2026-05-17 amendment supersedes this M8 blocker.
 
 M3 code review:
 
 - `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`: clean-with-notes, no findings.
-- M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; the M8 blocker is superseded by the visual-evidence-gate removal amendment if approved.
-- 2026-05-17 amendment supersedes this M8 blocker if approved.
+- M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; the M8 blocker is superseded by the approved visual-evidence-gate removal amendment.
+- The approved 2026-05-17 amendment supersedes this M8 blocker.
 
 M4 implementation validation:
 
@@ -796,10 +796,16 @@ M7 implementation validation:
   - `git diff --check`: passed with CRLF normalization warnings only.
 - M7 static/resource and behavior-preservation validation is complete. Under the approved visual-evidence-gate removal amendment, M7 does not need `shell-preview-open` visual evidence before code review.
 
+M7 code review:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r18.md`: clean-with-notes; M7 closed with no material findings.
+- No M7 review-resolution is required.
+- Optional M8 is not triggered by M7 because no optional current screenshots, sidecars, diffs, or baseline artifacts were added. Prior M2/M3 visual-evidence records remain historical context under AC21 and do not block final closeout.
+
 ## Outcome and Retrospective
 
 Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M7 implementation is ready for code review. This plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M1-M7 are closed and optional M8 is not triggered. This plan is ready to start lifecycle closeout, but it is not ready for final verification, PR handoff, or Done.

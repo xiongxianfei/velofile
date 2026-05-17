@@ -28,3 +28,4 @@
 | [code-review-r15](reviews/code-review-r15.md) | code-review | M4 | clean-with-notes | none |
 | [code-review-r16](reviews/code-review-r16.md) | code-review | M5 | clean-with-notes | none |
 | [code-review-r17](reviews/code-review-r17.md) | code-review | M6 | clean-with-notes | none |
+| [code-review-r18](reviews/code-review-r18.md) | code-review | M7 | clean-with-notes | none |

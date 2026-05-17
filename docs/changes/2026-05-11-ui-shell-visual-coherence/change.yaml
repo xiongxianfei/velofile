@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-shell-visual-coherence
 title: UI shell visual coherence
-status: m7-review-requested
+status: lifecycle-closeout
 proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
 spec: specs/ui-shell-visual-coherence.md
 plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
@@ -9,8 +9,8 @@ architecture:
   - docs/adr/0010-shell-visual-coherence-contracts.md
 review:
   stage: code-review
-  status: review-requested
-  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r17.md
+  status: clean-with-notes
+  record: docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r18.md
   findings: []
   prior_records:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/spec-review-r1.md
@@ -36,11 +36,12 @@ review:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/test-spec-review-r2.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r15.md
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r16.md
+    - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r17.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
   milestone: M7
-  status: review-requested
-  summary: M7 preview/details surface treatment implementation is complete and ready for code review. M6 status, operation, and destructive surface implementation passed code-review-r17 with no material findings.
+  status: closed
+  summary: M7 preview/details surface treatment implementation passed code-review-r18 with no material findings. All required implementation milestones are closed; optional M8 is not triggered under the amended visual-evidence contract.
   validation:
     - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FullyQualifiedName~PreviewResourceContractTests"
     - dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
@@ -64,4 +65,4 @@ history:
 visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
-next_stage: code-review M7
+next_stage: explain-change
