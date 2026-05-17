@@ -163,7 +163,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M3. File-List Polish and Deterministic Fixture Icons
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Complete the file-list follow-on polish and replace placeholder-like fixture icon chips with governed deterministic XAML vector resources.
 - Requirements: R22A, R28-R43, R66, A11Y1-A11Y3, A11Y8, P1-P4, AC6-AC8, AC16, AC21.
 - Files/components likely touched: `src/VeloFile.App/Resources/Components/VeloFile.FileList.xaml`, `src/VeloFile.App/Resources/Icons/VeloFile.FixtureIcons.xaml`, `src/VeloFile.App/Testing/UiFixtureRegistry.cs`, `src/VeloFile.App/ViewModels/FileListRowViewModel.cs`, `src/VeloFile.App/MainWindow.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/UiFixtures/`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -495,7 +495,7 @@ No data migration is expected. Rollback is per governed region by reverting that
 - [x] Matching test spec accepted.
 - [x] M1 closed.
 - [x] M2 closed.
-- [ ] M3 closed.
+- [x] M3 closed.
 - [ ] M4 closed.
 - [ ] M5 closed.
 - [ ] M6 closed.
@@ -505,14 +505,14 @@ No data migration is expected. Rollback is per governed region by reverting that
 
 ## Current Handoff Summary
 
-Current milestone: M3. File-List Polish and Deterministic Fixture Icons
-Current milestone state: review-requested
-Last reviewed milestone: M2 (closed)
-Review status: M2 code-review clean-with-notes in `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r9.md`
-Remaining in-scope implementation milestones: M3-M8
-Next stage: `code-review` M3
+Current milestone: M4. Command Band Visual Coherence
+Current milestone state: planned
+Last reviewed milestone: M3 (closed)
+Review status: M3 code-review clean-with-notes in `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`
+Remaining in-scope implementation milestones: M4-M8
+Next stage: `implement` M4
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1 and M2 are closed; M3 implementation is complete and M3 full-shell visual evidence is deferred to M8 by approved amendment, but M3 code review and M4-M8 are not closed.
+Reason final closeout is or is not ready: M1-M3 are closed, but M4-M8 are not closed and M3 full-shell visual evidence remains deferred to M8 by approved amendment.
 
 ## Decision Log
 
@@ -681,10 +681,15 @@ M3 evidence deferral amendment:
 - M3 code review may proceed, but M3 must not claim whole-shell visual acceptance.
 - M8 remains blocked until the deferred state has captured or manual-review evidence.
 
+M3 code review:
+
+- `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`: clean-with-notes, no findings.
+- M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; M8 remains blocked until `shell-file-list-selected-focused` has captured or manual-review evidence.
+
 ## Outcome and Retrospective
 
 Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M3 implementation is ready for code review under the M3 visual-evidence deferral amendment. This plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M4 is ready for implementation. This plan is not ready for final closeout, verification, PR handoff, or Done.
