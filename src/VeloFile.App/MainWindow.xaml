@@ -183,11 +183,12 @@
             </Grid>
         </Border>
 
+        <!-- ui-contract-scope:shell-command-band:start -->
         <Grid
             Grid.Row="1"
             Grid.Column="1"
-            Margin="12,8,12,8"
-            Style="{StaticResource VfShellCommandBandContainerStyle}">
+            Margin="{StaticResource VfCommandBandOuterMargin}"
+            Style="{StaticResource VfCommandBandContainerStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -197,35 +198,33 @@
 
             <StackPanel
                 x:Name="NavigationButtons"
-                Orientation="Horizontal"
-                VerticalAlignment="Center"
-                Spacing="4">
-                <Button Width="36" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
-                    <Viewbox Width="16" Height="16">
+                Style="{StaticResource VfCommandBandNavigationGroupStyle}">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Back" Click="BackButton_Click" AutomationProperties.Name="Back">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 12.7,4.3 L 5,12 L 12.7,19.7 L 14.1,18.3 L 7.8,12 L 14.1,5.7 Z"
                             Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Forward" Click="ForwardButton_Click" AutomationProperties.Name="Forward">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 7.3,4.3 L 15,12 L 7.3,19.7 L 5.9,18.3 L 12.2,12 L 5.9,5.7 Z"
                             Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Up" Click="UpButton_Click" AutomationProperties.Name="Parent folder">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 12,5 L 19.7,12.7 L 18.3,14.1 L 13,8.8 L 13,20 L 11,20 L 11,8.8 L 5.7,14.1 L 4.3,12.7 Z"
                             Fill="{StaticResource VfShellControlForegroundBrush}"
                             Stretch="Uniform" />
                     </Viewbox>
                 </Button>
-                <Button Width="36" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
-                    <Viewbox Width="16" Height="16">
+                <Button Style="{StaticResource VfCommandBandIconButtonStyle}" ToolTipService.ToolTip="Refresh" Click="RefreshButton_Click" AutomationProperties.Name="Refresh">
+                    <Viewbox Width="{StaticResource VfCommandBandIconSize}" Height="{StaticResource VfCommandBandIconSize}">
                         <Path
                             Data="M 18.7,7.1 C 17.2,5.2 14.8,4 12,4 C 7.6,4 4,7.2 4,11.2 C 4,15.6 7.6,19 12,19 C 15.4,19 18.3,16.9 19.4,13.9 L 17.3,13.9 C 16.4,15.8 14.4,17 12,17 C 8.7,17 6,14.5 6,11.2 C 6,8.4 8.7,6 12,6 C 14.2,6 16.1,6.9 17.2,8.4 L 14,8.4 L 14,10.4 L 20,10.4 L 20,4.4 L 18,4.4 L 18,7.1 Z"
                             Fill="{StaticResource VfShellControlForegroundBrush}"
@@ -237,7 +236,8 @@
             <ListView
                 x:Name="BreadcrumbPathBar"
                 Grid.Column="1"
-                Margin="8,0,0,0"
+                Margin="{StaticResource VfCommandBandBreadcrumbMargin}"
+                Style="{StaticResource VfCommandBandPathListStyle}"
                 IsItemClickEnabled="True"
                 ItemClick="BreadcrumbPathBar_ItemClick"
                 SelectionMode="None"
@@ -251,7 +251,7 @@
                     <DataTemplate>
                         <Button
                             Content="{Binding DisplayName}"
-                            Padding="8,4"
+                            Style="{StaticResource VfCommandBandBreadcrumbButtonStyle}"
                             AutomationProperties.Name="{Binding DisplayName}" />
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -260,7 +260,8 @@
             <TextBox
                 x:Name="RawPathBox"
                 Grid.Column="2"
-                Margin="12,0"
+                Margin="{StaticResource VfCommandBandPathMargin}"
+                Style="{StaticResource VfCommandBandPathStyle}"
                 KeyDown="RawPathBox_KeyDown"
                 PlaceholderText="Type or paste a path"
                 AutomationProperties.Name="Raw path" />
@@ -268,14 +269,14 @@
             <StackPanel
                 x:Name="FileViewModeSelector"
                 Grid.Column="3"
-                Orientation="Horizontal"
-                Spacing="4"
+                Style="{StaticResource VfCommandBandViewModeGroupStyle}"
                 AutomationProperties.Name="File view mode">
-                <RadioButton Content="Details" IsChecked="True" />
-                <RadioButton Content="List" />
-                <RadioButton Content="Icons" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="Details" IsChecked="True" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="List" />
+                <RadioButton Style="{StaticResource VfCommandBandRadioButtonStyle}" Content="Icons" />
             </StackPanel>
         </Grid>
+        <!-- ui-contract-scope:shell-command-band:end -->
 
         <Border
             x:Name="SidebarPane"
@@ -535,11 +536,12 @@
             </Grid>
             <!-- ui-contract-scope:file-list-first-slice:end -->
 
+            <!-- ui-contract-scope:shell-command-band:start -->
             <Grid
                 x:Name="FilterSearchSurface"
                 Grid.Row="3"
-                Margin="0,8,0,0"
-                ColumnSpacing="8">
+                Margin="{StaticResource VfCommandBandFilterSearchMargin}"
+                Style="{StaticResource VfCommandBandSearchContainerStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />
                     <ColumnDefinition Width="220" />
@@ -557,62 +559,70 @@
                 </Grid.RowDefinitions>
                 <TextBox
                     x:Name="CurrentFolderFilterBox"
+                    Style="{StaticResource VfCommandBandInputStyle}"
                     PlaceholderText="Filter"
                     TextChanged="CurrentFolderFilterBox_TextChanged"
                     AutomationProperties.Name="Current folder filter" />
                 <TextBox
                     x:Name="RecursiveSearchBox"
                     Grid.Column="1"
+                    Style="{StaticResource VfCommandBandInputStyle}"
                     PlaceholderText="Search"
                     KeyDown="RecursiveSearchBox_KeyDown"
                     AutomationProperties.Name="Recursive search" />
                 <Button
                     x:Name="RecursiveSearchButton"
                     Grid.Column="2"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Search"
                     Click="RecursiveSearchButton_Click"
                     AutomationProperties.Name="Run recursive search" />
                 <Button
                     x:Name="CancelSearchButton"
                     Grid.Column="3"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Cancel"
                     Click="CancelSearchButton_Click"
                     AutomationProperties.Name="Cancel recursive search" />
                 <Button
                     x:Name="ClearSearchButton"
                     Grid.Column="4"
+                    Style="{StaticResource VfCommandBandButtonStyle}"
                     Content="Clear"
                     Click="ClearSearchButton_Click"
                     AutomationProperties.Name="Clear recursive search" />
                 <TextBlock
                     x:Name="RecursiveSearchStatusText"
                     Grid.Column="5"
-                    VerticalAlignment="Center"
-                    Opacity="0.72" />
+                    Style="{StaticResource VfCommandBandStatusTextStyle}" />
                 <ListView
                     x:Name="SkippedLocationsList"
                     Grid.Row="1"
                     Grid.ColumnSpan="6"
-                    Margin="0,6,0,0"
+                    Margin="{StaticResource VfCommandBandSkippedLocationsMargin}"
                     MaxHeight="96"
                     Visibility="Collapsed"
                     AutomationProperties.Name="Skipped search locations">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid ColumnSpacing="8" Padding="4,2">
+                            <Grid ColumnSpacing="{StaticResource VfCommandBandColumnSpacing}" Padding="{StaticResource VfCommandBandSkippedLocationRowPadding}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="140" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding ReasonCode}" />
+                                <TextBlock
+                                    Style="{StaticResource VfCommandBandSkippedLocationTextStyle}"
+                                    Text="{Binding ReasonCode}" />
                                 <TextBlock
                                     Grid.Column="1"
+                                    Style="{StaticResource VfCommandBandSkippedLocationTextStyle}"
                                     Text="{Binding Path}"
                                     TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+            <!-- ui-contract-scope:shell-command-band:end -->
                 <StackPanel
                     x:Name="RenamePanel"
                     Grid.Row="2"

@@ -94,3 +94,37 @@ M2 reuses existing first-slice V1 tokens instead of adding new token IDs because
 - M2 does not add persisted theme/density settings or new token major versions.
 - M2 does not change Core, Windows adapters, file operations, preview providers, terminal launch, diagnostics, persistence, or runtime behavior routes.
 - M2 records a manual visual-review note rather than a screenshot because full-shell screenshot automation is not stable or implemented for this milestone.
+
+## M4: Command Band Visual Coherence
+
+M4 implements the command/path/filter/search visual-resource slice while keeping the existing navigation and search behavior routes intact.
+
+## What Changed
+
+- Added `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml` with governed command-band brushes, spacing, sizing, padding, button, icon-button, breadcrumb, input, path, radio, status, and skipped-location text styles.
+- Merged the command-band resource dictionary through `src/VeloFile.App/App.xaml`.
+- Updated the existing command/path/filter/search XAML in `src/VeloFile.App/MainWindow.xaml` to consume command-band resources and added `shell-command-band` scope markers.
+- Activated `shell-command-band` in `docs/ui/ui-contract-scopes.v1.json`.
+- Updated valid UI-contract fixtures so the active production scope also validates under `scripts/ci.ps1`.
+- Added `tests/VeloFile.App.Tests/UiDesign/CommandBandResourceContractTests.cs` to prove dictionary merge, required style resources, scoped XAML usage, route preservation, and accessibility names/tooltips.
+- Updated the corpus shell visual-coherence contract test so the command-band scope is expected to be active at M4.
+- Tightened the existing icon-button invariant test to reject actual icon controls/glyphs instead of rejecting style names containing `Icon`.
+
+## Why This Changed
+
+The approved M4 contract requires the command band to read as one intentional navigation/path/filter/search region while preserving existing V1 command behavior. This change keeps the handlers and view-model routes stable and moves the visual treatment into governed WinUI resources so later shell regions can share the same tokenized model.
+
+## Validation
+
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "CommandBandResourceContractTests"` failed before implementation for the expected missing command-band resources/scope, then passed: 4 tests.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid` passed.
+- `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug` passed with 0 warnings and 0 errors.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"` passed: 67 tests.
+- `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"` passed for matching App, Core, and Corpus tests; Windows had no matching tests for this filter.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1` passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core/App/Windows/Corpus tests passed.
+
+## Deferred By Design
+
+- M4 does not change Core, Windows adapters, file operations, preview, sidebar ordering, status/operation surfaces, or command route behavior.
+- M4 is not ready for code review until accepted `shell-filter-active` and `shell-search-active` full-shell visual evidence is recorded for `shell-standard-1440x900-100`.

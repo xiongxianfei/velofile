@@ -86,7 +86,11 @@ public sealed class AppShellContractTests
             StringAssert.Contains(button, "<Viewbox");
             StringAssert.Contains(button, "<Path");
             StringAssert.Contains(button, "Data=\"");
-            Assert.IsFalse(button.Contains("Icon", StringComparison.Ordinal), $"{automationName} must not depend on icon controls or icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("<SymbolIcon", StringComparison.Ordinal), $"{automationName} must not depend on SymbolIcon font glyph resolution.");
+            Assert.IsFalse(button.Contains("<PathIcon", StringComparison.Ordinal), $"{automationName} must not depend on PathIcon controls.");
+            Assert.IsFalse(button.Contains("Glyph=\"", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("Segoe MDL2 Assets", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
+            Assert.IsFalse(button.Contains("Segoe Fluent Icons", StringComparison.Ordinal), $"{automationName} must not depend on icon font glyph resolution.");
         }
     }
 

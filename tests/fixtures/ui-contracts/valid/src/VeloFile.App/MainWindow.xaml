@@ -15,6 +15,14 @@
         ItemTemplate="{StaticResource VfFileListRowTemplate}"
         ItemContainerStyle="{StaticResource VfFileListItemContainerStyle}" />
     <!-- ui-contract-scope:file-list-first-slice:end -->
+    <!-- ui-contract-scope:shell-command-band:start -->
+    <Grid Style="{StaticResource VfCommandBandContainerStyle}">
+      <Button Style="{StaticResource VfCommandBandButtonStyle}" />
+      <TextBox Style="{StaticResource VfCommandBandInputStyle}" />
+      <TextBox Style="{StaticResource VfCommandBandPathStyle}" />
+      <TextBlock Style="{StaticResource VfCommandBandStatusTextStyle}" />
+    </Grid>
+    <!-- ui-contract-scope:shell-command-band:end -->
   </Grid>
   <Window.Resources>
     <SolidColorBrush x:Key="LegacyUnrelatedBrush" Color="#111111" />

@@ -204,7 +204,7 @@ M8 remains the consolidation and baseline-inventory milestone. M8 is not the fir
 
 ### M4. Command Band Visual Coherence
 
-- Milestone state: planned
+- Milestone state: visual-evidence-needed
 - Goal: Redesign navigation/path/filter/search controls as one intentional command band while preserving existing commands and accessibility routes.
 - Requirements: R16-R22, R44-R49, R66-R77, R78-R82, A11Y1-A11Y6, AC9-AC13, AC15, AC18, AC20.
 - Files/components likely touched: `src/VeloFile.App/MainWindow.xaml`, `src/VeloFile.App/MainWindow.xaml.cs`, `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml`, `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, `tests/VeloFile.App.Tests/AppShellCommandRouteTests.cs`, `tests/VeloFile.App.Tests/UiDesign/`.
@@ -506,13 +506,13 @@ No data migration is expected. Rollback is per governed region by reverting that
 ## Current Handoff Summary
 
 Current milestone: M4. Command Band Visual Coherence
-Current milestone state: planned
+Current milestone state: visual-evidence-needed
 Last reviewed milestone: M3 (closed)
 Review status: M3 code-review clean-with-notes in `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`
 Remaining in-scope implementation milestones: M4-M8
-Next stage: `implement` M4
+Next stage: record M4 `shell-filter-active` and `shell-search-active` full-shell visual evidence, then return M4 to `review-requested`
 Final closeout readiness: not ready
-Reason final closeout is or is not ready: M1-M3 are closed, but M4-M8 are not closed and M3 full-shell visual evidence remains deferred to M8 by approved amendment.
+Reason final closeout is or is not ready: M1-M3 are closed, but M4-M8 are not closed. M4 code/static validation passed, but M4 full-shell visual evidence is still missing. M3 full-shell visual evidence also remains deferred to M8 by approved amendment.
 
 ## Decision Log
 
@@ -686,10 +686,29 @@ M3 code review:
 - `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r10.md`: clean-with-notes, no findings.
 - M3 is closed under the approved visual-evidence deferral. No M3 whole-shell visual acceptance is claimed; M8 remains blocked until `shell-file-list-selected-focused` has captured or manual-review evidence.
 
+M4 implementation validation:
+
+- Added `tests/VeloFile.App.Tests/UiDesign/CommandBandResourceContractTests.cs` first. The focused M4 test failed before implementation with missing `Resources/Components/VeloFile.CommandBand.xaml`, missing `shell-command-band` scope markers, inactive command-band scope metadata, and missing command-band resource references.
+- Added `src/VeloFile.App/Resources/Components/VeloFile.CommandBand.xaml` with governed command-band surface, button, icon button, breadcrumb, input, path, radio, status, and skipped-location styles.
+- Merged the command-band dictionary from `src/VeloFile.App/App.xaml`.
+- Scoped existing navigation/path/filter/search XAML in `src/VeloFile.App/MainWindow.xaml` with `shell-command-band` markers and applied command-band styles without changing existing click, key, filter, search, cancel, clear, breadcrumb, or path handlers.
+- Activated the `shell-command-band` scope in `docs/ui/ui-contract-scopes.v1.json` and updated the valid UI-contract fixtures to keep `scripts/ci.ps1` aligned with the active production scope.
+- Updated `ShellVisualCoherenceContractTests` so `shell-command-band` is expected to be active for M4.
+- Tightened `AppShellContractTests.Main_window_icon_buttons_use_raw_vectors` so it rejects actual `SymbolIcon`, `PathIcon`, glyph, and icon-font usage instead of failing on the command-band style name.
+- Validation passed:
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "CommandBandResourceContractTests"`: passed, 4 tests after initial expected failures.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .`: passed.
+  - `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid`: passed.
+  - `dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug`: passed with 0 warnings and 0 errors.
+  - `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"`: passed, 67 tests.
+  - `dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"`: passed; App 64, Core 6, and Corpus 20 matching tests passed; Windows had no matching tests for this filter.
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1`: passed; build had 0 warnings and 0 errors, UI contract validation passed, and Core 168, App 153, Windows 52, and Corpus 90 tests passed.
+- M4 is not ready for code review yet because the required `shell-filter-active` and `shell-search-active` full-shell visual evidence has not been recorded.
+
 ## Outcome and Retrospective
 
 Not started.
 
 ## Readiness
 
-See Current Handoff Summary. M4 is ready for implementation. This plan is not ready for final closeout, verification, PR handoff, or Done.
+See Current Handoff Summary. M4 needs full-shell visual evidence before it can move to code review. This plan is not ready for final closeout, verification, PR handoff, or Done.

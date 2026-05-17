@@ -1,6 +1,6 @@
 id: 2026-05-11-ui-shell-visual-coherence
 title: UI shell visual coherence
-status: m3-closed-evidence-deferred
+status: m4-visual-evidence-needed
 proposal: docs/proposals/2026-05-11-shell-visual-coherence-follow-up.md
 spec: specs/ui-shell-visual-coherence.md
 plan: docs/plans/2026-05-11-ui-shell-visual-coherence.md
@@ -25,9 +25,17 @@ review:
     - docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/code-review-r9.md
   resolution: docs/changes/2026-05-11-ui-shell-visual-coherence/review-resolution.md
 implementation:
-  milestone: M3
-  status: closed
-  summary: M3 code review closed with no material findings. Added governed deterministic fixture icon resources, allowlisted file-list icon kinds, resource-backed icon geometry mapping, row-template icon binding, and a tokenized file-list details header while preserving existing selection, context-menu, drag/drop, thumbnail, and preview routes. Full-shell visual evidence for shell-file-list-selected-focused is deferred to M8 by the 2026-05-17 spec/plan amendment and is not claimed as accepted for M3.
+  milestone: M4
+  status: visual-evidence-needed
+  summary: M4 command band resource, XAML, scope, fixture, and route-preservation implementation is complete and validation passed. M4 is not ready for code review because required shell-filter-active and shell-search-active full-shell visual evidence has not been recorded.
+  validation:
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "CommandBandResourceContractTests" (failed before implementation, then passed)
+    - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+    - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root tests\fixtures\ui-contracts\valid --scopes tests\fixtures\ui-contracts\scopes.valid.json --scope-root tests\fixtures\ui-contracts\valid
+    - dotnet build src\VeloFile.App\VeloFile.App.csproj -c Debug
+    - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "AppShellCommandRouteTests|CommandBand|Accessibility"
+    - dotnet test VeloFile.sln -c Debug --filter "UiContracts|AppShellCommandRouteTests|Search|Accessibility"
+    - powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
   validation:
     - dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --filter "FileListResourceContractTests|UiFixtureRegistryTests"
     - dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
@@ -40,4 +48,4 @@ implementation:
 visual_evidence:
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m2-shell-default.md
   - docs/changes/2026-05-11-ui-shell-visual-coherence/visual-evidence/m3-shell-file-list-selected-focused.md
-next_stage: implement-m4
+next_stage: record-m4-visual-evidence
