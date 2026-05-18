@@ -4,7 +4,7 @@
 
 active
 
-This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M1 is closed by `code-review-r2`; implementation is ready to proceed at M2.
+This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M2 implementation is ready for code review.
 
 ## Purpose / Big Picture
 
@@ -138,7 +138,7 @@ Execution constraints:
 
 ### M2. Fast PR Shadow Lane And Workflow Contract Tests
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add `ci-fast-required` as a shadow-running ordinary PR confidence lane while the existing broad `ci` check can remain required externally during the shadow period.
 - Requirements: R1-R3, R11-R27, R40-R50, R54-R64, R65-R69, AC2-AC8, AC12-AC18, AC19-AC20.
 - Files/components likely touched:
@@ -180,6 +180,11 @@ Execution constraints:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"`
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=CorpusScript&TestCategory=Smoke"`
 - Expected observable result: Hosted PRs can run `ci-fast-required` as a non-required shadow lane, and static workflow tests prove it has the required command selection and environment contract.
+- Implementation evidence:
+  - Added `ci-fast-required` to `.github/workflows/ci.yml` while keeping the existing broad `ci` job in place for shadow rollout.
+  - Added test-owned structured workflow parsing in `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` with test-scoped `YamlDotNet`.
+  - Added workflow contract tests in `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs`.
+  - Updated `docs/changes/2026-05-18-pr-ci-validation-tiering/explain-change.md` with M2 rationale and scope notes.
 - Commit message: `M2: add fast PR CI shadow lane`
 - Milestone closeout:
   - validation passed
@@ -416,7 +421,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M1 reviewed by `code-review-r1`; PRCI-CR1 required review-resolution.
 - [x] M1 review-resolution completed for PRCI-CR1; code-review rerun requested.
 - [x] M1 code-review rerun completed by `code-review-r2`; M1 closed.
-- [ ] M2 implemented and reviewed.
+- [x] M2 implemented; code-review requested.
+- [ ] M2 reviewed.
 - [ ] M3 implemented and reviewed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
@@ -425,11 +431,11 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M2. Fast Required Workflow Shadow Lane
-- Current milestone state: planned
+- Current milestone state: review-requested
 - Last reviewed milestone: M1 code-review-r2
-- Review status: M1 closed with clean-with-notes; no required-change findings remain
-- Remaining in-scope implementation milestones: M2, M3, M4, M5
-- Next stage: implement M2
+- Review status: M2 implementation is complete and ready for code-review; no M2 code-review has run yet
+- Remaining in-scope implementation milestones: M2 review, M3, M4, M5
+- Next stage: code-review M2
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, review-resolution when triggered, explain-change, verify, and PR handoff are still open.
 
@@ -465,10 +471,25 @@ M1 PRCI-CR1 review-resolution validation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"` completed with no matching tests in this project.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed during code-review-r2: 4 tests passed.
 
+M2 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` failed before workflow implementation as expected because `ci-fast-required` was missing.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed after implementation: 6 tests passed.
+- `dotnet --info` passed: .NET SDK 10.0.203 on Windows.
+- `dotnet restore VeloFile.sln` passed.
+- `dotnet build VeloFile.sln -c Debug --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .` passed.
+- `dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --no-build` passed: 168 tests.
+- `dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-build` passed: 168 tests.
+- `dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --no-build` passed: 52 tests.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"` passed: 81 tests.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed: 4 tests.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M1 is closed and the plan is ready for M2 implementation; it is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M2 is ready for code review; the plan is not ready for M3 implementation, final verification, or PR handoff.

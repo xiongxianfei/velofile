@@ -26,3 +26,22 @@ Scope notes:
 
 - No fast PR lane, release-evidence workflow, closeout workflow, branch-protection claim, caching behavior, or production App/Core/Windows/Corpus behavior was changed in M1.
 - The current broad CI workflow does not emit TRX output yet, so the M1 broad-CI summary honestly reports unavailable structured slow-test details until later lanes produce structured output.
+
+## M2 Fast PR Shadow Lane
+
+M2 adds `ci-fast-required` as a shadow-running fast PR confidence job in the existing `ci.yml` workflow while keeping the broad `ci` job in place.
+
+Changed surfaces:
+
+- `.github/workflows/ci.yml` now defines a `ci-fast-required` job with `name: ci-fast-required`, `runs-on: windows-latest`, job-level `pwsh`, .NET SDK setup, `dotnet --info`, restore, build, production UI contract validation, direct Core/App/Windows tests, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`.
+- The fast job writes TRX output for every `dotnet test` command and uploads matching TRX files as a best-effort artifact.
+- The fast job writes a summary through `scripts/Write-CiRuntimeSummary.ps1` with `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` adds a test-owned structured YAML workflow model backed by the test-scoped `YamlDotNet` dependency.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves the fast lane identity, triggers, Windows/pwsh/SDK contract, command ordering, UI contract inputs, direct product tests, Corpus filters, no closeout/release-evidence default, TRX/artifact reporting, category selection, and actionable diagnostics for invalid workflow fixtures.
+
+Scope notes:
+
+- The existing broad `ci` job remains in the workflow for the shadow period.
+- M2 does not claim branch protection has changed.
+- M2 does not add release-evidence or full-closeout workflows; those remain M3 and M4.
+- M2 does not change production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.
