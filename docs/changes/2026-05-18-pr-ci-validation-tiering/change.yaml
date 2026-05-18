@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: implement
-current_stage_state: m5-review-requested
-current_milestone: M5
-current_milestone_state: review-requested
+current_stage: explain-change
+current_stage_state: ready
+current_milestone: M6
+current_milestone_state: planned
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -138,18 +138,27 @@ validation:
         result: passed with expected matches in guidance, specs, workflows, and change records
       - command: git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests
         result: passed with Git LF-to-CRLF working-copy warnings only
+  m5_code_review:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"
+        result: reviewer rerun passed with 20 tests
+      - command: git diff --check HEAD~1..HEAD
+        result: reviewer rerun passed with no output
+      - command: gh run view 26063623475 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+        result: latest hosted PR run for commit 91a843f6625aefb74cc7979e3680007e0b65cdc4 was in_progress during review; not claimed as passed
 review:
   stage: code-review
-  status: rerun-requested
-  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md
-  findings:
-    - PRCI-CR4
+  status: clean-with-notes
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r9.md
+  findings: []
   resolved_findings:
     - PRCI-SR1
     - PRCI-PLR1
     - PRCI-CR1
     - PRCI-CR2
     - PRCI-CR3
+    - PRCI-CR4
   prior_records:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/proposal-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r1.md
@@ -165,7 +174,8 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r5.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r6.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-  resolution: PRCI-CR4 addressed by hosted PR #4 shadow-run evidence; pending code-review rerun
-next_stage: code-review-m5
+  resolution: no review-resolution required; M5 closed by code-review-r9
+next_stage: explain-change

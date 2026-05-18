@@ -17,3 +17,4 @@
 | [code-review-r6](reviews/code-review-r6.md) | code-review | M3 | clean-with-notes | none |
 | [code-review-r7](reviews/code-review-r7.md) | code-review | M4 | clean-with-notes | none |
 | [code-review-r8](reviews/code-review-r8.md) | code-review | M5 | blocked | PRCI-CR4 |
+| [code-review-r9](reviews/code-review-r9.md) | code-review | M5 | clean-with-notes | none |

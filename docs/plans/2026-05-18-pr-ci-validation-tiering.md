@@ -4,7 +4,7 @@
 
 active
 
-This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M2 implementation is ready for code review.
+This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M5 is closed by `code-review-r9`; lifecycle closeout remains open.
 
 ## Purpose / Big Picture
 
@@ -315,7 +315,7 @@ Execution constraints:
 
 ### M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Record at least one shadow PR cycle, finalize the ordinary PR workflow policy after review, and update contributor-facing guidance without claiming external settings changed before maintainer handoff.
 - Requirements: R11-R13, R49-R53, R61, AC13-AC15.
 - Files/components likely touched:
@@ -359,6 +359,8 @@ Execution constraints:
   - decision log updated if needed
   - validation notes updated
   - milestone committed
+  - code-review-r9 returned clean-with-notes
+  - milestone closed
 - Risks:
   - Branch protection is external and may lag behind repository files.
   - Removing the temporary broad PR job too early could break the required check during rollout.
@@ -465,19 +467,19 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M5 code-review-r8 recorded the hosted shadow-run evidence blocker.
 - [x] Hosted PR #4 produced accepted `ci-fast-required` shadow-run evidence in run `26062568345`.
 - [x] M5 implemented; code-review requested.
-- [ ] M5 reviewed.
+- [x] M5 reviewed by `code-review-r9`; M5 closed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-- Current milestone: M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
-- Current milestone state: review-requested
-- Last reviewed milestone: M5 code-review-r8
-- Review status: M5 code-review-r8 returned blocked because required hosted shadow-run evidence was missing. PRCI-CR4 is now addressed by PR #4 hosted evidence and M5 is ready for code-review rerun; M4 remains the last closed milestone until review completes.
-- Remaining in-scope implementation milestones: M5
-- Next stage: code-review M5
+- Current milestone: M6. Lifecycle Closeout
+- Current milestone state: planned
+- Last reviewed milestone: M5 code-review-r9
+- Review status: M5 code-review-r9 returned clean-with-notes; PRCI-CR4 is closed by hosted PR #4 shadow-run evidence.
+- Remaining in-scope implementation milestones: none
+- Next stage: explain-change
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M5 is implemented but not yet reviewed; final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: implementation milestones are closed, but final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -597,10 +599,18 @@ M5 implementation validation:
   - `rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github` passed with expected matches in guidance, specs, workflows, and change records.
   - `git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests` passed with Git LF-to-CRLF working-copy warnings only.
 
+M5 code-review-r9 validation:
+
+- Review status: clean-with-notes.
+- Review record: `docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r9.md`.
+- Reviewer rerun `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"` passed: 20 tests.
+- Reviewer rerun `git diff --check HEAD~1..HEAD` passed with no output.
+- Latest hosted PR run for commit `91a843f` was in progress during review and is not claimed as passed.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M5 is implemented and ready for code-review rerun; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. Implementation milestones are closed and the next stage is `explain-change`; the plan is not ready for final verification or PR handoff.
