@@ -79,6 +79,32 @@ public sealed class CiRuntimeSummaryTests
     }
 
     [TestMethod]
+    public void Runtime_summary_derives_test_project_durations_from_trx_when_explicit_durations_are_absent()
+    {
+        using var workspace = TempWorkspace.Create();
+        var summaryPath = Path.Combine(workspace.Root, "summary.md");
+        var trxPath = Path.Combine(workspace.Root, "VeloFile.Core.Tests.trx");
+        File.WriteAllText(trxPath, SampleTrx("VeloFile.Core.Tests.dll"));
+
+        var result = RunSummary(
+            "-LaneName", "ci-fast-required",
+            "-Trigger", "pull_request",
+            "-SelectedCategory", "Fast|Contract;CorpusScript&Smoke",
+            "-ReleaseEvidenceStatus", "not run in this lane",
+            "-CorpusScriptSmokeStatus", "run",
+            "-FullCloseoutStatus", "not run",
+            "-TrxPath", trxPath,
+            "-SummaryPath", summaryPath);
+
+        Assert.AreEqual(0, result.ExitCode, result.AllOutput);
+        var summary = File.ReadAllText(summaryPath);
+
+        StringAssert.Contains(summary, "| Project | Duration |");
+        StringAssert.Contains(summary, "| VeloFile.Core.Tests | 00:00:05.350 |");
+        Assert.DoesNotContain("No per test project duration data available.", summary, StringComparison.Ordinal);
+    }
+
+    [TestMethod]
     public void Runtime_summary_redacts_secrets_tokens_credentials_and_private_profile_paths()
     {
         using var workspace = TempWorkspace.Create();
@@ -159,17 +185,22 @@ public sealed class CiRuntimeSummaryTests
         return new SummaryResult(process.ExitCode, standardOutput, standardError);
     }
 
-    private static string SampleTrx()
+    private static string SampleTrx(string testAssemblyName = "VeloFile.Corpus.Tests.dll")
     {
         return """
             <?xml version="1.0" encoding="utf-8"?>
             <TestRun id="sample" name="sample" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+              <TestDefinitions>
+                <UnitTest name="FastSmokeTest" id="fast-smoke-test">
+                  <TestMethod codeBase="D:\a\VeloFile\__TEST_ASSEMBLY__" className="VeloFile.Corpus.Tests.FastSmokeTest" name="FastSmokeTest" />
+                </UnitTest>
+              </TestDefinitions>
               <Results>
                 <UnitTestResult testName="FastSmokeTest" outcome="Passed" duration="00:00:00.250" />
                 <UnitTestResult testName="SlowContractTest" outcome="Passed" duration="00:00:05.100" />
               </Results>
             </TestRun>
-            """;
+            """.Replace("__TEST_ASSEMBLY__", testAssemblyName, StringComparison.Ordinal);
     }
 
     private sealed record SummaryResult(int ExitCode, string StandardOutput, string StandardError)

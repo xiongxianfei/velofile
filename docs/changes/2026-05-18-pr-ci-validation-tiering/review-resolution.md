@@ -2,15 +2,15 @@
 
 ## Status
 
-open for PRCI-CR2; M2 review-resolution required before M2 can close
+PRCI-CR2 implemented; M2 code-review rerun required before M2 can close
 
 ## Findings
 
 ### PRCI-CR2: Fast-lane summary omits per-test-project duration even though TRX output is available
 
 - Source review: [code-review-r3](reviews/code-review-r3.md)
-- Disposition: pending review-resolution
-- Status: open
+- Disposition: accepted
+- Status: implemented; pending code-review rerun
 - Severity: major
 - Required outcome: The fast-lane summary must report per-test-project duration when `ci-fast-required` produces structured test output or command timing data, and tests must prove the hosted workflow wiring.
 - Safe resolution path:
@@ -19,7 +19,16 @@ open for PRCI-CR2; M2 review-resolution required before M2 can close
   - Update workflow contract/helper coverage so the fast-lane summary cannot pass with TRX output but no per-project duration source.
   - Keep `scripts/ci.ps1`, release-evidence policy, fast-lane category policy, and production behavior unchanged.
   - Rerun focused M2 validation and rerun code-review.
-- Resolution: pending.
+- Resolution:
+  - Added `Runtime_summary_derives_test_project_durations_from_trx_when_explicit_durations_are_absent` to prove `Write-CiRuntimeSummary.ps1` derives a per-project duration row from TRX alone when explicit `-TestProjectDuration` values are absent.
+  - Extended sample TRX test data with a `TestMethod` `codeBase` so the helper can derive the test project name from structured output without recording private local paths.
+  - Added `Read-TestProjectDurationsFromTrx` and `Get-TrxProjectName` to `scripts/Write-CiRuntimeSummary.ps1`; explicit `-TestProjectDuration` values still take precedence, and TRX is used as the fallback source.
+  - Kept the `ci-fast-required` validation command selection and normal step failure semantics unchanged.
+  - Strengthened `CiWorkflowContractTests` so the fast-lane summary contract recognizes either explicit project durations or TRX paths that the helper can use as the project-duration source.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` failed first after the regression test because TRX-derived project durations were missing; passed after the helper update with 5 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed with 6 tests.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ### PRCI-CR1: Broad CI summary hook does not report the failed command when CI fails before TRX output exists
 

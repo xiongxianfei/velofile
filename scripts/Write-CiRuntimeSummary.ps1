@@ -114,6 +114,76 @@ function Read-SlowestTests {
     }
 }
 
+function Get-TrxProjectName {
+    param(
+        [xml]$Trx,
+        [string]$Path
+    )
+
+    $testMethod = $Trx.SelectSingleNode("//*[local-name()='TestMethod' and @codeBase]")
+    if ($null -ne $testMethod) {
+        $codeBase = $testMethod.GetAttribute("codeBase")
+        if (-not [string]::IsNullOrWhiteSpace($codeBase)) {
+            $testAssembly = Split-Path -Leaf $codeBase
+            if (-not [string]::IsNullOrWhiteSpace($testAssembly)) {
+                return [System.IO.Path]::GetFileNameWithoutExtension($testAssembly)
+            }
+        }
+    }
+
+    return [System.IO.Path]::GetFileNameWithoutExtension((Split-Path -Leaf $Path))
+}
+
+function Read-TestProjectDurationsFromTrx {
+    param([string[]]$Paths)
+
+    $durations = @{}
+
+    foreach ($path in $Paths) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
+        try {
+            [xml]$trx = Get-Content -LiteralPath $path -Raw
+            $nodes = $trx.SelectNodes("//*[local-name()='UnitTestResult']")
+            $projectName = Get-TrxProjectName -Trx $trx -Path $path
+            $projectDuration = [TimeSpan]::Zero
+            $hasDuration = $false
+
+            foreach ($node in $nodes) {
+                $durationText = $node.GetAttribute("duration")
+                $duration = [TimeSpan]::Zero
+
+                if ([TimeSpan]::TryParse($durationText, [ref]$duration)) {
+                    $projectDuration = $projectDuration.Add($duration)
+                    $hasDuration = $true
+                }
+            }
+
+            if (-not $hasDuration -or [string]::IsNullOrWhiteSpace($projectName)) {
+                continue
+            }
+
+            if (-not $durations.ContainsKey($projectName)) {
+                $durations[$projectName] = [TimeSpan]::Zero
+            }
+
+            $durations[$projectName] = $durations[$projectName].Add($projectDuration)
+        }
+        catch {
+            continue
+        }
+    }
+
+    return @($durations.Keys | Sort-Object | ForEach-Object {
+        [pscustomobject]@{
+            Project = Protect-SummaryValue $_
+            Duration = Format-TimeSpanValue $durations[$_]
+        }
+    })
+}
+
 function Format-TestProjectDuration {
     param([string]$Value)
 
@@ -187,6 +257,10 @@ $lines.Add("## Test Project Durations")
 $lines.Add("")
 
 $projectRows = @($testProjectDurationValues | ForEach-Object { Format-TestProjectDuration $_ } | Where-Object { $_ -ne $null })
+if ($projectRows.Count -eq 0) {
+    $projectRows = @(Read-TestProjectDurationsFromTrx -Paths $trxPathValues)
+}
+
 if ($projectRows.Count -eq 0) {
     $lines.Add("No per test project duration data available.")
 }

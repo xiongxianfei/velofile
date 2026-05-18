@@ -86,6 +86,10 @@ public sealed class CiWorkflowContractTests
         StringAssert.Contains(summaryCommand, "\"-FullCloseoutStatus\", \"not run\"");
         StringAssert.Contains(summaryCommand, "steps.dotnet_info.outcome");
         StringAssert.Contains(summaryCommand, "-TrxPath");
+        Assert.IsTrue(
+            summaryCommand.Contains("-TestProjectDuration", StringComparison.Ordinal)
+                || summaryCommand.Contains("-TrxPath", StringComparison.Ordinal),
+            "workflow-runtime-summary-contract: ci-fast-required must pass either explicit project durations or TRX paths that the summary helper derives project durations from.");
 
         var summaryStep = fastLane.Steps.Single(step => step.Run?.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal) == true);
         Assert.AreEqual("pwsh", summaryStep.Shell ?? fastLane.DefaultRunShell);

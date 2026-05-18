@@ -45,3 +45,10 @@ Scope notes:
 - M2 does not claim branch protection has changed.
 - M2 does not add release-evidence or full-closeout workflows; those remain M3 and M4.
 - M2 does not change production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.
+
+PRCI-CR2 resolution:
+
+- `scripts/Write-CiRuntimeSummary.ps1` now derives per-test-project duration rows from TRX when explicit `-TestProjectDuration` inputs are absent.
+- The helper prefers `TestMethod` `codeBase` assembly names from structured TRX output and falls back to the TRX file stem, avoiding private local path disclosure.
+- `ci-fast-required` command selection and failure semantics remain unchanged; the existing `-TrxPath` summary input is now also the project-duration source.
+- `CiRuntimeSummaryTests` prove TRX-derived project duration output, and `CiWorkflowContractTests` preserve the fast-lane summary source contract.

@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
 current_stage: code-review
-current_stage_state: m2-changes-requested
+current_stage_state: m2-review-requested
 current_milestone: M2
-current_milestone_state: resolution-needed
+current_milestone_state: review-requested
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -54,9 +54,15 @@ validation:
         result: passed with 6 tests
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
         result: passed with 4 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: failed after PRCI-CR2 regression test because TRX-derived project durations were missing; passed after resolution with 5 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed after PRCI-CR2 resolution with 6 tests
+      - command: git diff --check
+        result: passed after PRCI-CR2 resolution with Git LF-to-CRLF working-copy warnings only
 review:
   stage: code-review
-  status: changes-requested
+  status: review-requested
   record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
   findings:
     - PRCI-CR2
@@ -76,4 +82,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: review-resolution-m2
+next_stage: code-review-m2-rerun

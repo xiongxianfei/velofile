@@ -138,7 +138,7 @@ Execution constraints:
 
 ### M2. Fast PR Shadow Lane And Workflow Contract Tests
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: Add `ci-fast-required` as a shadow-running ordinary PR confidence lane while the existing broad `ci` check can remain required externally during the shadow period.
 - Requirements: R1-R3, R11-R27, R40-R50, R54-R64, R65-R69, AC2-AC8, AC12-AC18, AC19-AC20.
 - Files/components likely touched:
@@ -192,6 +192,9 @@ Execution constraints:
   - decision log updated if needed
   - validation notes updated
   - milestone committed
+  - code-review-r3 requested changes for PRCI-CR2
+  - review-resolution implemented for PRCI-CR2
+  - code-review rerun requested
 - Risks:
   - Adding the fast lane may accidentally make contributors treat it as release readiness.
   - Workflow contract tests could become brittle if they inspect YAML by string matching instead of structure.
@@ -423,7 +426,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M1 code-review rerun completed by `code-review-r2`; M1 closed.
 - [x] M2 implemented; code-review requested.
 - [x] M2 reviewed by `code-review-r3`; PRCI-CR2 requires review-resolution.
-- [ ] M2 review-resolution completed and code-review rerun.
+- [x] M2 review-resolution implemented for PRCI-CR2; code-review rerun requested.
+- [ ] M2 code-review rerun completed.
 - [ ] M3 implemented and reviewed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
@@ -432,13 +436,13 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M2. Fast Required Workflow Shadow Lane
-- Current milestone state: resolution-needed
+- Current milestone state: review-requested
 - Last reviewed milestone: M2 code-review-r3
-- Review status: M2 code-review-r3 requested changes for PRCI-CR2; review-resolution and re-review are required before M2 can close
-- Remaining in-scope implementation milestones: M2 review-resolution/re-review, M3, M4, M5
-- Next stage: review-resolution PRCI-CR2
+- Review status: PRCI-CR2 review-resolution is implemented; M2 code-review rerun is required before M2 can close
+- Remaining in-scope implementation milestones: M2 re-review, M3, M4, M5
+- Next stage: code-review M2 rerun
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M2 has an open code-review finding, and M3-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M2 needs code-review rerun after PRCI-CR2 resolution, and M3-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
