@@ -2,9 +2,9 @@
 
 ## Status
 
-active
+done
 
-This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M5 is closed by `code-review-r9`; lifecycle closeout remains open.
+This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. PR #4 is ready for review with hosted CI passing.
 
 ## Purpose / Big Picture
 
@@ -370,7 +370,7 @@ Execution constraints:
 
 ### M6. Lifecycle Closeout
 
-- Milestone state: planned
+- Milestone state: closed
 - Goal: Close the plan only after implementation milestones are closed and downstream lifecycle gates provide their own evidence.
 - Requirements: all in-scope requirements through final verification and PR handoff.
 - Files/components likely touched:
@@ -400,6 +400,10 @@ Execution constraints:
   - decision log updated if needed
   - validation notes updated
   - milestone committed if changed
+  - explain-change completed
+  - verify completed
+  - PR #4 updated and marked ready for review
+  - milestone closed
 - Risks:
   - Final closeout could be attempted before branch-protection handoff or review-resolution evidence is ready.
 - Rollback/recovery:
@@ -470,18 +474,19 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M5 reviewed by `code-review-r9`; M5 closed.
 - [x] Final explain-change completed.
 - [x] Final verify completed; branch-ready for PR handoff.
-- [ ] Final lifecycle closeout completed.
+- [x] PR #4 updated and marked ready for review.
+- [x] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-- Current milestone: M6. Lifecycle Closeout
-- Current milestone state: in-progress
+- Current milestone: complete
+- Current milestone state: done
 - Last reviewed milestone: M5 code-review-r9
 - Review status: M5 code-review-r9 returned clean-with-notes; PRCI-CR4 is closed by hosted PR #4 shadow-run evidence.
 - Remaining in-scope implementation milestones: none
-- Next stage: pr
-- Final closeout readiness: branch-ready for PR handoff
-- Reason final closeout is or is not ready: implementation milestones are closed, final explain-change is complete, and verify passed; PR handoff is still open.
+- Next stage: human review for PR #4
+- Final closeout readiness: complete
+- Reason final closeout is or is not ready: implementation milestones, explain-change, verify, and PR handoff are complete; PR #4 is ready for human review.
 
 ## Decision Log
 
@@ -620,10 +625,15 @@ Verify validation:
 - `gh run view 26063842493 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt` showed workflow `ci` completed with conclusion `success`; `ci-fast-required` passed in 6m32s and broad `ci` passed in 17m11s.
 - `docs/changes/2026-05-18-pr-ci-validation-tiering/verify-report.md` records branch-ready verification with branch-protection handoff caveat and CI platform warnings.
 
+PR handoff validation:
+
+- `gh pr edit 4 --body <review-ready body>` passed and updated the PR body with summary, rationale, spec/plan/architecture links, tests, hosted CI evidence, review-resolution summary, risks, rollback, and reviewer notes.
+- `gh pr ready 4` passed and marked PR #4 ready for review.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. Implementation milestones are closed, final explain-change is complete, verify passed, and the next stage is `pr`.
+See `Current Handoff Summary` for live state. Final lifecycle closeout is complete and PR #4 is ready for human review.
