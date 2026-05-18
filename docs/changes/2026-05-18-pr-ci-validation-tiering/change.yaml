@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
 current_stage: code-review
-current_stage_state: m3-review-changes-requested
+current_stage_state: m3-review-resolution-complete
 current_milestone: M3
-current_milestone_state: resolution-needed
+current_milestone_state: review-requested
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -85,17 +85,23 @@ validation:
         result: passed during code-review-r5 with 6 tests
       - command: git diff --check
         result: passed during code-review-r5 with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed after PRCI-CR3 resolution with 10 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed after PRCI-CR3 resolution with 6 tests
+      - command: git diff --check
+        result: passed after PRCI-CR3 resolution with Git LF-to-CRLF working-copy warnings only
 review:
-  stage: code-review
-  status: changes-requested
+  stage: review-resolution
+  status: review-rerun-requested
   record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r5.md
-  findings:
-    - PRCI-CR3
+  findings: []
   resolved_findings:
     - PRCI-SR1
     - PRCI-PLR1
     - PRCI-CR1
     - PRCI-CR2
+    - PRCI-CR3
   prior_records:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/proposal-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r1.md
@@ -110,4 +116,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r4.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: review-resolution-prci-cr3
+next_stage: code-review-m3-rerun

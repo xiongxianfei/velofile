@@ -207,7 +207,7 @@ Execution constraints:
 
 ### M3. Release-Evidence Workflow
 
-- Milestone state: resolution-needed
+- Milestone state: review-requested
 - Goal: Add `ci-release-evidence` so expensive release evidence is explicit, scheduled, manually runnable, release-triggered, and separate from ordinary PR defaults.
 - Requirements: R4-R8, R11, R28-R34, R40-R48, R52, R54-R60, R62-R64, R65-R69, AC2, AC9, AC12, AC16-AC20.
 - Files/components likely touched:
@@ -248,6 +248,7 @@ Execution constraints:
   - Extended the workflow model to parse push tag patterns and schedule crons.
   - Added workflow contract tests for release-evidence triggers, hosted execution environment, command ordering, ReleaseEvidence filter selection, summary status, TRX artifact upload, and category-status inventory drift.
   - Added runtime summary coverage for release-evidence category status output.
+  - PRCI-CR3 resolution extended the workflow model to expose step `if` values and strengthened release-evidence contract tests for validation-step failure semantics and summary-after-failure behavior.
 - Commit message: `M3: add release evidence workflow`
 - Milestone closeout:
   - validation passed
@@ -441,7 +442,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M2 code-review rerun completed by `code-review-r4`; M2 closed.
 - [x] M3 implemented; code-review requested.
 - [x] M3 reviewed by `code-review-r5`; PRCI-CR3 requires review-resolution.
-- [ ] M3 review-resolution completed for PRCI-CR3.
+- [x] M3 review-resolution completed for PRCI-CR3; code-review rerun requested.
+- [ ] M3 code-review rerun completed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
@@ -449,13 +451,13 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M3. Release-Evidence Workflow
-- Current milestone state: resolution-needed
+- Current milestone state: review-requested
 - Last reviewed milestone: M3 code-review-r5
-- Review status: code-review-r5 requested changes for PRCI-CR3
-- Remaining in-scope implementation milestones: M3 review-resolution and re-review, M4, M5
-- Next stage: review-resolution PRCI-CR3
+- Review status: PRCI-CR3 resolution implemented; code-review rerun requested
+- Remaining in-scope implementation milestones: M3 re-review, M4, M5
+- Next stage: code-review M3 rerun
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: PRCI-CR3, M4-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M3 code-review rerun, M4-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -522,10 +524,17 @@ M3 code-review-r5 validation:
 - `git diff --check` passed during review with Git LF-to-CRLF working-copy warnings only.
 - Review finding PRCI-CR3 remains open because release-evidence workflow contract tests do not prove the `continue-on-error` and summary `if: always()` failure semantics required by PRCI-T020 and PRCI-T023.
 
+M3 PRCI-CR3 review-resolution validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed after resolution: 10 tests passed.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed after resolution: 6 tests passed.
+- `git diff --check` passed after resolution with Git LF-to-CRLF working-copy warnings only.
+- The new invalid workflow fixture proves contract diagnostics are emitted for `ContinueOnError=true` on `test_release_evidence` and a missing release-evidence summary `if: always()` condition.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M3 needs review-resolution for PRCI-CR3; the plan is not ready for M4 implementation, final verification, or PR handoff.
+See `Current Handoff Summary` for live state. M3 is ready for code-review rerun; the plan is not ready for M4 implementation, final verification, or PR handoff.

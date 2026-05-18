@@ -38,6 +38,7 @@ internal sealed record CiWorkflowStep(
     string? Uses,
     string? Run,
     string? Shell,
+    string? StepIfCondition,
     bool ContinueOnError);
 
 internal static class CiWorkflowModel
@@ -98,6 +99,7 @@ internal static class CiWorkflowModel
             ScalarOrNull(GetValue(stepNode, "uses")),
             ScalarOrNull(GetValue(stepNode, "run")),
             ScalarOrNull(GetValue(stepNode, "shell")),
+            ScalarOrNull(GetValue(stepNode, "if")),
             BoolFrom(GetValue(stepNode, "continue-on-error")));
     }
 
@@ -267,6 +269,20 @@ internal static class CiWorkflowContractValidator
         return diagnostics;
     }
 
+    public static IReadOnlyList<string> ValidateReleaseEvidenceLane(CiWorkflowDocument workflow, string jobId)
+    {
+        var diagnostics = ValidateHostedLane(workflow, jobId).ToList();
+
+        if (!workflow.Jobs.TryGetValue(jobId, out var job))
+        {
+            return diagnostics;
+        }
+
+        ValidateReleaseEvidenceFailureSemantics(job, diagnostics);
+
+        return diagnostics;
+    }
+
     public static IReadOnlyList<string> ValidateHostedLane(CiWorkflowDocument workflow, string jobId)
     {
         var diagnostics = new List<string>();
@@ -349,9 +365,47 @@ internal static class CiWorkflowContractValidator
         }
     }
 
+    private static void ValidateReleaseEvidenceFailureSemantics(CiWorkflowJob job, List<string> diagnostics)
+    {
+        var releaseEvidenceStep = job.Steps.SingleOrDefault(step => StringComparer.Ordinal.Equals(step.Id, "test_release_evidence"));
+        if (releaseEvidenceStep is null)
+        {
+            diagnostics.Add("workflow-step-violation: ci-release-evidence must contain a stable test_release_evidence step.");
+        }
+        else if (releaseEvidenceStep.ContinueOnError)
+        {
+            diagnostics.Add("workflow-step-violation: test_release_evidence step has ContinueOnError=true; workflow must fail on release-evidence validation failure.");
+        }
+
+        var summaryStep = job.Steps.SingleOrDefault(step =>
+            Normalize(step.Run).Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains(".\\scripts\\Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains("scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains("scripts\\Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
+        if (summaryStep is null)
+        {
+            diagnostics.Add("workflow-step-violation: ci-release-evidence must contain a runtime summary step.");
+        }
+        else if (!IsAlwaysCondition(summaryStep.StepIfCondition))
+        {
+            diagnostics.Add("workflow-step-violation: release-evidence summary step does not have if=always(); must run even when validation fails.");
+        }
+    }
+
     public static string Normalize(string? command)
     {
         return string.IsNullOrWhiteSpace(command) ? string.Empty : Whitespace.Replace(command, " ").Trim();
+    }
+
+    private static bool IsAlwaysCondition(string? condition)
+    {
+        var normalized = Normalize(condition);
+        if (normalized.StartsWith("${{", StringComparison.Ordinal) && normalized.EndsWith("}}", StringComparison.Ordinal))
+        {
+            normalized = normalized[3..^2].Trim();
+        }
+
+        return StringComparer.Ordinal.Equals(normalized, "always()");
     }
 
     private static bool IsValidationCommand(string command)

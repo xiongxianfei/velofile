@@ -140,7 +140,7 @@ public sealed class CiWorkflowContractTests
         Assert.IsTrue(workflow.Permissions.TryGetValue("contents", out var contentsPermission));
         Assert.AreEqual("read", contentsPermission);
 
-        var diagnostics = CiWorkflowContractValidator.ValidateHostedLane(workflow, ReleaseEvidenceJobId);
+        var diagnostics = CiWorkflowContractValidator.ValidateReleaseEvidenceLane(workflow, ReleaseEvidenceJobId);
         CollectionAssert.AreEqual(Array.Empty<string>(), diagnostics.ToArray(), string.Join(Environment.NewLine, diagnostics));
     }
 
@@ -175,11 +175,51 @@ public sealed class CiWorkflowContractTests
         StringAssert.Contains(summaryCommand, "steps.test_release_evidence.outcome");
         StringAssert.Contains(summaryCommand, "-TrxPath");
 
+        var releaseEvidenceStep = releaseLane.Steps.Single(step => StringComparer.Ordinal.Equals(step.Id, "test_release_evidence"));
+        Assert.IsFalse(
+            releaseEvidenceStep.ContinueOnError,
+            "workflow-step-violation: test_release_evidence step has ContinueOnError=true; workflow must fail on release-evidence validation failure.");
+
         var summaryStep = releaseLane.Steps.Single(step => step.Run?.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal) == true);
         Assert.AreEqual("pwsh", summaryStep.Shell ?? releaseLane.DefaultRunShell);
+        Assert.AreEqual(
+            "always()",
+            summaryStep.StepIfCondition,
+            "workflow-step-violation: release-evidence summary step does not have if=always(); must run even when validation fails.");
 
         var uploadStep = releaseLane.Steps.Single(step => step.Uses?.StartsWith("actions/upload-artifact@", StringComparison.Ordinal) == true);
         StringAssert.Contains(uploadStep.Name!, "release evidence test results");
+    }
+
+    [TestMethod]
+    public void Release_evidence_lane_diagnostics_name_failure_semantics_violations()
+    {
+        var workflow = CiWorkflowModel.Parse("""
+            name: invalid-release-evidence
+            on:
+              workflow_dispatch:
+            jobs:
+              ci-release-evidence:
+                name: ci-release-evidence
+                runs-on: windows-latest
+                defaults:
+                  run:
+                    shell: pwsh
+                steps:
+                  - name: Set up .NET SDK
+                    uses: actions/setup-dotnet@v4
+                  - name: Test Corpus release evidence
+                    id: test_release_evidence
+                    continue-on-error: true
+                    run: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence" --logger "trx;LogFileName=VeloFile.Corpus.ReleaseEvidence.trx" --results-directory artifacts\test-results\release-evidence
+                  - name: Write release evidence runtime summary
+                    run: ./scripts/Write-CiRuntimeSummary.ps1 -LaneName ci-release-evidence
+            """);
+
+        var diagnostics = CiWorkflowContractValidator.ValidateReleaseEvidenceLane(workflow, ReleaseEvidenceJobId);
+
+        AssertContainsDiagnostic(diagnostics, "workflow-step-violation", "test_release_evidence", "ContinueOnError=true");
+        AssertContainsDiagnostic(diagnostics, "workflow-step-violation", "release-evidence summary step", "if=always()");
     }
 
     [TestMethod]

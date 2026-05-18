@@ -2,15 +2,15 @@
 
 ## Status
 
-PRCI-CR3 open; M3 requires review-resolution before M4 implementation
+PRCI-CR3 resolution implemented; ready for M3 code-review rerun
 
-## Open Findings
+## Latest Review-Resolution
 
 ### PRCI-CR3: Release-evidence contract tests do not prove failure and summary-after-failure semantics
 
 - Source review: [code-review-r5](reviews/code-review-r5.md)
-- Disposition: pending review-resolution
-- Status: open
+- Disposition: accepted
+- Status: resolved; code-review rerun requested
 - Severity: major
 - Required outcome: Workflow contract coverage must fail if the `ci-release-evidence` release-evidence validation step uses `continue-on-error`, or if the release-evidence runtime summary step is not configured to run with `if: always()` or an explicitly accepted equivalent.
 - Safe resolution path:
@@ -19,6 +19,19 @@ PRCI-CR3 open; M3 requires review-resolution before M4 implementation
   - Update release-evidence workflow contract coverage to assert the release-evidence summary helper step uses `if: always()` or accepted equivalent summary-after-failure behavior.
   - Keep release-evidence command selection, trigger policy, and workflow failure semantics unchanged.
   - Rerun focused M3 validation and rerun code-review.
+- Resolution:
+  - Extended `CiWorkflowStep` in the test-owned workflow model to expose `StepIfCondition` from step-level `if`.
+  - Added `ValidateReleaseEvidenceLane` workflow diagnostics for release-evidence failure semantics.
+  - Strengthened the committed `ci-release-evidence` workflow contract assertions so `test_release_evidence` must not use `continue-on-error` and the summary step must use `if: always()`.
+  - Added an invalid release-evidence workflow fixture proving diagnostics are emitted for `ContinueOnError=true` and a missing summary `always()` condition.
+  - Kept `.github/workflows/release-evidence.yml`, release triggers, release-evidence commands, artifact paths, and runtime summary helper behavior unchanged.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed with 10 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed with 6 tests.
+  - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- Closeout:
+  - PRCI-CR3 resolution is implemented.
+  - M3 remains open until code-review reruns and approves the resolution.
 
 ## Findings
 

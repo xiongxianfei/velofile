@@ -65,6 +65,7 @@ Changed surfaces:
 - `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` now parses push tag patterns and schedule cron entries so workflow contract tests can inspect the new trigger contract.
 - `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves release-evidence triggers, Windows/pwsh/SDK setup, restore/build before `--no-build`, explicit `ReleaseEvidence` filtering, summary status, TRX artifact upload, and category-status inventory drift.
 - `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves release-evidence summary category status rendering.
+- PRCI-CR3 review-resolution extends the workflow model to expose step `if` values and proves release-evidence validation cannot be marked `continue-on-error` while the release-evidence summary must run with `if: always()`.
 
 Scope notes:
 
