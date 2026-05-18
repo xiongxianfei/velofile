@@ -469,6 +469,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M5 implemented; code-review requested.
 - [x] M5 reviewed by `code-review-r9`; M5 closed.
 - [x] Final explain-change completed.
+- [x] Final verify completed; branch-ready for PR handoff.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
@@ -478,9 +479,9 @@ Final verification is owned by `verify` after implementation, code review, and a
 - Last reviewed milestone: M5 code-review-r9
 - Review status: M5 code-review-r9 returned clean-with-notes; PRCI-CR4 is closed by hosted PR #4 shadow-run evidence.
 - Remaining in-scope implementation milestones: none
-- Next stage: verify
-- Final closeout readiness: not ready
-- Reason final closeout is or is not ready: implementation milestones are closed and final explain-change is complete, but verify and PR handoff are still open.
+- Next stage: pr
+- Final closeout readiness: branch-ready for PR handoff
+- Reason final closeout is or is not ready: implementation milestones are closed, final explain-change is complete, and verify passed; PR handoff is still open.
 
 ## Decision Log
 
@@ -611,7 +612,13 @@ M5 code-review-r9 validation:
 Explain-change validation:
 
 - `git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md` passed with Git LF-to-CRLF working-copy warnings only.
-- Latest hosted PR run for commit `0e13d8ba537c4befd461fa2f712371ae00072ba6` was queued when explain-change ran and is not claimed as passed.
+- Latest hosted PR run for commit `0e13d8ba537c4befd461fa2f712371ae00072ba6` was queued when explain-change ran and was not claimed as passed at that stage.
+
+Verify validation:
+
+- `gh run watch 26063842493 --interval 30 --exit-status` passed for the latest hosted PR run at commit `5188c33459218edd382cf50ab9adfca973b0c974`.
+- `gh run view 26063842493 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt` showed workflow `ci` completed with conclusion `success`; `ci-fast-required` passed in 6m32s and broad `ci` passed in 17m11s.
+- `docs/changes/2026-05-18-pr-ci-validation-tiering/verify-report.md` records branch-ready verification with branch-protection handoff caveat and CI platform warnings.
 
 ## Outcome And Retrospective
 
@@ -619,4 +626,4 @@ Not started. Fill this after implementation milestones and downstream lifecycle 
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. Implementation milestones are closed and final explain-change is complete; the next stage is `verify`, and the plan is not ready for PR handoff.
+See `Current Handoff Summary` for live state. Implementation milestones are closed, final explain-change is complete, verify passed, and the next stage is `pr`.

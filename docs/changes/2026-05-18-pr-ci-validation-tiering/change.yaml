@@ -1,6 +1,6 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: verify
+current_stage: pr
 current_stage_state: ready
 current_milestone: M6
 current_milestone_state: in-progress
@@ -153,7 +153,17 @@ validation:
       - command: git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md
         result: passed with Git LF-to-CRLF working-copy warnings only
       - command: gh run list --branch pr-ci-validation-tiering --limit 3 --json databaseId,workflowName,displayTitle,event,headSha,status,conclusion,createdAt,updatedAt,url
-        result: latest hosted PR run for commit 0e13d8ba537c4befd461fa2f712371ae00072ba6 was queued; not claimed as passed
+        result: latest hosted PR run for commit 0e13d8ba537c4befd461fa2f712371ae00072ba6 was queued when explain-change ran; not claimed as passed at that stage
+  verify:
+    status: passed
+    report: docs/changes/2026-05-18-pr-ci-validation-tiering/verify-report.md
+    commands:
+      - command: gh run watch 26063842493 --interval 30 --exit-status
+        result: passed; latest hosted PR run completed successfully
+      - command: gh run view 26063842493 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+        result: workflow ci succeeded for commit 5188c33459218edd382cf50ab9adfca973b0c974; ci-fast-required passed in 6m32s and broad ci passed in 17m11s
+      - command: git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\verify-report.md docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md docs\plans\2026-05-18-pr-ci-validation-tiering.md docs\plan.md docs\changes\2026-05-18-pr-ci-validation-tiering\change.yaml
+        result: passed with Git LF-to-CRLF working-copy warnings only
 review:
   stage: code-review
   status: clean-with-notes
@@ -185,4 +195,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: no review-resolution required; M5 closed by code-review-r9
-next_stage: verify
+next_stage: pr

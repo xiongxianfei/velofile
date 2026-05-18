@@ -60,7 +60,7 @@ The repository already had category and evidence boundaries for fast, contract, 
 - M5 diff check passed with Git LF-to-CRLF working-copy warnings only.
 - Code-review-r9 reviewer reruns passed: the focused 20-test command and `git diff --check HEAD~1..HEAD`.
 - Hosted PR #4 run `26062568345` passed at commit `28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a`: `ci-fast-required` passed in 7m20s and broad `ci` passed in 16m01s.
-- Latest hosted run status is not claimed here. After the review-record push, run `26063756090` for commit `0e13d8ba537c4befd461fa2f712371ae00072ba6` was queued.
+- Latest hosted run observed during verify: run `26063842493` for commit `5188c33459218edd382cf50ab9adfca973b0c974` passed; `ci-fast-required` passed in 6m32s and broad `ci` passed in 17m11s.
 
 ## Review Resolution Summary
 
@@ -87,7 +87,7 @@ The change is limited to validation infrastructure, tests, documentation, and li
 
 - Branch protection is still external. `branch-protection-handoff.md` records that `main` branch protection was not configured (HTTP 404), so maintainers still need to perform any required-check handoff.
 - The temporary broad `ci` PR job remains during rollout; this preserves rollback but continues to spend extra hosted minutes until handoff.
-- Latest hosted CI for the final pushed review-record commit must be checked during `verify`; this explain-change does not claim branch-ready or PR-ready status.
+- Latest hosted CI for commit `5188c33459218edd382cf50ab9adfca973b0c974` passed during `verify`; this explain-change still does not claim PR body readiness or PR open readiness.
 - Release readiness still requires `ci-release-evidence`, `ci-full-closeout`, local `scripts/ci.ps1`, or another accepted release gate.
 
 ## Current Handoff
