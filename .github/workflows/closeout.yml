@@ -35,26 +35,24 @@ jobs:
       - name: Write full closeout runtime summary
         if: always()
         run: |
-          $summaryArgs = @(
-            "-LaneName", "ci-full-closeout",
-            "-Trigger", "${{ github.event_name }}",
-            "-SelectedCategory", "FullSolution",
-            "-ReleaseEvidenceStatus", "unknown; full closeout unfiltered",
-            "-CorpusScriptSmokeStatus", "unknown; full closeout unfiltered",
-            "-FullCloseoutStatus", "run"
-          )
+          $summaryArgs = @{
+            LaneName = "ci-full-closeout"
+            Trigger = "${{ github.event_name }}"
+            SelectedCategory = "FullSolution"
+            ReleaseEvidenceStatus = "unknown; full closeout unfiltered"
+            CorpusScriptSmokeStatus = "unknown; full closeout unfiltered"
+            FullCloseoutStatus = "run"
+          }
 
           $trxPaths = @(Get-ChildItem -Path artifacts\test-results -Filter *.trx -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
           if ($trxPaths.Count -gt 0) {
-            $summaryArgs += @("-TrxPath", $trxPaths)
+            $summaryArgs["TrxPath"] = $trxPaths
           }
 
           $closeoutOutcome = "${{ steps.full_closeout.outcome }}"
           if ($closeoutOutcome -ne "success") {
-            $summaryArgs += @(
-              "-FailedCommand", "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1",
-              "-FailedOutcome", $closeoutOutcome
-            )
+            $summaryArgs["FailedCommand"] = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1"
+            $summaryArgs["FailedOutcome"] = $closeoutOutcome
           }
 
           ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs

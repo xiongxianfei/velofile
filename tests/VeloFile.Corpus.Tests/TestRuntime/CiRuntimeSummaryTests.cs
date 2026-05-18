@@ -176,9 +176,11 @@ public sealed class CiRuntimeSummaryTests
         StringAssert.Contains(workflow, "./scripts/Write-CiRuntimeSummary.ps1");
         StringAssert.Contains(workflow, "steps.repository_ci.outcome");
         StringAssert.Contains(workflow, "$repositoryCiOutcome -ne \"success\"");
-        StringAssert.Contains(workflow, "-FailedCommand");
+        StringAssert.Contains(workflow, "FailedCommand");
         StringAssert.Contains(workflow, "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1");
-        StringAssert.Contains(workflow, "\"-FullCloseoutStatus\", \"run\"");
+        StringAssert.Contains(workflow, "$summaryArgs = @{");
+        StringAssert.Contains(workflow, "FullCloseoutStatus = \"run\"");
+        Assert.DoesNotContain("$summaryArgs = @(", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("continue-on-error", workflow, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secrets.", workflow, StringComparison.OrdinalIgnoreCase);
     }

@@ -70,18 +70,18 @@ jobs:
       - name: Write fast PR runtime summary
         if: always()
         run: |
-          $summaryArgs = @(
-            "-LaneName", "ci-fast-required",
-            "-Trigger", "${{ github.event_name }}",
-            "-SelectedCategory", "Fast|Contract;CorpusScript&Smoke",
-            "-ReleaseEvidenceStatus", "not run in this lane",
-            "-CorpusScriptSmokeStatus", "run",
-            "-FullCloseoutStatus", "not run"
-          )
+          $summaryArgs = @{
+            LaneName = "ci-fast-required"
+            Trigger = "${{ github.event_name }}"
+            SelectedCategory = "Fast|Contract;CorpusScript&Smoke"
+            ReleaseEvidenceStatus = "not run in this lane"
+            CorpusScriptSmokeStatus = "run"
+            FullCloseoutStatus = "not run"
+          }
 
           $trxPaths = @(Get-ChildItem -Path artifacts\test-results -Filter *.trx -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
           if ($trxPaths.Count -gt 0) {
-            $summaryArgs += @("-TrxPath", $trxPaths)
+            $summaryArgs["TrxPath"] = $trxPaths
           }
 
           $validationSteps = @(
@@ -98,10 +98,8 @@ jobs:
 
           $failedStep = $validationSteps | Where-Object { $_.Outcome -and $_.Outcome -notin @("success", "skipped") } | Select-Object -First 1
           if ($failedStep) {
-            $summaryArgs += @(
-              "-FailedCommand", $failedStep.Command,
-              "-FailedOutcome", $failedStep.Outcome
-            )
+            $summaryArgs["FailedCommand"] = $failedStep.Command
+            $summaryArgs["FailedOutcome"] = $failedStep.Outcome
           }
 
           ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs
@@ -136,21 +134,19 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $summaryArgs = @(
-            "-LaneName", "ci",
-            "-Trigger", "${{ github.event_name }}",
-            "-SelectedCategory", "FullSolution",
-            "-ReleaseEvidenceStatus", "unknown; broad closeout unfiltered",
-            "-CorpusScriptSmokeStatus", "unknown; broad closeout unfiltered",
-            "-FullCloseoutStatus", "run"
-          )
+          $summaryArgs = @{
+            LaneName = "ci"
+            Trigger = "${{ github.event_name }}"
+            SelectedCategory = "FullSolution"
+            ReleaseEvidenceStatus = "unknown; broad closeout unfiltered"
+            CorpusScriptSmokeStatus = "unknown; broad closeout unfiltered"
+            FullCloseoutStatus = "run"
+          }
 
           $repositoryCiOutcome = "${{ steps.repository_ci.outcome }}"
           if ($repositoryCiOutcome -ne "success") {
-            $summaryArgs += @(
-              "-FailedCommand", "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1",
-              "-FailedOutcome", $repositoryCiOutcome
-            )
+            $summaryArgs["FailedCommand"] = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1"
+            $summaryArgs["FailedOutcome"] = $repositoryCiOutcome
           }
 
           ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs

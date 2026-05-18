@@ -83,16 +83,17 @@ public sealed class CiWorkflowContractTests
         var runCommands = fastLane.RunCommands.Select(CiWorkflowContractValidator.Normalize).ToArray();
         var summaryCommand = runCommands.Single(command => command.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
 
-        StringAssert.Contains(summaryCommand, "\"-LaneName\", \"ci-fast-required\"");
-        StringAssert.Contains(summaryCommand, "\"-SelectedCategory\", \"Fast|Contract;CorpusScript&Smoke\"");
-        StringAssert.Contains(summaryCommand, "\"-ReleaseEvidenceStatus\", \"not run in this lane\"");
-        StringAssert.Contains(summaryCommand, "\"-CorpusScriptSmokeStatus\", \"run\"");
-        StringAssert.Contains(summaryCommand, "\"-FullCloseoutStatus\", \"not run\"");
+        AssertSummaryUsesNamedSplatting(summaryCommand);
+        StringAssert.Contains(summaryCommand, "LaneName = \"ci-fast-required\"");
+        StringAssert.Contains(summaryCommand, "SelectedCategory = \"Fast|Contract;CorpusScript&Smoke\"");
+        StringAssert.Contains(summaryCommand, "ReleaseEvidenceStatus = \"not run in this lane\"");
+        StringAssert.Contains(summaryCommand, "CorpusScriptSmokeStatus = \"run\"");
+        StringAssert.Contains(summaryCommand, "FullCloseoutStatus = \"not run\"");
         StringAssert.Contains(summaryCommand, "steps.dotnet_info.outcome");
-        StringAssert.Contains(summaryCommand, "-TrxPath");
+        StringAssert.Contains(summaryCommand, "TrxPath");
         Assert.IsTrue(
-            summaryCommand.Contains("-TestProjectDuration", StringComparison.Ordinal)
-                || summaryCommand.Contains("-TrxPath", StringComparison.Ordinal),
+            summaryCommand.Contains("TestProjectDuration", StringComparison.Ordinal)
+                || summaryCommand.Contains("TrxPath", StringComparison.Ordinal),
             "workflow-runtime-summary-contract: ci-fast-required must pass either explicit project durations or TRX paths that the summary helper derives project durations from.");
 
         var summaryStep = fastLane.Steps.Single(step => step.Run?.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal) == true);
@@ -169,13 +170,14 @@ public sealed class CiWorkflowContractTests
             .Select(CiWorkflowContractValidator.Normalize)
             .Single(command => command.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
 
-        StringAssert.Contains(summaryCommand, "\"-LaneName\", \"ci-release-evidence\"");
+        AssertSummaryUsesNamedSplatting(summaryCommand);
+        StringAssert.Contains(summaryCommand, "LaneName = \"ci-release-evidence\"");
         StringAssert.Contains(summaryCommand, "ReleaseEvidence;Benchmark=run;Visual=not selected in this lane;ManualEvidence=absent from current test inventory");
-        StringAssert.Contains(summaryCommand, "\"-ReleaseEvidenceStatus\", \"run\"");
-        StringAssert.Contains(summaryCommand, "\"-CorpusScriptSmokeStatus\", \"not selected in this lane\"");
-        StringAssert.Contains(summaryCommand, "\"-FullCloseoutStatus\", \"not run\"");
+        StringAssert.Contains(summaryCommand, "ReleaseEvidenceStatus = \"run\"");
+        StringAssert.Contains(summaryCommand, "CorpusScriptSmokeStatus = \"not selected in this lane\"");
+        StringAssert.Contains(summaryCommand, "FullCloseoutStatus = \"not run\"");
         StringAssert.Contains(summaryCommand, "steps.test_release_evidence.outcome");
-        StringAssert.Contains(summaryCommand, "-TrxPath");
+        StringAssert.Contains(summaryCommand, "TrxPath");
 
         var releaseEvidenceStep = releaseLane.Steps.Single(step => StringComparer.Ordinal.Equals(step.Id, "test_release_evidence"));
         Assert.IsFalse(
@@ -297,15 +299,16 @@ public sealed class CiWorkflowContractTests
             .Select(CiWorkflowContractValidator.Normalize)
             .Single(command => command.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
 
-        StringAssert.Contains(summaryCommand, "\"-LaneName\", \"ci-full-closeout\"");
-        StringAssert.Contains(summaryCommand, "\"-SelectedCategory\", \"FullSolution\"");
-        StringAssert.Contains(summaryCommand, "\"-ReleaseEvidenceStatus\", \"unknown; full closeout unfiltered\"");
-        StringAssert.Contains(summaryCommand, "\"-CorpusScriptSmokeStatus\", \"unknown; full closeout unfiltered\"");
-        StringAssert.Contains(summaryCommand, "\"-FullCloseoutStatus\", \"run\"");
+        AssertSummaryUsesNamedSplatting(summaryCommand);
+        StringAssert.Contains(summaryCommand, "LaneName = \"ci-full-closeout\"");
+        StringAssert.Contains(summaryCommand, "SelectedCategory = \"FullSolution\"");
+        StringAssert.Contains(summaryCommand, "ReleaseEvidenceStatus = \"unknown; full closeout unfiltered\"");
+        StringAssert.Contains(summaryCommand, "CorpusScriptSmokeStatus = \"unknown; full closeout unfiltered\"");
+        StringAssert.Contains(summaryCommand, "FullCloseoutStatus = \"run\"");
         StringAssert.Contains(summaryCommand, "steps.full_closeout.outcome");
-        StringAssert.Contains(summaryCommand, "-FailedCommand");
+        StringAssert.Contains(summaryCommand, "FailedCommand");
         StringAssert.Contains(summaryCommand, "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1");
-        StringAssert.Contains(summaryCommand, "-TrxPath");
+        StringAssert.Contains(summaryCommand, "TrxPath");
 
         var summaryStep = closeoutLane.Steps.Single(step => step.Run?.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal) == true);
         Assert.AreEqual("pwsh", summaryStep.Shell ?? closeoutLane.DefaultRunShell);
@@ -468,5 +471,14 @@ public sealed class CiWorkflowContractTests
     {
         var diagnostic = diagnostics.SingleOrDefault(value => expectedParts.All(part => value.Contains(part, StringComparison.Ordinal)));
         Assert.IsNotNull(diagnostic, $"Expected diagnostic containing: {string.Join(", ", expectedParts)}. Actual:{Environment.NewLine}{string.Join(Environment.NewLine, diagnostics)}");
+    }
+
+    private static void AssertSummaryUsesNamedSplatting(string command)
+    {
+        StringAssert.Contains(command, "$summaryArgs = @{");
+        StringAssert.Contains(command, "./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs");
+        Assert.IsFalse(
+            command.Contains("$summaryArgs = @(", StringComparison.Ordinal),
+            "workflow-runtime-summary-contract: summary helper calls must use named hashtable splatting; positional array splatting can bind optional parameters incorrectly on hosted pwsh.");
     }
 }
