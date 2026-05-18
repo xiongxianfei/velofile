@@ -138,7 +138,7 @@ Execution constraints:
 
 ### M2. Fast PR Shadow Lane And Workflow Contract Tests
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add `ci-fast-required` as a shadow-running ordinary PR confidence lane while the existing broad `ci` check can remain required externally during the shadow period.
 - Requirements: R1-R3, R11-R27, R40-R50, R54-R64, R65-R69, AC2-AC8, AC12-AC18, AC19-AC20.
 - Files/components likely touched:
@@ -422,7 +422,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M1 review-resolution completed for PRCI-CR1; code-review rerun requested.
 - [x] M1 code-review rerun completed by `code-review-r2`; M1 closed.
 - [x] M2 implemented; code-review requested.
-- [ ] M2 reviewed.
+- [x] M2 reviewed by `code-review-r3`; PRCI-CR2 requires review-resolution.
+- [ ] M2 review-resolution completed and code-review rerun.
 - [ ] M3 implemented and reviewed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
@@ -431,13 +432,13 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M2. Fast Required Workflow Shadow Lane
-- Current milestone state: review-requested
-- Last reviewed milestone: M1 code-review-r2
-- Review status: M2 implementation is complete and ready for code-review; no M2 code-review has run yet
-- Remaining in-scope implementation milestones: M2 review, M3, M4, M5
-- Next stage: code-review M2
+- Current milestone state: resolution-needed
+- Last reviewed milestone: M2 code-review-r3
+- Review status: M2 code-review-r3 requested changes for PRCI-CR2; review-resolution and re-review are required before M2 can close
+- Remaining in-scope implementation milestones: M2 review-resolution/re-review, M3, M4, M5
+- Next stage: review-resolution PRCI-CR2
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: implementation, code review, review-resolution when triggered, explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M2 has an open code-review finding, and M3-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 

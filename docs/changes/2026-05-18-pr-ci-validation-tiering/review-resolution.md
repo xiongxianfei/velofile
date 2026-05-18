@@ -2,9 +2,24 @@
 
 ## Status
 
-closed by code-review-r2; ready for M2 implementation
+open for PRCI-CR2; M2 review-resolution required before M2 can close
 
 ## Findings
+
+### PRCI-CR2: Fast-lane summary omits per-test-project duration even though TRX output is available
+
+- Source review: [code-review-r3](reviews/code-review-r3.md)
+- Disposition: pending review-resolution
+- Status: open
+- Severity: major
+- Required outcome: The fast-lane summary must report per-test-project duration when `ci-fast-required` produces structured test output or command timing data, and tests must prove the hosted workflow wiring.
+- Safe resolution path:
+  - Add a scoped per-test-project duration source for `ci-fast-required` without changing fast-lane command selection or failure semantics.
+  - Either time each test step and pass stable `Project=duration` values to `scripts/Write-CiRuntimeSummary.ps1`, or extend the helper to derive project durations from TRX or equivalent structured result metadata.
+  - Update workflow contract/helper coverage so the fast-lane summary cannot pass with TRX output but no per-project duration source.
+  - Keep `scripts/ci.ps1`, release-evidence policy, fast-lane category policy, and production behavior unchanged.
+  - Rerun focused M2 validation and rerun code-review.
+- Resolution: pending.
 
 ### PRCI-CR1: Broad CI summary hook does not report the failed command when CI fails before TRX output exists
 

@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
 current_stage: code-review
-current_stage_state: m2-review-requested
+current_stage_state: m2-changes-requested
 current_milestone: M2
-current_milestone_state: review-requested
+current_milestone_state: resolution-needed
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -56,9 +56,10 @@ validation:
         result: passed with 4 tests
 review:
   stage: code-review
-  status: clean-with-notes
-  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
-  findings: []
+  status: changes-requested
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
+  findings:
+    - PRCI-CR2
   resolved_findings:
     - PRCI-SR1
     - PRCI-PLR1
@@ -72,6 +73,7 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r2.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/test-spec-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: code-review-m2
+next_stage: review-resolution-m2
