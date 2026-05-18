@@ -468,18 +468,19 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] Hosted PR #4 produced accepted `ci-fast-required` shadow-run evidence in run `26062568345`.
 - [x] M5 implemented; code-review requested.
 - [x] M5 reviewed by `code-review-r9`; M5 closed.
+- [x] Final explain-change completed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
 - Current milestone: M6. Lifecycle Closeout
-- Current milestone state: planned
+- Current milestone state: in-progress
 - Last reviewed milestone: M5 code-review-r9
 - Review status: M5 code-review-r9 returned clean-with-notes; PRCI-CR4 is closed by hosted PR #4 shadow-run evidence.
 - Remaining in-scope implementation milestones: none
-- Next stage: explain-change
+- Next stage: verify
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: implementation milestones are closed, but final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: implementation milestones are closed and final explain-change is complete, but verify and PR handoff are still open.
 
 ## Decision Log
 
@@ -607,10 +608,15 @@ M5 code-review-r9 validation:
 - Reviewer rerun `git diff --check HEAD~1..HEAD` passed with no output.
 - Latest hosted PR run for commit `91a843f` was in progress during review and is not claimed as passed.
 
+Explain-change validation:
+
+- `git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md` passed with Git LF-to-CRLF working-copy warnings only.
+- Latest hosted PR run for commit `0e13d8ba537c4befd461fa2f712371ae00072ba6` was queued when explain-change ran and is not claimed as passed.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. Implementation milestones are closed and the next stage is `explain-change`; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. Implementation milestones are closed and final explain-change is complete; the next stage is `verify`, and the plan is not ready for PR handoff.

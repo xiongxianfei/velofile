@@ -1,110 +1,95 @@
-# PR CI Validation Tiering Change Notes
+# PR CI Validation Tiering Explain Change
 
 ## Status
 
-implementation notes; not final explain-change
+final explain-change; verification and PR handoff still pending
 
-This file records milestone-local rationale while implementation is underway. The final durable explanation remains owned by the later `explain-change` lifecycle stage.
+## Summary
 
-## M1 Runtime Summary Foundation
+This change splits hosted validation into explicit CI tiers. Ordinary pull requests now have a fast PR confidence lane, `ci-fast-required`, while expensive release evidence and broad closeout validation remain available through `ci-release-evidence`, `ci-full-closeout`, and the unchanged local `scripts/ci.ps1` command.
 
-M1 adds a shared PowerShell summary helper and focused contract tests before introducing new hosted validation lanes.
+The change also adds runtime summaries, workflow contract tests, hosted shadow-run evidence, contributor guidance, and lifecycle records so reviewers can see what ran, what did not run, and why fast PR confidence is not release readiness.
 
-Changed surfaces:
+## Problem
 
-- `scripts/Write-CiRuntimeSummary.ps1` writes GitHub job-summary markdown for lane name, trigger, selected categories, release-evidence status, Corpus script smoke status, full-closeout status, optional command durations, optional per-project durations, slowest TRX tests, missing-output limitations, and redacted sensitive values.
-- `.github/workflows/ci.yml` keeps the existing broad `./scripts/ci.ps1` command unchanged, gives that step the stable `repository_ci` id, and adds a follow-up `if: always()` summary step for the current broad CI lane.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves the helper output, missing-TRX limitation behavior, failed-command and command-outcome reporting, redaction behavior, and broad-CI summary hook.
+The prior required PR workflow ran the broad closeout path for every pull request. Hosted PR #3 took about 16 minutes, with the repository CI script step around 14m58s and `VeloFile.Corpus.Tests` around 13m22s. Core, App, and Windows tests completed in seconds once build output was available.
 
-PRCI-CR1 resolution:
+The repository already had category and evidence boundaries for fast, contract, smoke, and release-evidence tests. The missing piece was hosted PR policy: every ordinary PR still paid the full release-evidence cost.
 
-- The summary step now uses `${{ steps.repository_ci.outcome }}` to pass `-FailedCommand` and `-FailedOutcome` only when the broad CI step does not succeed.
-- `scripts/Write-CiRuntimeSummary.ps1` treats `-FailedCommand` and `-FailedOutcome` as explicit workflow-provided failure context rather than inferring failure from missing TRX.
-- The broad CI step still runs `./scripts/ci.ps1` under `shell: pwsh`; no `continue-on-error` or command-selection change was introduced.
+## Decision Trail
 
-Scope notes:
+| Source | Decision |
+|---|---|
+| Proposal | Choose hosted CI validation tiers, not deleting release evidence and not relying on caching as the main speed fix. |
+| Proposal review | Split product tests from Corpus-filtered tests, decide release-evidence triggers, prefer separate workflows, shadow-run before branch-protection handoff, and make runtime reporting mandatory. |
+| Spec | Requirements R1-R69 define `ci-fast-required`, `ci-release-evidence`, `ci-full-closeout`, hosted Windows/pwsh/.NET setup, command selection, summary status, rollout, and non-goals. |
+| Architecture / ADR 0012 | Use separate workflows for release evidence and closeout, a shared PowerShell runtime-summary helper, structured workflow contract tests, and preserve `scripts/ci.ps1` as the broad closeout command. |
+| Plan | Implement in milestones: M1 summary helper, M2 fast shadow lane, M3 release evidence, M4 full closeout, M5 shadow-run evidence and guidance. |
+| Reviews | PRCI-SR1, PRCI-PLR1, PRCI-CR1, PRCI-CR2, PRCI-CR3, and PRCI-CR4 were all closed before final explain-change. |
 
-- No fast PR lane, release-evidence workflow, closeout workflow, branch-protection claim, caching behavior, or production App/Core/Windows/Corpus behavior was changed in M1.
-- The current broad CI workflow does not emit TRX output yet, so the M1 broad-CI summary honestly reports unavailable structured slow-test details until later lanes produce structured output.
+## Diff Rationale By Area
 
-## M2 Fast PR Shadow Lane
+| Area | Files | Why changed | Source/Test evidence |
+|---|---|---|---|
+| Runtime summary helper | `scripts/Write-CiRuntimeSummary.ps1` | Centralizes GitHub summary rendering, failed-command context, category status, TRX slow tests, and per-project durations without changing validation command semantics. | R40-R48; `CiRuntimeSummaryTests`; PRCI-CR1 and PRCI-CR2 resolution. |
+| Fast PR lane | `.github/workflows/ci.yml` | Adds `ci-fast-required` with Windows, `pwsh`, SDK setup, `dotnet --info`, restore/build, UI contract validation, direct Core/App/Windows tests, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`. Keeps broad `ci` during rollout. | R1-R3, R11-R27, R65-R69; `CiWorkflowContractTests`; hosted run `26062568345`. |
+| Release evidence lane | `.github/workflows/release-evidence.yml` | Moves expensive Corpus release evidence to an explicit manual/scheduled/release/merge-queue lane with clear summary status. | R4-R8, R28-R34; workflow contract tests. |
+| Full closeout lane | `.github/workflows/closeout.yml` | Adds a manual `ci-full-closeout` lane that invokes `scripts/ci.ps1` unchanged and preserves failure semantics. | R9-R10, R35-R39; workflow contract tests; code-review-r7. |
+| Workflow test model | `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs`, `CiWorkflowContractTests.cs` | Parses workflow YAML structurally and guards triggers, hosted environment, command order, filters, summary wiring, artifacts, and failure semantics. | PRCI-T001 through PRCI-T026 and invalid fixture diagnostics. |
+| Runtime-summary tests | `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` | Proves summary output, missing-output limitations, failed command context, redaction, release status, and TRX-derived project durations. | R40-R48; PRCI-CR1/CR2. |
+| Rollout evidence tests | `tests/VeloFile.Corpus.Tests/TestRuntime/CiRolloutEvidenceTests.cs`, `ValidationCommandDocumentationTests.cs` | Makes M5 evidence and contributor guidance testable so future edits cannot remove the shadow-run record, no-handoff caveat, lane names, release-readiness warning, or rollback wording silently. | PRCI-T027, PRCI-T028, PRCI-M001, PRCI-M003. |
+| Evidence and guidance | `shadow-run.md`, `branch-protection-handoff.md`, `README.md`, `CONTRIBUTING.md`, `docs/project-map.md` | Records the accepted hosted PR cycle, records that branch protection is not configured, and documents the three hosted lanes for contributors. | R13, R49-R53; code-review-r9. |
+| Lifecycle records | `docs/plan.md`, active plan, `change.yaml`, review records, `review-log.md`, this file | Keeps milestone state, validation evidence, review outcomes, and next-stage routing consistent. | Implement/code-review workflow requirements. |
 
-M2 adds `ci-fast-required` as a shadow-running fast PR confidence job in the existing `ci.yml` workflow while keeping the broad `ci` job in place.
+## Tests Added Or Changed
 
-Changed surfaces:
+- `CiWorkflowContractTests`: verifies `ci-fast-required`, `ci-release-evidence`, and `ci-full-closeout` identity, triggers, Windows runner, `pwsh`, SDK setup, command ordering, category filters, summary arguments, artifact paths, and failure-semantics guardrails.
+- `CiRuntimeSummaryTests`: verifies summary rendering, missing structured output, failed command/outcome context, category status output, redaction, and TRX-derived per-project durations.
+- `CiRolloutEvidenceTests`: verifies `shadow-run.md`, `branch-protection-handoff.md`, and rollout guidance contain the required evidence and no-handoff wording.
+- `ValidationCommandDocumentationTests`: now also verifies hosted CI lane guidance in README and CONTRIBUTING.
+- App test timing adjustments in `AppShellThumbnailUiTests.cs` and `AppShellCommandRouteTests.cs` stabilize hosted broad CI waits discovered during shadow-run attempts; they do not change production behavior.
 
-- `.github/workflows/ci.yml` now defines a `ci-fast-required` job with `name: ci-fast-required`, `runs-on: windows-latest`, job-level `pwsh`, .NET SDK setup, `dotnet --info`, restore, build, production UI contract validation, direct Core/App/Windows tests, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`.
-- The fast job writes TRX output for every `dotnet test` command and uploads matching TRX files as a best-effort artifact.
-- The fast job writes a summary through `scripts/Write-CiRuntimeSummary.ps1` with `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` adds a test-owned structured YAML workflow model backed by the test-scoped `YamlDotNet` dependency.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves the fast lane identity, triggers, Windows/pwsh/SDK contract, command ordering, UI contract inputs, direct product tests, Corpus filters, no closeout/release-evidence default, TRX/artifact reporting, category selection, and actionable diagnostics for invalid workflow fixtures.
+## Validation Evidence Available Before Final Verify
 
-Scope notes:
+- M1 focused summary tests passed after implementation and review-resolution.
+- M2 workflow contract tests passed; local fast-lane commands passed for `dotnet --info`, restore, build, UI contract validation, Core/App/Windows direct tests, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`.
+- M3 workflow contract and runtime-summary tests passed; local `TestCategory=ReleaseEvidence` validation passed.
+- M4 workflow/documentation validation passed; local `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed with Core 168, App 168, Windows 52, and Corpus 110 tests.
+- M5 validation passed: `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"` passed with 20 tests.
+- M5 guidance scan passed: `rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github` found expected matches.
+- M5 diff check passed with Git LF-to-CRLF working-copy warnings only.
+- Code-review-r9 reviewer reruns passed: the focused 20-test command and `git diff --check HEAD~1..HEAD`.
+- Hosted PR #4 run `26062568345` passed at commit `28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a`: `ci-fast-required` passed in 7m20s and broad `ci` passed in 16m01s.
+- Latest hosted run status is not claimed here. After the review-record push, run `26063756090` for commit `0e13d8ba537c4befd461fa2f712371ae00072ba6` was queued.
 
-- The existing broad `ci` job remains in the workflow for the shadow period.
-- M2 does not claim branch protection has changed.
-- M2 does not add release-evidence or full-closeout workflows; those remain M3 and M4.
-- M2 does not change production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.
+## Review Resolution Summary
 
-PRCI-CR2 resolution:
+- Spec review finding PRCI-SR1: accepted and closed by adding the hosted execution-environment contract.
+- Plan review finding PRCI-PLR1: accepted and closed by making `dotnet --info` explicit and testable in M2.
+- Code review findings PRCI-CR1, PRCI-CR2, and PRCI-CR3: accepted and closed through `docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md`.
+- Code review finding PRCI-CR4: closed by M5 hosted shadow-run evidence and clean `code-review-r9`.
+- No review-resolution is open. `review-log.md` records no open material findings after `code-review-r9`.
 
-- `scripts/Write-CiRuntimeSummary.ps1` now derives per-test-project duration rows from TRX when explicit `-TestProjectDuration` inputs are absent.
-- The helper prefers `TestMethod` `codeBase` assembly names from structured TRX output and falls back to the TRX file stem, avoiding private local path disclosure.
-- `ci-fast-required` command selection and failure semantics remain unchanged; the existing `-TrxPath` summary input is now also the project-duration source.
-- `CiRuntimeSummaryTests` prove TRX-derived project duration output, and `CiWorkflowContractTests` preserve the fast-lane summary source contract.
+## Alternatives Rejected
 
-## M3 Release-Evidence Workflow
+- Do not delete or hide release-evidence tests. They remain in the repository and in explicit release/closeout paths.
+- Do not narrow `scripts/ci.ps1`. It remains the broad closeout command.
+- Do not filter Core/App/Windows tests with Corpus categories in the fast lane; those projects run directly.
+- Do not rely on NuGet/package caching as the main speed fix.
+- Do not claim GitHub branch protection changed from repository files. The handoff remains maintainer-operated.
+- Do not make screenshot, visual, or manual evidence a hard gate in `ci-fast-required`.
 
-M3 adds a separate hosted release-evidence lane without making ordinary PRs pay that cost by default.
+## Scope Control
 
-Changed surfaces:
+The change is limited to validation infrastructure, tests, documentation, and lifecycle records. It does not change production App/Core/Windows/Corpus behavior, public prepared-tool options, release-evidence taxonomy, or assembly/class serialization policy.
 
-- `.github/workflows/release-evidence.yml` defines `ci-release-evidence` with `workflow_dispatch`, nightly schedule `17 3 * * *`, `merge_group`, release branch pattern `release/**`, and release tag patterns `v*` and `v*-rc*`.
-- The workflow uses `windows-latest`, job-level `pwsh`, `actions/setup-dotnet@v4`, `dotnet --info`, restore, build, and `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"` with TRX output.
-- The workflow summary reports the lane as release evidence, records `ReleaseEvidence=run`, `Benchmark=run`, `Visual=not selected in this lane`, `ManualEvidence=absent from current test inventory`, `CorpusScript Smoke=not selected in this lane`, and `Full closeout=not run`.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` now parses push tag patterns and schedule cron entries so workflow contract tests can inspect the new trigger contract.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves release-evidence triggers, Windows/pwsh/SDK setup, restore/build before `--no-build`, explicit `ReleaseEvidence` filtering, summary status, TRX artifact upload, and category-status inventory drift.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves release-evidence summary category status rendering.
-- PRCI-CR3 review-resolution extends the workflow model to expose step `if` values and proves release-evidence validation cannot be marked `continue-on-error` while the release-evidence summary must run with `if: always()`.
+## Risks And Follow-Ups
 
-Scope notes:
+- Branch protection is still external. `branch-protection-handoff.md` records that `main` branch protection was not configured (HTTP 404), so maintainers still need to perform any required-check handoff.
+- The temporary broad `ci` PR job remains during rollout; this preserves rollback but continues to spend extra hosted minutes until handoff.
+- Latest hosted CI for the final pushed review-record commit must be checked during `verify`; this explain-change does not claim branch-ready or PR-ready status.
+- Release readiness still requires `ci-release-evidence`, `ci-full-closeout`, local `scripts/ci.ps1`, or another accepted release gate.
 
-- M3 does not change the ordinary PR `ci-fast-required` command selection.
-- M3 does not add the full closeout workflow; that remains M4.
-- M3 does not change `scripts/ci.ps1`, production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.
+## Current Handoff
 
-## M4 Full Closeout Workflow
-
-M4 adds the manual broad closeout lane while keeping the actual closeout command centralized in `scripts/ci.ps1`.
-
-Changed surfaces:
-
-- `.github/workflows/closeout.yml` defines `ci-full-closeout` with `workflow_dispatch`, `contents: read`, `windows-latest`, job-level `pwsh`, `actions/setup-dotnet@v4`, and an unchanged `./scripts/ci.ps1` step.
-- The closeout workflow keeps original failure semantics: the closeout step has no `continue-on-error`, the summary step uses `if: always()`, and failure context is passed from `${{ steps.full_closeout.outcome }}` as `-FailedCommand` and `-FailedOutcome`.
-- The closeout summary reports `Full closeout: run`, records release evidence and Corpus script smoke as `unknown; full closeout unfiltered`, and uploads TRX artifacts only when structured output exists.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` adds `ValidateFullCloseoutLane` for hosted environment, SDK ordering, broad-command selection, closeout failure semantics, and summary-after-failure semantics.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves the manual trigger, no ordinary PR/push trigger, Windows/pwsh/SDK setup, `scripts/ci.ps1` invocation, summary wiring, artifact path, failure diagnostics, and broad `scripts/ci.ps1` contents.
-
-Scope notes:
-
-- M4 does not change `scripts/ci.ps1`.
-- M4 does not change fast-lane command selection, release-evidence policy, test category taxonomy, caching behavior, branch protection, or production App/Core/Windows/Corpus behavior.
-- Because `scripts/ci.ps1` remains unchanged and does not currently emit TRX output, the closeout summary can only include structured test details if future non-semantic reporting hooks produce TRX; otherwise it honestly reports unavailable structured output.
-
-## M5 Shadow-Run Evidence And Guidance
-
-M5 records hosted rollout evidence after PR #4 exercised the implemented workflow lanes.
-
-Changed surfaces:
-
-- `docs/changes/2026-05-18-pr-ci-validation-tiering/shadow-run.md` records the accepted hosted PR cycle: PR #4 run `26062568345` passed `ci-fast-required` in 7m20s and the temporary broad `ci` shadow job in 16m01s at commit `28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a`.
-- `docs/changes/2026-05-18-pr-ci-validation-tiering/branch-protection-handoff.md` records the external handoff state: GitHub returned `Branch not protected` (HTTP 404), so no maintainer handoff or branch-protection change is claimed.
-- `README.md` and `CONTRIBUTING.md` now describe `ci-fast-required`, `ci-release-evidence`, and `ci-full-closeout` separately, warn that fast PR confidence is not release readiness, and preserve the rollback path.
-- `docs/project-map.md`, `docs/plan.md`, this plan's metadata, and `change.yaml` now reflect the implemented hosted CI topology and the M5 review-requested state.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRolloutEvidenceTests.cs` proves the shadow-run evidence, no-handoff record, and rollout guidance wording. `ValidationCommandDocumentationTests` now also checks hosted CI lane guidance.
-
-Scope notes:
-
-- M5 does not change workflow command selection, test categories, release-evidence policy, or production App/Core/Windows/Corpus behavior.
-- The temporary broad `ci` PR shadow job remains because branch-protection handoff is not recorded.
-- This is not final closeout. M5 still needs code review, then the later lifecycle stages own final `explain-change`, `verify`, and PR handoff.
+Implementation milestones are closed. The next stage is `verify`. This artifact does not claim final verification, branch readiness, PR body readiness, or PR open readiness.

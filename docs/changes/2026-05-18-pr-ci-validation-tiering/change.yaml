@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: explain-change
+current_stage: verify
 current_stage_state: ready
 current_milestone: M6
-current_milestone_state: planned
+current_milestone_state: in-progress
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -147,6 +147,13 @@ validation:
         result: reviewer rerun passed with no output
       - command: gh run view 26063623475 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
         result: latest hosted PR run for commit 91a843f6625aefb74cc7979e3680007e0b65cdc4 was in_progress during review; not claimed as passed
+  explain_change:
+    status: passed
+    commands:
+      - command: git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: gh run list --branch pr-ci-validation-tiering --limit 3 --json databaseId,workflowName,displayTitle,event,headSha,status,conclusion,createdAt,updatedAt,url
+        result: latest hosted PR run for commit 0e13d8ba537c4befd461fa2f712371ae00072ba6 was queued; not claimed as passed
 review:
   stage: code-review
   status: clean-with-notes
@@ -178,4 +185,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: no review-resolution required; M5 closed by code-review-r9
-next_stage: explain-change
+next_stage: verify
