@@ -105,6 +105,31 @@ public sealed class CiRuntimeSummaryTests
     }
 
     [TestMethod]
+    public void Runtime_summary_records_release_evidence_category_statuses()
+    {
+        using var workspace = TempWorkspace.Create();
+        var summaryPath = Path.Combine(workspace.Root, "summary.md");
+
+        var result = RunSummary(
+            "-LaneName", "ci-release-evidence",
+            "-Trigger", "schedule",
+            "-SelectedCategory", "ReleaseEvidence;Benchmark=run;Visual=not selected in this lane;ManualEvidence=absent from current test inventory",
+            "-ReleaseEvidenceStatus", "run",
+            "-CorpusScriptSmokeStatus", "not selected in this lane",
+            "-FullCloseoutStatus", "not run",
+            "-SummaryPath", summaryPath);
+
+        Assert.AreEqual(0, result.ExitCode, result.AllOutput);
+        var summary = File.ReadAllText(summaryPath);
+
+        StringAssert.Contains(summary, "Lane: ci-release-evidence");
+        StringAssert.Contains(summary, "Selected categories: ReleaseEvidence, Benchmark=run, Visual=not selected in this lane, ManualEvidence=absent from current test inventory");
+        StringAssert.Contains(summary, "ReleaseEvidence: run");
+        StringAssert.Contains(summary, "CorpusScript Smoke: not selected in this lane");
+        StringAssert.Contains(summary, "Full closeout: not run");
+    }
+
+    [TestMethod]
     public void Runtime_summary_redacts_secrets_tokens_credentials_and_private_profile_paths()
     {
         using var workspace = TempWorkspace.Create();

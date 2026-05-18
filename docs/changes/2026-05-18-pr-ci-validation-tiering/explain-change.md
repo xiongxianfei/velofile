@@ -52,3 +52,22 @@ PRCI-CR2 resolution:
 - The helper prefers `TestMethod` `codeBase` assembly names from structured TRX output and falls back to the TRX file stem, avoiding private local path disclosure.
 - `ci-fast-required` command selection and failure semantics remain unchanged; the existing `-TrxPath` summary input is now also the project-duration source.
 - `CiRuntimeSummaryTests` prove TRX-derived project duration output, and `CiWorkflowContractTests` preserve the fast-lane summary source contract.
+
+## M3 Release-Evidence Workflow
+
+M3 adds a separate hosted release-evidence lane without making ordinary PRs pay that cost by default.
+
+Changed surfaces:
+
+- `.github/workflows/release-evidence.yml` defines `ci-release-evidence` with `workflow_dispatch`, nightly schedule `17 3 * * *`, `merge_group`, release branch pattern `release/**`, and release tag patterns `v*` and `v*-rc*`.
+- The workflow uses `windows-latest`, job-level `pwsh`, `actions/setup-dotnet@v4`, `dotnet --info`, restore, build, and `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"` with TRX output.
+- The workflow summary reports the lane as release evidence, records `ReleaseEvidence=run`, `Benchmark=run`, `Visual=not selected in this lane`, `ManualEvidence=absent from current test inventory`, `CorpusScript Smoke=not selected in this lane`, and `Full closeout=not run`.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` now parses push tag patterns and schedule cron entries so workflow contract tests can inspect the new trigger contract.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves release-evidence triggers, Windows/pwsh/SDK setup, restore/build before `--no-build`, explicit `ReleaseEvidence` filtering, summary status, TRX artifact upload, and category-status inventory drift.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves release-evidence summary category status rendering.
+
+Scope notes:
+
+- M3 does not change the ordinary PR `ci-fast-required` command selection.
+- M3 does not add the full closeout workflow; that remains M4.
+- M3 does not change `scripts/ci.ps1`, production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.

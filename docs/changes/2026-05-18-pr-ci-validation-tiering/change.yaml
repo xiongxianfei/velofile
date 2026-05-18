@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: implement
-current_stage_state: m3-ready
+current_stage: code-review
+current_stage_state: m3-review-requested
 current_milestone: M3
-current_milestone_state: planned
+current_milestone_state: review-requested
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -64,9 +64,24 @@ validation:
         result: passed during code-review-r4 with 6 tests
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
         result: first parallel rerun failed due local build-output file lock while CiWorkflowContract passed; sequential rerun passed during code-review-r4 with 5 tests
+  m3:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: failed before workflow implementation because release-evidence.yml was missing; passed after implementation with 9 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed after release-evidence summary coverage with 6 tests
+      - command: dotnet restore VeloFile.sln
+        result: passed
+      - command: dotnet build VeloFile.sln -c Debug --no-restore
+        result: passed with 0 warnings and 0 errors
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"
+        result: passed with 10 tests in 5 m 12 s after final build
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
 review:
   stage: code-review
-  status: clean-with-notes
+  status: review-requested
   record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r4.md
   findings: []
   resolved_findings:
@@ -87,4 +102,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: implement-m3
+next_stage: code-review-m3

@@ -6,6 +6,8 @@ namespace VeloFile.Corpus.Tests.TestRuntime;
 internal sealed record CiWorkflowDocument(
     IReadOnlySet<string> Events,
     IReadOnlySet<string> PushBranches,
+    IReadOnlySet<string> PushTags,
+    IReadOnlyList<string> ScheduleCrons,
     IReadOnlyDictionary<string, string> Permissions,
     string? DefaultRunShell,
     IReadOnlyDictionary<string, CiWorkflowJob> Jobs)
@@ -59,6 +61,8 @@ internal static class CiWorkflowModel
         return new CiWorkflowDocument(
             EventsFrom(onNode),
             PushBranchesFrom(onNode),
+            PushTagsFrom(onNode),
+            ScheduleCronsFrom(onNode),
             StringMapFrom(permissionsNode),
             DefaultsShellFrom(defaultsNode),
             JobsFrom(jobsNode));
@@ -126,6 +130,38 @@ internal static class CiWorkflowModel
         }
 
         return StringListFrom(GetValue(pushMapping, "branches")).ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static IReadOnlySet<string> PushTagsFrom(YamlNode? onNode)
+    {
+        if (onNode is not YamlMappingNode mapping)
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        var push = GetValue(mapping, "push");
+        if (push is not YamlMappingNode pushMapping)
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        return StringListFrom(GetValue(pushMapping, "tags")).ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static IReadOnlyList<string> ScheduleCronsFrom(YamlNode? onNode)
+    {
+        if (onNode is not YamlMappingNode mapping)
+        {
+            return Array.Empty<string>();
+        }
+
+        var schedule = GetValue(mapping, "schedule");
+        return Sequence(schedule)
+            .Select(node => node is YamlMappingNode scheduleMapping
+                ? ScalarOrNull(GetValue(scheduleMapping, "cron"))
+                : null)
+            .Where(cron => !string.IsNullOrWhiteSpace(cron))
+            .ToArray()!;
     }
 
     private static IReadOnlyDictionary<string, string> StringMapFrom(YamlNode? node)
@@ -219,6 +255,20 @@ internal static class CiWorkflowContractValidator
 
     public static IReadOnlyList<string> ValidateFastLane(CiWorkflowDocument workflow, string jobId)
     {
+        var diagnostics = ValidateHostedLane(workflow, jobId).ToList();
+
+        if (!workflow.Jobs.TryGetValue(jobId, out var job))
+        {
+            return diagnostics;
+        }
+
+        ValidateFastLaneCommandSelection(job, diagnostics);
+
+        return diagnostics;
+    }
+
+    public static IReadOnlyList<string> ValidateHostedLane(CiWorkflowDocument workflow, string jobId)
+    {
         var diagnostics = new List<string>();
 
         if (!workflow.Jobs.TryGetValue(jobId, out var job))
@@ -230,7 +280,6 @@ internal static class CiWorkflowContractValidator
         ValidateWindowsRunner(job, diagnostics);
         ValidatePwshShell(workflow, job, diagnostics);
         ValidateSdkOrdering(job, diagnostics);
-        ValidateFastLaneCommandSelection(job, diagnostics);
 
         return diagnostics;
     }

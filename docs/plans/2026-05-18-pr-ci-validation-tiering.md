@@ -207,7 +207,7 @@ Execution constraints:
 
 ### M3. Release-Evidence Workflow
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add `ci-release-evidence` so expensive release evidence is explicit, scheduled, manually runnable, release-triggered, and separate from ordinary PR defaults.
 - Requirements: R4-R8, R11, R28-R34, R40-R48, R52, R54-R60, R62-R64, R65-R69, AC2, AC9, AC12, AC16-AC20.
 - Files/components likely touched:
@@ -239,11 +239,20 @@ Execution constraints:
   - `dotnet build VeloFile.sln -c Debug --no-restore`
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"`
 - Expected observable result: Release evidence is available through its own hosted lane and cannot be mistaken for the ordinary PR default.
+- Implementation evidence:
+  - Added `.github/workflows/release-evidence.yml` with `workflow_dispatch`, non-top-of-hour nightly schedule `17 3 * * *`, `merge_group`, and release push patterns.
+  - Selected release branch pattern: `release/**`.
+  - Selected release tag patterns: `v*` and `v*-rc*`.
+  - The workflow runs `ci-release-evidence` on `windows-latest` with job-level `pwsh`, `actions/setup-dotnet@v4`, `dotnet --info`, restore, build, and explicit Corpus `TestCategory=ReleaseEvidence` validation with TRX output.
+  - The workflow summary reports `ReleaseEvidence=run`, `Benchmark=run`, `Visual=not selected in this lane`, `ManualEvidence=absent from current test inventory`, `CorpusScript Smoke=not selected in this lane`, and `Full closeout=not run`.
+  - Extended the workflow model to parse push tag patterns and schedule crons.
+  - Added workflow contract tests for release-evidence triggers, hosted execution environment, command ordering, ReleaseEvidence filter selection, summary status, TRX artifact upload, and category-status inventory drift.
+  - Added runtime summary coverage for release-evidence category status output.
 - Commit message: `M3: add release evidence workflow`
 - Milestone closeout:
   - validation passed
   - progress updated
-  - decision log updated if needed
+  - decision log updated
   - validation notes updated
   - milestone committed
 - Risks:
@@ -430,7 +439,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M2 reviewed by `code-review-r3`; PRCI-CR2 requires review-resolution.
 - [x] M2 review-resolution implemented for PRCI-CR2; code-review rerun requested.
 - [x] M2 code-review rerun completed by `code-review-r4`; M2 closed.
-- [ ] M3 implemented and reviewed.
+- [x] M3 implemented; code-review requested.
+- [ ] M3 reviewed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
@@ -438,13 +448,13 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M3. Release-Evidence Workflow
-- Current milestone state: planned
+- Current milestone state: review-requested
 - Last reviewed milestone: M2 code-review-r4
-- Review status: M2 code-review-r4 returned clean-with-notes; M2 is closed
-- Remaining in-scope implementation milestones: M3, M4, M5
-- Next stage: implement M3
+- Review status: M3 implementation is complete and ready for code-review; no M3 code-review has run yet
+- Remaining in-scope implementation milestones: M3 review, M4, M5
+- Next stage: code-review M3
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M3-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M3 code-review, M4-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -454,6 +464,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 | 2026-05-18 | Keep the existing broad `ci` job during the fast-lane shadow milestone unless maintainer handoff already exists. | This preserves rollback and avoids breaking external required-check settings during the shadow period. | Remove the broad PR job in the same slice that first adds `ci-fast-required`. |
 | 2026-05-18 | Use static workflow contract tests over a structured YAML model. | Architecture-review approved structured YAML parsing as the guardrail against workflow drift. | Ad hoc raw string checks as the only contract protection. |
 | 2026-05-18 | Put summary rendering in a shared PowerShell helper. | ADR 0012 rejects duplicated inline summary fragments and keeps the helper aligned with hosted `pwsh`. | A new .NET reporting tool in the first slice; duplicated YAML snippets. |
+| 2026-05-18 | Use release branch pattern `release/**` and release tag patterns `v*` and `v*-rc*` for `ci-release-evidence`. | The spec requires documented release branch/tag patterns, and these match the repository's existing `v*` release trigger while adding an explicit release-candidate tag pattern. | Leave trigger patterns to later review; ordinary PR trigger for release evidence. |
 
 ## Surprises And Discoveries
 
@@ -493,10 +504,20 @@ M2 validation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=CorpusScript&TestCategory=Smoke"` passed: 6 tests.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed: 4 tests.
 
+M3 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` failed before workflow implementation as expected because `.github/workflows/release-evidence.yml` was missing.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed after implementation: 9 tests passed.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed after release-evidence summary coverage: 6 tests passed.
+- `dotnet restore VeloFile.sln` passed.
+- `dotnet build VeloFile.sln -c Debug --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"` passed: 10 tests in 5 m 12 s after final build.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M2 is ready for code review; the plan is not ready for M3 implementation, final verification, or PR handoff.
+See `Current Handoff Summary` for live state. M3 is ready for code review; the plan is not ready for M4 implementation, final verification, or PR handoff.
