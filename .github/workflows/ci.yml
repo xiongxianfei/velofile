@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -27,3 +30,15 @@ jobs:
       - name: Run repository CI script
         shell: pwsh
         run: ./scripts/ci.ps1
+
+      - name: Write CI runtime summary
+        if: always()
+        shell: pwsh
+        run: >
+          ./scripts/Write-CiRuntimeSummary.ps1
+          -LaneName "ci"
+          -Trigger "${{ github.event_name }}"
+          -SelectedCategory "FullSolution"
+          -ReleaseEvidenceStatus "unknown; broad closeout unfiltered"
+          -CorpusScriptSmokeStatus "unknown; broad closeout unfiltered"
+          -FullCloseoutStatus "run"

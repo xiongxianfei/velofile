@@ -12,7 +12,7 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| None. | | | |
+| [2026-05-18 PR CI validation tiering](plans/2026-05-18-pr-ci-validation-tiering.md) | Stage hosted CI validation tiers: runtime summaries, fast PR shadow lane, release-evidence workflow, full closeout workflow, and branch-protection handoff evidence. | M1 review requested | code-review M1 |
 
 ## Blocked
 

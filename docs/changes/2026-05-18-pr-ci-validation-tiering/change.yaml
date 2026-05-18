@@ -1,0 +1,42 @@
+change_id: 2026-05-18-pr-ci-validation-tiering
+status: active
+current_stage: code-review
+current_stage_state: m1-review-requested
+current_milestone: M1
+current_milestone_state: review-requested
+summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
+artifacts:
+  proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
+  spec: specs/pr-ci-validation-tiering.md
+  architecture: docs/architecture/system/architecture.md
+  adr: docs/adr/0012-hosted-pr-ci-validation-tiers.md
+  plan: docs/plans/2026-05-18-pr-ci-validation-tiering.md
+  test_spec: specs/pr-ci-validation-tiering.test.md
+  explain_change: docs/changes/2026-05-18-pr-ci-validation-tiering/explain-change.md
+validation:
+  m1:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: failed before implementation because the summary helper script and broad-CI summary hook were missing; passed after implementation with 4 tests
+      - command: git diff --check -- scripts\Write-CiRuntimeSummary.ps1 .github\workflows\ci.yml tests\VeloFile.Corpus.Tests
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: Select-String -Path scripts\Write-CiRuntimeSummary.ps1,.github\workflows\ci.yml,tests\VeloFile.Corpus.Tests\TestRuntime\CiRuntimeSummaryTests.cs -Pattern '[ \t]+$'
+        result: passed with no trailing whitespace matches
+review:
+  stage: test-spec-review
+  status: approved
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/test-spec-review-r1.md
+  findings: []
+  resolved_findings:
+    - PRCI-SR1
+    - PRCI-PLR1
+  prior_records:
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/proposal-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r2.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/architecture-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r2.md
+  resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
+next_stage: code-review-m1

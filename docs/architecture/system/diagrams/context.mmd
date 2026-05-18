@@ -11,6 +11,7 @@ C4Context
   System_Ext(terminals, "Terminal targets", "Windows Terminal, PowerShell, cmd, Git Bash, WSL")
   System_Ext(msix, "MSIX install/update channel", "Signed package distribution and rollback")
   System_Ext(peers, "Drag/drop peer apps", "Explorer, browsers, IDEs, Office")
+  System_Ext(githubActions, "GitHub Actions hosted Windows runners", "Hosted CI, release-evidence, and closeout validation")
 
   Rel(user, velofile, "Uses for daily file management")
   Rel(contributor, velofile, "Contributes code, tests, docs, and architecture")
@@ -19,3 +20,5 @@ C4Context
   Rel(velofile, terminals, "Launches explicit terminal sessions")
   Rel(velofile, msix, "Ships and updates through")
   Rel(velofile, peers, "Interoperates through OLE drag/drop")
+  Rel(contributor, githubActions, "Receives PR, release-evidence, and closeout validation")
+  Rel(velofile, githubActions, "Defines Windows-hosted validation workflows")
