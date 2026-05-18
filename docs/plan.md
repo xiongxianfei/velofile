@@ -12,13 +12,13 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| [2026-05-18 PR CI validation tiering](plans/2026-05-18-pr-ci-validation-tiering.md) | Stage hosted CI validation tiers: runtime summaries, fast PR shadow lane, release-evidence workflow, full closeout workflow, and branch-protection handoff evidence. | M5 ready | implement M5 |
+| None. | | | |
 
 ## Blocked
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| None. | | | |
+| [2026-05-18 PR CI validation tiering](plans/2026-05-18-pr-ci-validation-tiering.md) | Stage hosted CI validation tiers: runtime summaries, fast PR shadow lane, release-evidence workflow, full closeout workflow, and branch-protection handoff evidence. | M5 blocked: hosted shadow-run evidence missing | Push/open a PR that includes the M2-M4 workflow changes, let `ci-fast-required` shadow-run for at least one PR cycle, then rerun implement M5. |
 
 ## Done
 

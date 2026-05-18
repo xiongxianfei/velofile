@@ -315,7 +315,7 @@ Execution constraints:
 
 ### M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
 
-- Milestone state: planned
+- Milestone state: blocked
 - Goal: Record at least one shadow PR cycle, finalize the ordinary PR workflow policy after review, and update contributor-facing guidance without claiming external settings changed before maintainer handoff.
 - Requirements: R11-R13, R49-R53, R61, AC13-AC15.
 - Files/components likely touched:
@@ -327,7 +327,7 @@ Execution constraints:
   - `docs/changes/2026-05-18-pr-ci-validation-tiering/branch-protection-handoff.md`
   - `docs/plans/2026-05-18-pr-ci-validation-tiering.md`
 - Dependencies:
-  - M2 shadow lane has run for at least one PR cycle.
+  - M2 shadow lane has run for at least one PR cycle. Blocked as of 2026-05-18: GitHub Actions has no hosted `ci-fast-required` PR run for the local M2-M4 workflow changes.
   - M3 and M4 workflows exist or the plan is revised to keep their absence explicit.
   - Maintainers provide or confirm branch-protection handoff evidence before repo artifacts claim `ci-fast-required` is required.
 - Tests to add/update:
@@ -454,19 +454,21 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M3 code-review rerun completed by `code-review-r6`; M3 closed.
 - [x] M4 implemented; code-review requested.
 - [x] M4 reviewed by `code-review-r7`; M4 closed.
+- [x] M5 implementation preflight stopped because hosted shadow-run evidence is missing.
+- [x] M5 code-review-r8 recorded the hosted shadow-run evidence blocker.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
 - Current milestone: M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
-- Current milestone state: planned
-- Last reviewed milestone: M4 code-review-r7
-- Review status: M4 code-review-r7 returned clean-with-notes; M4 is closed
+- Current milestone state: blocked
+- Last reviewed milestone: M5 code-review-r8
+- Review status: M5 code-review-r8 returned blocked because required hosted shadow-run evidence is missing; M4 remains the last closed milestone
 - Remaining in-scope implementation milestones: M5
-- Next stage: implement M5
+- Next stage: collect hosted shadow-run evidence, then implement M5
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M5 is blocked on hosted `ci-fast-required` shadow-run evidence; final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -485,6 +487,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 - Existing corpus test infrastructure already has category inventory, release-evidence tier tests, public script smoke tests, and runtime report tests that the new workflow tests can extend.
 - There is no central package props file; any test-only YAML parser dependency would be added directly to the relevant test project unless the test spec chooses another approach.
 - The M4 closeout workflow can upload TRX only when the invoked broad script produces structured output; with the current unchanged `scripts/ci.ps1`, the summary helper honestly reports missing structured output instead of fabricating slow-test details.
+- The 2026-05-18 M5 implementation preflight found no hosted shadow PR cycle for the local M2-M4 workflow changes. Local `main` is ahead of `origin/main` by 13 commits, GitHub Actions run history only shows the older broad `ci` workflow, PR #3 run `26002964319` had a single `ci` job, and the GitHub API reported `main` branch protection as not configured.
 
 ## Validation Notes
 
@@ -559,10 +562,25 @@ M4 code-review-r7 validation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed during review: 14 tests.
 - `git diff --check` passed during review with no output.
 
+M5 implementation preflight:
+
+- `git status --short --branch` showed local `main` clean and ahead of `origin/main` by 13 commits.
+- `gh run list --limit 20 --json databaseId,workflowName,displayTitle,event,headBranch,headSha,status,conclusion,createdAt,updatedAt,url` showed no hosted run for local HEAD `9ec9c78ce54cc4c5dd701cec76ff1b49ba8293e7`; the newest hosted CI runs are older broad `ci` runs.
+- `gh run view 26002964319 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt` showed PR #3 had one `ci` job and no `ci-fast-required` shadow job.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` (HTTP 404), so no branch-protection handoff is recorded or claimed.
+- M5 stopped before test/spec/workflow edits because PRCI-M001 requires at least one hosted PR cycle after M2 before shadow-run evidence can be recorded.
+
+M5 code-review-r8:
+
+- Review status: blocked.
+- Finding: PRCI-CR4.
+- Review record: `docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md`.
+- The review confirmed the blocker bookkeeping is aligned with the spec, but M5 cannot enter implementation review or final closeout until hosted `ci-fast-required` shadow-run evidence exists.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M5 is ready for implementation; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M5 is blocked until hosted `ci-fast-required` shadow-run evidence exists; the plan is not ready for final verification or PR handoff.

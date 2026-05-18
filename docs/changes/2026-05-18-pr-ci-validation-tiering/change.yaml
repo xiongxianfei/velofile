@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: implement
-current_stage_state: m5-ready
+current_stage: code-review
+current_stage_state: blocked
 current_milestone: M5
-current_milestone_state: planned
+current_milestone_state: blocked
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -112,11 +112,23 @@ validation:
         result: passed during code-review-r7 with 14 tests
       - command: git diff --check
         result: passed during code-review-r7 with no output
+  m5_preflight:
+    status: blocked
+    commands:
+      - command: git status --short --branch
+        result: local main was clean and ahead of origin/main by 13 commits
+      - command: gh run list --limit 20 --json databaseId,workflowName,displayTitle,event,headBranch,headSha,status,conclusion,createdAt,updatedAt,url
+        result: no hosted run existed for local HEAD 9ec9c78ce54cc4c5dd701cec76ff1b49ba8293e7; run history only showed older broad ci workflow runs
+      - command: gh run view 26002964319 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: PR #3 had one broad ci job and no ci-fast-required shadow job
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: blocked by missing external configuration evidence; GitHub returned Branch not protected (HTTP 404)
 review:
   stage: code-review
-  status: clean-with-notes
-  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
-  findings: []
+  status: blocked
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md
+  findings:
+    - PRCI-CR4
   resolved_findings:
     - PRCI-SR1
     - PRCI-PLR1
@@ -137,6 +149,8 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r4.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r5.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r6.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-  resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: implement-m5
+  prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
+  resolution: blocked until hosted shadow-run evidence exists
+next_stage: collect-hosted-shadow-run-evidence
