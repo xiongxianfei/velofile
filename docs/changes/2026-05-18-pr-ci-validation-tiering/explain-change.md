@@ -13,8 +13,14 @@ M1 adds a shared PowerShell summary helper and focused contract tests before int
 Changed surfaces:
 
 - `scripts/Write-CiRuntimeSummary.ps1` writes GitHub job-summary markdown for lane name, trigger, selected categories, release-evidence status, Corpus script smoke status, full-closeout status, optional command durations, optional per-project durations, slowest TRX tests, missing-output limitations, and redacted sensitive values.
-- `.github/workflows/ci.yml` keeps the existing broad `./scripts/ci.ps1` command unchanged and adds a follow-up `if: always()` summary step for the current broad CI lane.
-- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves the helper output, missing-TRX limitation behavior, redaction behavior, and broad-CI summary hook.
+- `.github/workflows/ci.yml` keeps the existing broad `./scripts/ci.ps1` command unchanged, gives that step the stable `repository_ci` id, and adds a follow-up `if: always()` summary step for the current broad CI lane.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRuntimeSummaryTests.cs` proves the helper output, missing-TRX limitation behavior, failed-command and command-outcome reporting, redaction behavior, and broad-CI summary hook.
+
+PRCI-CR1 resolution:
+
+- The summary step now uses `${{ steps.repository_ci.outcome }}` to pass `-FailedCommand` and `-FailedOutcome` only when the broad CI step does not succeed.
+- `scripts/Write-CiRuntimeSummary.ps1` treats `-FailedCommand` and `-FailedOutcome` as explicit workflow-provided failure context rather than inferring failure from missing TRX.
+- The broad CI step still runs `./scripts/ci.ps1` under `shell: pwsh`; no `continue-on-error` or command-selection change was introduced.
 
 Scope notes:
 

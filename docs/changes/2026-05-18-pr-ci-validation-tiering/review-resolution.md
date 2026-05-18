@@ -2,9 +2,37 @@
 
 ## Status
 
-closed by plan-review-r2; ready for test-spec
+PRCI-CR1 resolution implemented; ready for code-review rerun
 
 ## Findings
+
+### PRCI-CR1: Broad CI summary hook does not report the failed command when CI fails before TRX output exists
+
+- Source review: [code-review-r1](reviews/code-review-r1.md)
+- Disposition: accepted
+- Status: resolved; pending code-review rerun
+- Severity: material
+- Required outcome: The broad CI summary hook must provide enough failure context for the runtime summary to report the failed command or command outcome when `./scripts/ci.ps1` fails before TRX or equivalent structured output exists, while preserving the original CI failure semantics.
+- Safe resolution path:
+  - Give the repository CI step a stable id.
+  - Pass failure context to `scripts/Write-CiRuntimeSummary.ps1` only when the repository CI step fails.
+  - Add or update workflow contract coverage proving the summary hook wires the failed broad CI command into the helper.
+  - Keep `scripts/ci.ps1` command selection unchanged.
+  - Rerun focused M1 validation and rerun code-review.
+- Resolution:
+  - Added stable `id: repository_ci` to the broad CI script step in `.github/workflows/ci.yml`.
+  - Kept the broad CI command selection as `./scripts/ci.ps1` under `shell: pwsh`; no `continue-on-error` was added.
+  - Kept the runtime summary step as `if: always()`.
+  - Updated the runtime summary step to read `${{ steps.repository_ci.outcome }}` and pass `-FailedCommand "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1"` plus `-FailedOutcome` when the broad CI outcome is not `success`.
+  - Added `-FailedOutcome` support to `scripts/Write-CiRuntimeSummary.ps1` so the summary can report the command outcome alongside the failed command.
+  - Strengthened `CiRuntimeSummaryTests` to prove the helper reports failed command, command outcome, missing structured output, and unavailable slow-test details, and to prove the committed workflow wires the prior-step outcome into the summary helper.
+- Validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` failed first after test updates because `-FailedOutcome` and workflow failure-context wiring were missing.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed after the resolution with 4 tests.
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"` completed with no matching tests in this project.
+- Closeout:
+  - PRCI-CR1 is implemented and ready for code-review rerun.
+  - M2 remains blocked until M1 code-review rerun closes the finding.
 
 ### PRCI-SR1: Hosted runner and PowerShell shell contract is missing
 

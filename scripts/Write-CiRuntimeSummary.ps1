@@ -23,6 +23,8 @@ param(
 
     [string]$FailedCommand,
 
+    [string]$FailedOutcome,
+
     [string]$SummaryPath = $env:GITHUB_STEP_SUMMARY
 )
 
@@ -169,6 +171,10 @@ $lines.Add("- Full closeout: $(Protect-SummaryValue $FullCloseoutStatus)")
 
 if (-not [string]::IsNullOrWhiteSpace($FailedCommand)) {
     $lines.Add("- Failed command: $(Protect-SummaryValue $FailedCommand)")
+}
+
+if (-not [string]::IsNullOrWhiteSpace($FailedOutcome)) {
+    $lines.Add("- Command outcome: $(Protect-SummaryValue $FailedOutcome)")
 }
 
 $lines.Add("")

@@ -63,6 +63,7 @@ public sealed class CiRuntimeSummaryTests
             "-CorpusScriptSmokeStatus", "unknown; broad closeout unfiltered",
             "-FullCloseoutStatus", "run",
             "-FailedCommand", "dotnet build VeloFile.sln -c Debug --no-restore",
+            "-FailedOutcome", "failure",
             "-TrxPath", missingTrxPath,
             "-SummaryPath", summaryPath);
 
@@ -70,6 +71,7 @@ public sealed class CiRuntimeSummaryTests
         var summary = File.ReadAllText(summaryPath);
 
         StringAssert.Contains(summary, "Failed command: dotnet build VeloFile.sln -c Debug --no-restore");
+        StringAssert.Contains(summary, "Command outcome: failure");
         StringAssert.Contains(summary, "Structured test output: unavailable");
         StringAssert.Contains(summary, "missing.trx");
         StringAssert.Contains(summary, "No slow-test details available.");
@@ -90,6 +92,7 @@ public sealed class CiRuntimeSummaryTests
             "-CorpusScriptSmokeStatus", "credential=script-key",
             "-FullCloseoutStatus", "signing material=certificate",
             "-FailedCommand", @"dotnet test C:\Users\private-user\repo --password=letmein",
+            "-FailedOutcome", "token=abc123",
             "-SummaryPath", summaryPath);
 
         Assert.AreEqual(0, result.ExitCode, result.AllOutput);
@@ -114,11 +117,18 @@ public sealed class CiRuntimeSummaryTests
         StringAssert.Contains(workflow, "permissions:");
         StringAssert.Contains(workflow, "contents: read");
         StringAssert.Contains(workflow, "Run repository CI script");
+        StringAssert.Contains(workflow, "id: repository_ci");
+        StringAssert.Contains(workflow, "run: ./scripts/ci.ps1");
         StringAssert.Contains(workflow, "Write CI runtime summary");
         StringAssert.Contains(workflow, "if: always()");
         StringAssert.Contains(workflow, "shell: pwsh");
         StringAssert.Contains(workflow, "./scripts/Write-CiRuntimeSummary.ps1");
-        StringAssert.Contains(workflow, "-FullCloseoutStatus \"run\"");
+        StringAssert.Contains(workflow, "steps.repository_ci.outcome");
+        StringAssert.Contains(workflow, "$repositoryCiOutcome -ne \"success\"");
+        StringAssert.Contains(workflow, "-FailedCommand");
+        StringAssert.Contains(workflow, "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1");
+        StringAssert.Contains(workflow, "\"-FullCloseoutStatus\", \"run\"");
+        Assert.DoesNotContain("continue-on-error", workflow, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secrets.", workflow, StringComparison.OrdinalIgnoreCase);
     }
 

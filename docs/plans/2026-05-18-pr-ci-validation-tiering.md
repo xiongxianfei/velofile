@@ -4,7 +4,7 @@
 
 active
 
-This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. Implementation is ready to begin at M1.
+This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. M1 PRCI-CR1 review-resolution is implemented and ready for code-review rerun.
 
 ## Purpose / Big Picture
 
@@ -126,6 +126,9 @@ Execution constraints:
   - decision log updated if needed
   - validation notes updated
   - milestone committed
+  - code-review-r1 requested changes for PRCI-CR1
+  - review-resolution implemented for PRCI-CR1
+  - pending code-review rerun
 - Risks:
   - Summary failures could mask validation failures.
   - TRX parsing could overfit one MSTest output shape.
@@ -409,7 +412,9 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] Test spec created.
 - [x] Test spec reviewed by `test-spec-review-r1`.
 - [x] M1 implemented; code-review requested.
-- [ ] M1 reviewed.
+- [x] M1 reviewed by `code-review-r1`; PRCI-CR1 required review-resolution.
+- [x] M1 review-resolution completed for PRCI-CR1; code-review rerun requested.
+- [ ] M1 code-review rerun completed.
 - [ ] M2 implemented and reviewed.
 - [ ] M3 implemented and reviewed.
 - [ ] M4 implemented and reviewed.
@@ -420,10 +425,10 @@ Final verification is owned by `verify` after implementation, code review, and a
 
 - Current milestone: M1. Runtime Summary Helper And Broad-CI Reporting Foundation
 - Current milestone state: review-requested
-- Last reviewed milestone: none
-- Review status: M1 implementation is complete and ready for code-review; no M1 code-review has run yet
-- Remaining in-scope implementation milestones: M1 review, M2, M3, M4, M5
-- Next stage: code-review M1
+- Last reviewed milestone: M1 code-review-r1
+- Review status: PRCI-CR1 resolution implemented; pending code-review rerun
+- Remaining in-scope implementation milestones: M1 code-review rerun, M2, M3, M4, M5
+- Next stage: code-review M1 rerun
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: implementation, code review, review-resolution when triggered, explain-change, verify, and PR handoff are still open.
 
@@ -452,10 +457,16 @@ M1 validation:
 - `git diff --check -- scripts\Write-CiRuntimeSummary.ps1 .github\workflows\ci.yml tests\VeloFile.Corpus.Tests` passed with Git LF-to-CRLF working-copy warnings only.
 - `Select-String -Path scripts\Write-CiRuntimeSummary.ps1,.github\workflows\ci.yml,tests\VeloFile.Corpus.Tests\TestRuntime\CiRuntimeSummaryTests.cs -Pattern '[ \t]+$'` produced no matches.
 
+M1 PRCI-CR1 review-resolution validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` failed first after test updates because `-FailedOutcome` support and workflow failure-context wiring were missing.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed after resolution: 4 tests passed.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"` completed with no matching tests in this project.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. The plan is ready for M1 implementation; it is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M1 is ready for code-review rerun; the plan is not ready for M2 implementation, final verification, or PR handoff.

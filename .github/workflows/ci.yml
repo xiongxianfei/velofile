@@ -28,17 +28,29 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Run repository CI script
+        id: repository_ci
         shell: pwsh
         run: ./scripts/ci.ps1
 
       - name: Write CI runtime summary
         if: always()
         shell: pwsh
-        run: >
-          ./scripts/Write-CiRuntimeSummary.ps1
-          -LaneName "ci"
-          -Trigger "${{ github.event_name }}"
-          -SelectedCategory "FullSolution"
-          -ReleaseEvidenceStatus "unknown; broad closeout unfiltered"
-          -CorpusScriptSmokeStatus "unknown; broad closeout unfiltered"
-          -FullCloseoutStatus "run"
+        run: |
+          $summaryArgs = @(
+            "-LaneName", "ci",
+            "-Trigger", "${{ github.event_name }}",
+            "-SelectedCategory", "FullSolution",
+            "-ReleaseEvidenceStatus", "unknown; broad closeout unfiltered",
+            "-CorpusScriptSmokeStatus", "unknown; broad closeout unfiltered",
+            "-FullCloseoutStatus", "run"
+          )
+
+          $repositoryCiOutcome = "${{ steps.repository_ci.outcome }}"
+          if ($repositoryCiOutcome -ne "success") {
+            $summaryArgs += @(
+              "-FailedCommand", "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1",
+              "-FailedOutcome", $repositoryCiOutcome
+            )
+          }
+
+          ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs
