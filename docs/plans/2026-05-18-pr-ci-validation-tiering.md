@@ -315,7 +315,7 @@ Execution constraints:
 
 ### M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
 
-- Milestone state: blocked
+- Milestone state: review-requested
 - Goal: Record at least one shadow PR cycle, finalize the ordinary PR workflow policy after review, and update contributor-facing guidance without claiming external settings changed before maintainer handoff.
 - Requirements: R11-R13, R49-R53, R61, AC13-AC15.
 - Files/components likely touched:
@@ -327,13 +327,14 @@ Execution constraints:
   - `docs/changes/2026-05-18-pr-ci-validation-tiering/branch-protection-handoff.md`
   - `docs/plans/2026-05-18-pr-ci-validation-tiering.md`
 - Dependencies:
-  - M2 shadow lane has run for at least one PR cycle. Blocked as of 2026-05-18: GitHub Actions has no hosted `ci-fast-required` PR run for the local M2-M4 workflow changes.
+  - M2 shadow lane has run for at least one PR cycle. Satisfied on 2026-05-18 by PR #4 run `26062568345`: `ci-fast-required` passed in 7m20s and the temporary broad `ci` shadow job passed in 16m01s.
   - M3 and M4 workflows exist or the plan is revised to keep their absence explicit.
-  - Maintainers provide or confirm branch-protection handoff evidence before repo artifacts claim `ci-fast-required` is required.
+  - Maintainers provide or confirm branch-protection handoff evidence before repo artifacts claim GitHub branch protection changed. Current evidence records `main` branch protection as not configured (HTTP 404), so no handoff is claimed.
 - Tests to add/update:
   - Workflow contract validation preserves the final policy: ordinary PR defaults run `ci-fast-required`, while release evidence and full closeout are outside ordinary PR defaults.
   - Documentation tests or focused scans prove contributor guidance names fast PR confidence, release-evidence validation, and full closeout separately.
   - Change-record checks prove shadow-run evidence exists before required-check transition is claimed.
+  - Rollout evidence tests prove the shadow-run and branch-protection handoff records exist and do not overclaim external settings.
 - Implementation steps:
   - Record shadow-run comparison: fast lane runtime, failures, selected categories, broad check pass/fail when available, and any limitations.
   - If maintainers approve the handoff, record branch-protection evidence and update repository guidance to name `ci-fast-required` as the intended ordinary required check.
@@ -341,10 +342,16 @@ Execution constraints:
   - Update `docs/project-map.md` to describe the implemented workflow topology.
   - Keep rollback instructions explicit: make the broad closeout check required again and leave `ci-fast-required` optional.
 - Validation commands:
-  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation"`
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"`
   - `rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github`
-  - `git diff --check -- .github\workflows README.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md`
+  - `git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests`
 - Expected observable result: The repository records shadow evidence, contributor guidance matches the new policy, and any branch-protection claim is backed by maintainer handoff evidence.
+- Implementation evidence:
+  - Recorded accepted hosted shadow-run evidence in `docs/changes/2026-05-18-pr-ci-validation-tiering/shadow-run.md` for PR #4 run `26062568345`.
+  - Recorded branch-protection handoff status in `docs/changes/2026-05-18-pr-ci-validation-tiering/branch-protection-handoff.md`: GitHub returned `Branch not protected` (HTTP 404), so no maintainer handoff or external required-check change is claimed.
+  - Added `CiRolloutEvidenceTests` and contributor guidance assertions to preserve the shadow-run evidence, handoff caveat, lane names, summary wording, release-readiness warning, and rollback path.
+  - Updated `README.md`, `CONTRIBUTING.md`, and `docs/project-map.md` to describe implemented hosted CI lanes and the current rollout boundary.
+  - Kept the temporary broad `ci` PR job in place because branch-protection handoff is not recorded.
 - Commit message: `M5: record PR CI handoff evidence`
 - Milestone closeout:
   - validation passed
@@ -456,19 +463,21 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M4 reviewed by `code-review-r7`; M4 closed.
 - [x] M5 implementation preflight stopped because hosted shadow-run evidence is missing.
 - [x] M5 code-review-r8 recorded the hosted shadow-run evidence blocker.
-- [ ] M5 implemented and reviewed.
+- [x] Hosted PR #4 produced accepted `ci-fast-required` shadow-run evidence in run `26062568345`.
+- [x] M5 implemented; code-review requested.
+- [ ] M5 reviewed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
 - Current milestone: M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
-- Current milestone state: blocked
+- Current milestone state: review-requested
 - Last reviewed milestone: M5 code-review-r8
-- Review status: M5 code-review-r8 returned blocked because required hosted shadow-run evidence is missing; M4 remains the last closed milestone
+- Review status: M5 code-review-r8 returned blocked because required hosted shadow-run evidence was missing. PRCI-CR4 is now addressed by PR #4 hosted evidence and M5 is ready for code-review rerun; M4 remains the last closed milestone until review completes.
 - Remaining in-scope implementation milestones: M5
-- Next stage: collect hosted shadow-run evidence, then implement M5
+- Next stage: code-review M5
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M5 is blocked on hosted `ci-fast-required` shadow-run evidence; final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M5 is implemented but not yet reviewed; final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -488,6 +497,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 - There is no central package props file; any test-only YAML parser dependency would be added directly to the relevant test project unless the test spec chooses another approach.
 - The M4 closeout workflow can upload TRX only when the invoked broad script produces structured output; with the current unchanged `scripts/ci.ps1`, the summary helper honestly reports missing structured output instead of fabricating slow-test details.
 - The 2026-05-18 M5 implementation preflight found no hosted shadow PR cycle for the local M2-M4 workflow changes. Local `main` is ahead of `origin/main` by 13 commits, GitHub Actions run history only shows the older broad `ci` workflow, PR #3 run `26002964319` had a single `ci` job, and the GitHub API reported `main` branch protection as not configured.
+- PR #4 created the needed hosted shadow-run surface. Earlier runs exposed hosted-only issues in summary argument binding and timeout-sensitive App tests; after fixes, run `26062568345` passed `ci-fast-required` in 7m20s and broad `ci` in 16m01s.
 
 ## Validation Notes
 
@@ -577,10 +587,20 @@ M5 code-review-r8:
 - Review record: `docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md`.
 - The review confirmed the blocker bookkeeping is aligned with the spec, but M5 cannot enter implementation review or final closeout until hosted `ci-fast-required` shadow-run evidence exists.
 
+M5 implementation validation:
+
+- Hosted PR #4 run `26062568345` passed after the M2-M4 workflow commits and hosted fixes: `ci-fast-required` passed in 7m20s and broad `ci` passed in 16m01s.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` (HTTP 404), so `branch-protection-handoff.md` records no maintainer handoff and no external required-check claim.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` failed before evidence and guidance were added, as expected.
+- Final M5 validation:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"` passed: 20 tests.
+  - `rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github` passed with expected matches in guidance, specs, workflows, and change records.
+  - `git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests` passed with Git LF-to-CRLF working-copy warnings only.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M5 is blocked until hosted `ci-fast-required` shadow-run evidence exists; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M5 is implemented and ready for code-review rerun; the plan is not ready for final verification or PR handoff.

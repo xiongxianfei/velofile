@@ -90,3 +90,21 @@ Scope notes:
 - M4 does not change `scripts/ci.ps1`.
 - M4 does not change fast-lane command selection, release-evidence policy, test category taxonomy, caching behavior, branch protection, or production App/Core/Windows/Corpus behavior.
 - Because `scripts/ci.ps1` remains unchanged and does not currently emit TRX output, the closeout summary can only include structured test details if future non-semantic reporting hooks produce TRX; otherwise it honestly reports unavailable structured output.
+
+## M5 Shadow-Run Evidence And Guidance
+
+M5 records hosted rollout evidence after PR #4 exercised the implemented workflow lanes.
+
+Changed surfaces:
+
+- `docs/changes/2026-05-18-pr-ci-validation-tiering/shadow-run.md` records the accepted hosted PR cycle: PR #4 run `26062568345` passed `ci-fast-required` in 7m20s and the temporary broad `ci` shadow job in 16m01s at commit `28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a`.
+- `docs/changes/2026-05-18-pr-ci-validation-tiering/branch-protection-handoff.md` records the external handoff state: GitHub returned `Branch not protected` (HTTP 404), so no maintainer handoff or branch-protection change is claimed.
+- `README.md` and `CONTRIBUTING.md` now describe `ci-fast-required`, `ci-release-evidence`, and `ci-full-closeout` separately, warn that fast PR confidence is not release readiness, and preserve the rollback path.
+- `docs/project-map.md`, `docs/plan.md`, this plan's metadata, and `change.yaml` now reflect the implemented hosted CI topology and the M5 review-requested state.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiRolloutEvidenceTests.cs` proves the shadow-run evidence, no-handoff record, and rollout guidance wording. `ValidationCommandDocumentationTests` now also checks hosted CI lane guidance.
+
+Scope notes:
+
+- M5 does not change workflow command selection, test categories, release-evidence policy, or production App/Core/Windows/Corpus behavior.
+- The temporary broad `ci` PR shadow job remains because branch-protection handoff is not recorded.
+- This is not final closeout. M5 still needs code review, then the later lifecycle stages own final `explain-change`, `verify`, and PR handoff.

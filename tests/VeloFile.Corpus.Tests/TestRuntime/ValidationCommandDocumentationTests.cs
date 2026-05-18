@@ -33,6 +33,25 @@ public sealed class ValidationCommandDocumentationTests
     }
 
     [TestMethod]
+    public void Contributor_validation_guidance_distinguishes_hosted_ci_lanes()
+    {
+        var repoRoot = FindRepoRoot();
+        var readme = File.ReadAllText(Path.Combine(repoRoot.FullName, "README.md"));
+        var contributing = File.ReadAllText(Path.Combine(repoRoot.FullName, "CONTRIBUTING.md"));
+
+        foreach (var document in new[] { readme, contributing })
+        {
+            StringAssert.Contains(document, "ci-fast-required");
+            StringAssert.Contains(document, "ci-release-evidence");
+            StringAssert.Contains(document, "ci-full-closeout");
+            StringAssert.Contains(document, "ReleaseEvidence: not run in this lane");
+            StringAssert.Contains(document, "CorpusScript Smoke: run");
+            StringAssert.Contains(document, "Full closeout");
+            StringAssert.Contains(document, "release readiness");
+        }
+    }
+
+    [TestMethod]
     public void Fast_filter_excludes_expensive_only_corpus_tests()
     {
         var descriptors = CorpusCategoryInventory.FromAssembly(typeof(ValidationCommandDocumentationTests).Assembly);

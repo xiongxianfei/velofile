@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: code-review
-current_stage_state: blocked
+current_stage: implement
+current_stage_state: m5-review-requested
 current_milestone: M5
-current_milestone_state: blocked
+current_milestone_state: review-requested
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -123,9 +123,24 @@ validation:
         result: PR #3 had one broad ci job and no ci-fast-required shadow job
       - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
         result: blocked by missing external configuration evidence; GitHub returned Branch not protected (HTTP 404)
+  m5:
+    status: passed
+    commands:
+      - command: hosted PR #4 run 26062568345
+        result: passed; ci-fast-required passed in 7m20s and broad ci passed in 16m01s at commit 28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: returned Branch not protected (HTTP 404); branch-protection-handoff.md records no maintainer handoff and no external required-check claim
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: failed before evidence and guidance were added, as expected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"
+        result: passed with 20 tests
+      - command: rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github
+        result: passed with expected matches in guidance, specs, workflows, and change records
+      - command: git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests
+        result: passed with Git LF-to-CRLF working-copy warnings only
 review:
   stage: code-review
-  status: blocked
+  status: rerun-requested
   record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md
   findings:
     - PRCI-CR4
@@ -152,5 +167,5 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-  resolution: blocked until hosted shadow-run evidence exists
-next_stage: collect-hosted-shadow-run-evidence
+  resolution: PRCI-CR4 addressed by hosted PR #4 shadow-run evidence; pending code-review rerun
+next_stage: code-review-m5

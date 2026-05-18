@@ -73,8 +73,8 @@ Observed source file counts at refresh time:
 - `tools/VeloFile.UiContracts`: 1 C# file
 - `tests/VeloFile.Core.Tests`: 28 C# files
 - `tests/VeloFile.Windows.Tests`: 12 C# files
-- `tests/VeloFile.App.Tests`: 16 C# files
-- `tests/VeloFile.Corpus.Tests`: 22 C# files
+- `tests/VeloFile.App.Tests`: 22 C# files
+- `tests/VeloFile.Corpus.Tests`: 32 C# files
 
 ## Runtime Flow
 
@@ -181,9 +181,9 @@ Tooling boundaries:
 Observed MSTest coverage at refresh time. Counts below are static `[TestMethod]` or `[DataTestMethod]` declarations, not hosted runtime case counts:
 
 - [tests/VeloFile.Core.Tests](../tests/VeloFile.Core.Tests): 28 C# files and 155 static test declarations. Covers listing, search, filtering, operations, preview controller policy, thumbnails, persistence, diagnostics, terminal, keyboard commands, shell state, sidebar, visibility, selection, and association launch contracts.
-- [tests/VeloFile.App.Tests](../tests/VeloFile.App.Tests): 16 C# files and 164 static test declarations. Covers app-shell view-model behavior, command routes, drag/drop route proof, PDF preview navigation shell state, thumbnail dispatcher marshaling, terminal routing, associations, persistence integration seams, release workflow contracts, UI fixture launch, and shell accessibility/static resource contracts through linked source seams.
+- [tests/VeloFile.App.Tests](../tests/VeloFile.App.Tests): 22 C# files and 164 static test declarations. Covers app-shell view-model behavior, command routes, drag/drop route proof, PDF preview navigation shell state, thumbnail dispatcher marshaling, terminal routing, associations, persistence integration seams, release workflow contracts, UI fixture launch, and shell accessibility/static resource contracts through linked source seams.
 - [tests/VeloFile.Windows.Tests](../tests/VeloFile.Windows.Tests): 12 C# files and 52 static test declarations. Covers Windows adapter behavior for drag/drop projection, file operations, preview image/PDF/thumbnail boundaries, durable storage, clipboard, terminal discovery/launch, file association launch, and foundation smoke boundaries.
-- [tests/VeloFile.Corpus.Tests](../tests/VeloFile.Corpus.Tests): 22 C# files and 85 static test declarations. Covers corpus script isolation, report shape, release evidence classification, validation command documentation, category inventory, prepared-tool harness behavior, runtime reports, public wrapper smoke, visual baseline inventory, UI contract checks, and tooling drift checks.
+- [tests/VeloFile.Corpus.Tests](../tests/VeloFile.Corpus.Tests): 32 C# files and 109 static test declarations. Covers corpus script isolation, report shape, release evidence classification, validation command documentation, category inventory, PR CI workflow contract tests, rollout evidence, prepared-tool harness behavior, runtime reports, public wrapper smoke, visual baseline inventory, UI contract checks, and tooling drift checks.
 - [tests/validation](../tests/validation): PowerShell validation tests for script and corpus isolation behavior.
 - [tests/fixtures/ui-contracts](../tests/fixtures/ui-contracts): valid and invalid XAML/JSON fixtures for token, scope, literal, duplicate-key, missing-key, component-resource, and fixture-icon validation.
 - [tests/visual/baselines](../tests/visual/baselines): reviewed first-slice visual baseline PNGs and JSON sidecars used as supporting evidence under the UI contracts.
@@ -196,11 +196,12 @@ The app test project links selected App source files rather than referencing the
 
 CI:
 
-- [.github/workflows/ci.yml](../.github/workflows/ci.yml) is the current hosted PR/push workflow. It runs one `ci` job on `windows-latest` for `pull_request` and `push` to `main`.
-- Current CI installs .NET SDK `10.0.x` and invokes [scripts/ci.ps1](../scripts/ci.ps1) with `shell: pwsh`.
-- Current [scripts/ci.ps1](../scripts/ci.ps1) runs `dotnet --info`, solution restore, Debug build with `--no-restore`, UI contract validation against the valid UI fixture tree, and unfiltered solution tests with `--no-build`.
-- The approved [PR CI Validation Tiering](../specs/pr-ci-validation-tiering.md) spec has not yet been implemented in workflow files. It requires future hosted lanes named `ci-fast-required`, `ci-release-evidence`, and `ci-full-closeout`, all on Windows runners with `pwsh` for PowerShell/script steps and approved .NET SDK setup before validation commands.
-- The approved PR CI contract requires the fast lane to run Core/App/Windows test projects directly, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`, while keeping release evidence and full closeout explicit outside ordinary PR defaults.
+- [.github/workflows/ci.yml](../.github/workflows/ci.yml) is the hosted PR/push workflow. It runs `ci-fast-required` and the temporary broad `ci` shadow job on `windows-latest` for `pull_request` and `push` to `main`.
+- `ci-fast-required` uses job-level `pwsh`, sets up .NET SDK `10.0.x`, runs `dotnet --info`, restore, Debug build with `--no-restore`, UI contract validation, direct Core/App/Windows test projects, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`. It emits TRX output, uploads test artifacts, and writes a runtime summary reporting `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
+- The broad `ci` job still invokes [scripts/ci.ps1](../scripts/ci.ps1) during rollout as a shadow/rollback path until maintainers record branch-protection handoff. Current [scripts/ci.ps1](../scripts/ci.ps1) runs `dotnet --info`, solution restore, Debug build with `--no-restore`, UI contract validation against the valid UI fixture tree, and unfiltered solution tests with `--no-build`.
+- [.github/workflows/release-evidence.yml](../.github/workflows/release-evidence.yml) defines `ci-release-evidence` for `workflow_dispatch`, nightly schedule, `release/**` branches, `v*` and `v*-rc*` tags, and `merge_group`. It runs explicit Corpus `ReleaseEvidence` validation with release-evidence summary status.
+- [.github/workflows/closeout.yml](../.github/workflows/closeout.yml) defines `ci-full-closeout` for manual broad closeout through [scripts/ci.ps1](../scripts/ci.ps1).
+- PR #4 run `26062568345` recorded the accepted hosted shadow cycle: `ci-fast-required` passed in 7m20s, broad `ci` passed in 16m01s, and GitHub branch protection for `main` was not configured (HTTP 404), so no external required-check handoff is claimed.
 
 Release:
 
@@ -242,8 +243,8 @@ Observed risks and maintenance pressure points:
 - App tests cover shell routes through linked source seams, but not a full WinUI UI automation surface.
 - Current benchmark evidence is documented as infrastructure-only when it does not drive the app boundary.
 - Association and DPI release evidence are still tracked as not-implemented/manual where automated verifier inputs are absent.
-- Current hosted PR CI still runs the broad `scripts/ci.ps1` path until the approved PR CI tiering spec is implemented. That means ordinary PR feedback still pays the full Corpus release-evidence cost in the existing workflow.
-- Workflow contract tests for the approved PR CI tiering policy do not exist yet in the implemented test suite; they belong to the upcoming architecture, plan, and test-spec work.
+- Hosted PR CI still keeps the broad `ci` shadow job during rollout until maintainer branch-protection handoff is recorded; this preserves rollback but temporarily spends extra hosted minutes.
+- Workflow contract tests now guard the PR CI tiering policy, so changes to workflow command selection, runner/shell setup, release-evidence triggers, closeout wiring, or summary behavior should update those tests in the same change.
 - The early repository status line in [specs/v1-product-scope.test.md](../specs/v1-product-scope.test.md) appears historically stale because the source tree and test projects now exist.
 
 ## Open Questions
@@ -252,8 +253,7 @@ Observed risks and maintenance pressure points:
 - When should association and DPI release evidence move from manual or not-implemented classification to automated verifier input?
 - Should the app shell continue with manual refresh/event handling, or should a later architecture slice introduce narrower bindable command/view services?
 - Should `VeloFile.Corpus` split into smaller command modules after V1 closeout to reduce release-evidence drift risk?
-- Where should the PR CI tiering architecture place runtime-summary generation: inline workflow steps, a repository script, a .NET helper, or a small PowerShell helper?
-- Should workflow contract tests parse YAML directly with a structured parser, or use a narrower repository-local contract validator for the approved GitHub Actions shape?
+- When should maintainers complete branch-protection handoff so `ci-fast-required` becomes the external required ordinary PR check?
 - Should the stale status wording in `specs/v1-product-scope.test.md` be corrected as documentation hygiene in a separate change?
 
-Recommended next skill: use `architecture` for the approved PR CI validation tiering change before planning or implementation.
+Recommended next skill for the active PR CI validation tiering change: use `code-review` after M5 implementation evidence is committed.
