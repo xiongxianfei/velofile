@@ -2,7 +2,7 @@
 
 ## Status
 
-PRCI-CR3 resolution implemented; ready for M3 code-review rerun
+closed by code-review-r6; ready for M4 implementation
 
 ## Latest Review-Resolution
 
@@ -10,7 +10,7 @@ PRCI-CR3 resolution implemented; ready for M3 code-review rerun
 
 - Source review: [code-review-r5](reviews/code-review-r5.md)
 - Disposition: accepted
-- Status: resolved; code-review rerun requested
+- Status: closed by code-review-r6
 - Severity: major
 - Required outcome: Workflow contract coverage must fail if the `ci-release-evidence` release-evidence validation step uses `continue-on-error`, or if the release-evidence runtime summary step is not configured to run with `if: always()` or an explicitly accepted equivalent.
 - Safe resolution path:
@@ -30,8 +30,9 @@ PRCI-CR3 resolution implemented; ready for M3 code-review rerun
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed with 6 tests.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 - Closeout:
-  - PRCI-CR3 resolution is implemented.
-  - M3 remains open until code-review reruns and approves the resolution.
+  - [code-review-r6](reviews/code-review-r6.md) approved the PRCI-CR3 resolution with no findings.
+  - PRCI-CR3 is closed.
+  - M3 is closed.
 
 ## Findings
 

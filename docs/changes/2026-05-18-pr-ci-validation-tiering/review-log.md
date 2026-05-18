@@ -14,3 +14,4 @@
 | [code-review-r3](reviews/code-review-r3.md) | code-review | M2 | changes-requested | PRCI-CR2 |
 | [code-review-r4](reviews/code-review-r4.md) | code-review | M2 | clean-with-notes | none |
 | [code-review-r5](reviews/code-review-r5.md) | code-review | M3 | changes-requested | PRCI-CR3 |
+| [code-review-r6](reviews/code-review-r6.md) | code-review | M3 | clean-with-notes | none |

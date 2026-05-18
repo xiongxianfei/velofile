@@ -207,7 +207,7 @@ Execution constraints:
 
 ### M3. Release-Evidence Workflow
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Add `ci-release-evidence` so expensive release evidence is explicit, scheduled, manually runnable, release-triggered, and separate from ordinary PR defaults.
 - Requirements: R4-R8, R11, R28-R34, R40-R48, R52, R54-R60, R62-R64, R65-R69, AC2, AC9, AC12, AC16-AC20.
 - Files/components likely touched:
@@ -443,21 +443,21 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M3 implemented; code-review requested.
 - [x] M3 reviewed by `code-review-r5`; PRCI-CR3 requires review-resolution.
 - [x] M3 review-resolution completed for PRCI-CR3; code-review rerun requested.
-- [ ] M3 code-review rerun completed.
+- [x] M3 code-review rerun completed by `code-review-r6`; M3 closed.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-- Current milestone: M3. Release-Evidence Workflow
-- Current milestone state: review-requested
-- Last reviewed milestone: M3 code-review-r5
-- Review status: PRCI-CR3 resolution implemented; code-review rerun requested
-- Remaining in-scope implementation milestones: M3 re-review, M4, M5
-- Next stage: code-review M3 rerun
+- Current milestone: M4. Full Closeout Workflow
+- Current milestone state: planned
+- Last reviewed milestone: M3 code-review-r6
+- Review status: M3 code-review-r6 returned clean-with-notes; M3 is closed
+- Remaining in-scope implementation milestones: M4, M5
+- Next stage: implement M4
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M3 code-review rerun, M4-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M4-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -531,10 +531,16 @@ M3 PRCI-CR3 review-resolution validation:
 - `git diff --check` passed after resolution with Git LF-to-CRLF working-copy warnings only.
 - The new invalid workflow fixture proves contract diagnostics are emitted for `ContinueOnError=true` on `test_release_evidence` and a missing release-evidence summary `if: always()` condition.
 
+M3 code-review-r6 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed during review: 10 tests passed.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed during review: 6 tests passed.
+- `git diff --check` passed during review with no output.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M3 is ready for code-review rerun; the plan is not ready for M4 implementation, final verification, or PR handoff.
+See `Current Handoff Summary` for live state. M4 is ready for implementation; the plan is not ready for final verification or PR handoff.
