@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: code-review
-current_stage_state: m4-review-requested
-current_milestone: M4
-current_milestone_state: review-requested
+current_stage: implement
+current_stage_state: m5-ready
+current_milestone: M5
+current_milestone_state: planned
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -98,7 +98,7 @@ validation:
       - command: git diff --check
         result: passed during code-review-r6 with no output
   m4:
-    status: implementation-ready-for-review
+    status: passed
     commands:
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
         result: failed before workflow implementation because closeout.yml was missing; passed after implementation with 14 tests
@@ -108,10 +108,14 @@ validation:
         result: passed; SDK 10.0.203 on Windows; build 0 warnings and 0 errors; UI contract validation passed; Core 168, App 168, Windows 52, Corpus 110 tests passed
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r7 with 14 tests
+      - command: git diff --check
+        result: passed during code-review-r7 with no output
 review:
   stage: code-review
-  status: review-requested
-  record: pending
+  status: clean-with-notes
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
   findings: []
   resolved_findings:
     - PRCI-SR1
@@ -135,4 +139,4 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r6.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: code-review-m4
+next_stage: implement-m5

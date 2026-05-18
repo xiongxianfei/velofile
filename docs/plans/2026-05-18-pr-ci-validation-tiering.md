@@ -265,7 +265,7 @@ Execution constraints:
 
 ### M4. Full Closeout Workflow
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: Add `ci-full-closeout` as a manual broad closeout lane that invokes `scripts/ci.ps1` unchanged.
 - Requirements: R9-R10, R35-R39, R40-R48, R52-R53, R58-R59, R62-R64, R65-R69, AC2, AC10-AC12, AC16-AC20.
 - Files/components likely touched:
@@ -305,6 +305,8 @@ Execution constraints:
   - decision log updated if needed
   - validation notes updated
   - milestone committed
+  - code-review-r7 returned clean-with-notes
+  - milestone closed
 - Risks:
   - Duplicating closeout commands in YAML would drift from `scripts/ci.ps1`.
   - Broad closeout runtime may still be expensive by design.
@@ -451,20 +453,20 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M3 review-resolution completed for PRCI-CR3; code-review rerun requested.
 - [x] M3 code-review rerun completed by `code-review-r6`; M3 closed.
 - [x] M4 implemented; code-review requested.
-- [ ] M4 reviewed.
+- [x] M4 reviewed by `code-review-r7`; M4 closed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
-- Current milestone: M4. Full Closeout Workflow
-- Current milestone state: review-requested
-- Last reviewed milestone: M3 code-review-r6
-- Review status: M4 implementation is complete and ready for code-review; no M4 code-review has run yet
-- Remaining in-scope implementation milestones: M4 review, M5
-- Next stage: code-review M4
+- Current milestone: M5. Shadow-Run Evidence, Final Policy Transition, And Contributor Guidance
+- Current milestone state: planned
+- Last reviewed milestone: M4 code-review-r7
+- Review status: M4 code-review-r7 returned clean-with-notes; M4 is closed
+- Remaining in-scope implementation milestones: M5
+- Next stage: implement M5
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M4-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -552,10 +554,15 @@ M4 validation:
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: SDK 10.0.203 on Windows; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 168, Windows 52, Corpus 110 tests passed.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
+M4 code-review-r7 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed during review: 14 tests.
+- `git diff --check` passed during review with no output.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M4 is ready for code-review; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M5 is ready for implementation; the plan is not ready for final verification or PR handoff.
