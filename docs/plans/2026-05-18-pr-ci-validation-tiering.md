@@ -207,7 +207,7 @@ Execution constraints:
 
 ### M3. Release-Evidence Workflow
 
-- Milestone state: review-requested
+- Milestone state: resolution-needed
 - Goal: Add `ci-release-evidence` so expensive release evidence is explicit, scheduled, manually runnable, release-triggered, and separate from ordinary PR defaults.
 - Requirements: R4-R8, R11, R28-R34, R40-R48, R52, R54-R60, R62-R64, R65-R69, AC2, AC9, AC12, AC16-AC20.
 - Files/components likely touched:
@@ -440,7 +440,8 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M2 review-resolution implemented for PRCI-CR2; code-review rerun requested.
 - [x] M2 code-review rerun completed by `code-review-r4`; M2 closed.
 - [x] M3 implemented; code-review requested.
-- [ ] M3 reviewed.
+- [x] M3 reviewed by `code-review-r5`; PRCI-CR3 requires review-resolution.
+- [ ] M3 review-resolution completed for PRCI-CR3.
 - [ ] M4 implemented and reviewed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
@@ -448,13 +449,13 @@ Final verification is owned by `verify` after implementation, code review, and a
 ## Current Handoff Summary
 
 - Current milestone: M3. Release-Evidence Workflow
-- Current milestone state: review-requested
-- Last reviewed milestone: M2 code-review-r4
-- Review status: M3 implementation is complete and ready for code-review; no M3 code-review has run yet
-- Remaining in-scope implementation milestones: M3 review, M4, M5
-- Next stage: code-review M3
+- Current milestone state: resolution-needed
+- Last reviewed milestone: M3 code-review-r5
+- Review status: code-review-r5 requested changes for PRCI-CR3
+- Remaining in-scope implementation milestones: M3 review-resolution and re-review, M4, M5
+- Next stage: review-resolution PRCI-CR3
 - Final closeout readiness: not ready
-- Reason final closeout is or is not ready: M3 code-review, M4-M5, final explain-change, verify, and PR handoff are still open.
+- Reason final closeout is or is not ready: PRCI-CR3, M4-M5, final explain-change, verify, and PR handoff are still open.
 
 ## Decision Log
 
@@ -514,10 +515,17 @@ M3 validation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"` passed: 10 tests in 5 m 12 s after final build.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
+M3 code-review-r5 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed during review: 9 tests passed.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed during review: 6 tests passed.
+- `git diff --check` passed during review with Git LF-to-CRLF working-copy warnings only.
+- Review finding PRCI-CR3 remains open because release-evidence workflow contract tests do not prove the `continue-on-error` and summary `if: always()` failure semantics required by PRCI-T020 and PRCI-T023.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M3 is ready for code review; the plan is not ready for M4 implementation, final verification, or PR handoff.
+See `Current Handoff Summary` for live state. M3 needs review-resolution for PRCI-CR3; the plan is not ready for M4 implementation, final verification, or PR handoff.

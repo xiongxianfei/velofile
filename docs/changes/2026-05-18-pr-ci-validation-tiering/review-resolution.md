@@ -2,7 +2,23 @@
 
 ## Status
 
-closed by code-review-r4; ready for M3 implementation
+PRCI-CR3 open; M3 requires review-resolution before M4 implementation
+
+## Open Findings
+
+### PRCI-CR3: Release-evidence contract tests do not prove failure and summary-after-failure semantics
+
+- Source review: [code-review-r5](reviews/code-review-r5.md)
+- Disposition: pending review-resolution
+- Status: open
+- Severity: major
+- Required outcome: Workflow contract coverage must fail if the `ci-release-evidence` release-evidence validation step uses `continue-on-error`, or if the release-evidence runtime summary step is not configured to run with `if: always()` or an explicitly accepted equivalent.
+- Safe resolution path:
+  - Extend the test-owned workflow model to expose step `if` values.
+  - Update release-evidence workflow contract coverage to assert the `test_release_evidence` validation step does not use `continue-on-error`.
+  - Update release-evidence workflow contract coverage to assert the release-evidence summary helper step uses `if: always()` or accepted equivalent summary-after-failure behavior.
+  - Keep release-evidence command selection, trigger policy, and workflow failure semantics unchanged.
+  - Rerun focused M3 validation and rerun code-review.
 
 ## Findings
 
