@@ -72,3 +72,21 @@ Scope notes:
 - M3 does not change the ordinary PR `ci-fast-required` command selection.
 - M3 does not add the full closeout workflow; that remains M4.
 - M3 does not change `scripts/ci.ps1`, production App/Core/Windows/Corpus behavior, test category taxonomy, caching policy, or public prepared-tool options.
+
+## M4 Full Closeout Workflow
+
+M4 adds the manual broad closeout lane while keeping the actual closeout command centralized in `scripts/ci.ps1`.
+
+Changed surfaces:
+
+- `.github/workflows/closeout.yml` defines `ci-full-closeout` with `workflow_dispatch`, `contents: read`, `windows-latest`, job-level `pwsh`, `actions/setup-dotnet@v4`, and an unchanged `./scripts/ci.ps1` step.
+- The closeout workflow keeps original failure semantics: the closeout step has no `continue-on-error`, the summary step uses `if: always()`, and failure context is passed from `${{ steps.full_closeout.outcome }}` as `-FailedCommand` and `-FailedOutcome`.
+- The closeout summary reports `Full closeout: run`, records release evidence and Corpus script smoke as `unknown; full closeout unfiltered`, and uploads TRX artifacts only when structured output exists.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` adds `ValidateFullCloseoutLane` for hosted environment, SDK ordering, broad-command selection, closeout failure semantics, and summary-after-failure semantics.
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` proves the manual trigger, no ordinary PR/push trigger, Windows/pwsh/SDK setup, `scripts/ci.ps1` invocation, summary wiring, artifact path, failure diagnostics, and broad `scripts/ci.ps1` contents.
+
+Scope notes:
+
+- M4 does not change `scripts/ci.ps1`.
+- M4 does not change fast-lane command selection, release-evidence policy, test category taxonomy, caching behavior, branch protection, or production App/Core/Windows/Corpus behavior.
+- Because `scripts/ci.ps1` remains unchanged and does not currently emit TRX output, the closeout summary can only include structured test details if future non-semantic reporting hooks produce TRX; otherwise it honestly reports unavailable structured output.

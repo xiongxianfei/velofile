@@ -6,8 +6,10 @@ public sealed class CiWorkflowContractTests
 {
     private const string FastLaneJobId = "ci-fast-required";
     private const string ReleaseEvidenceJobId = "ci-release-evidence";
+    private const string CloseoutJobId = "ci-full-closeout";
     private const string CiWorkflowRelativePath = ".github/workflows/ci.yml";
     private const string ReleaseEvidenceWorkflowRelativePath = ".github/workflows/release-evidence.yml";
+    private const string CloseoutWorkflowRelativePath = ".github/workflows/closeout.yml";
 
     [TestMethod]
     public void Workflow_model_parses_committed_ci_workflow()
@@ -246,6 +248,122 @@ public sealed class CiWorkflowContractTests
     }
 
     [TestMethod]
+    public void Full_closeout_lane_exists_with_manual_trigger_and_hosted_environment()
+    {
+        var workflow = LoadCloseoutWorkflow();
+        var closeoutLane = workflow.RequireJob(CloseoutJobId);
+
+        Assert.AreEqual(CloseoutJobId, closeoutLane.Name);
+        CollectionAssert.Contains(workflow.Events.ToArray(), "workflow_dispatch");
+        CollectionAssert.DoesNotContain(workflow.Events.ToArray(), "pull_request");
+        CollectionAssert.DoesNotContain(workflow.Events.ToArray(), "push");
+        CollectionAssert.Contains(closeoutLane.RunsOn.ToArray(), "windows-latest");
+        Assert.AreEqual("pwsh", closeoutLane.DefaultRunShell);
+        Assert.IsTrue(workflow.Permissions.TryGetValue("contents", out var contentsPermission));
+        Assert.AreEqual("read", contentsPermission);
+
+        var diagnostics = CiWorkflowContractValidator.ValidateFullCloseoutLane(workflow, CloseoutJobId);
+        CollectionAssert.AreEqual(Array.Empty<string>(), diagnostics.ToArray(), string.Join(Environment.NewLine, diagnostics));
+    }
+
+    [TestMethod]
+    public void Full_closeout_lane_invokes_broad_script_and_reports_summary()
+    {
+        var closeoutLane = LoadCloseoutWorkflow().RequireJob(CloseoutJobId);
+        var closeoutStep = closeoutLane.Steps.Single(step => StringComparer.Ordinal.Equals(step.Id, "full_closeout"));
+        var closeoutCommand = CiWorkflowContractValidator.Normalize(closeoutStep.Run);
+
+        StringAssert.Contains(closeoutCommand, "./scripts/ci.ps1");
+        Assert.IsFalse(
+            closeoutStep.ContinueOnError,
+            "workflow-step-violation: full_closeout step has ContinueOnError=true; workflow must fail when scripts/ci.ps1 fails.");
+
+        var setupIndex = closeoutLane.Steps.ToList().FindIndex(step => step.Uses?.StartsWith("actions/setup-dotnet@", StringComparison.Ordinal) == true);
+        var closeoutIndex = closeoutLane.Steps.ToList().FindIndex(step => StringComparer.Ordinal.Equals(step.Id, "full_closeout"));
+        Assert.IsGreaterThanOrEqualTo(0, setupIndex, "workflow-sdk-contract: ci-full-closeout must set up .NET before closeout validation.");
+        Assert.IsLessThan(closeoutIndex, setupIndex, "workflow-sdk-contract: ci-full-closeout must set up .NET before scripts/ci.ps1.");
+
+        foreach (var command in closeoutLane.RunCommands.Select(CiWorkflowContractValidator.Normalize))
+        {
+            Assert.IsFalse(command.StartsWith("dotnet restore", StringComparison.Ordinal), command);
+            Assert.IsFalse(command.StartsWith("dotnet build", StringComparison.Ordinal), command);
+            Assert.IsFalse(command.StartsWith("dotnet test", StringComparison.Ordinal), command);
+            Assert.IsFalse(command.Contains("TestCategory=Fast|TestCategory=Contract", StringComparison.Ordinal), command);
+            Assert.IsFalse(command.Contains("TestCategory=CorpusScript&TestCategory=Smoke", StringComparison.Ordinal), command);
+            Assert.IsFalse(command.Contains("TestCategory=ReleaseEvidence", StringComparison.Ordinal), command);
+        }
+
+        var summaryCommand = closeoutLane.RunCommands
+            .Select(CiWorkflowContractValidator.Normalize)
+            .Single(command => command.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
+
+        StringAssert.Contains(summaryCommand, "\"-LaneName\", \"ci-full-closeout\"");
+        StringAssert.Contains(summaryCommand, "\"-SelectedCategory\", \"FullSolution\"");
+        StringAssert.Contains(summaryCommand, "\"-ReleaseEvidenceStatus\", \"unknown; full closeout unfiltered\"");
+        StringAssert.Contains(summaryCommand, "\"-CorpusScriptSmokeStatus\", \"unknown; full closeout unfiltered\"");
+        StringAssert.Contains(summaryCommand, "\"-FullCloseoutStatus\", \"run\"");
+        StringAssert.Contains(summaryCommand, "steps.full_closeout.outcome");
+        StringAssert.Contains(summaryCommand, "-FailedCommand");
+        StringAssert.Contains(summaryCommand, "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1");
+        StringAssert.Contains(summaryCommand, "-TrxPath");
+
+        var summaryStep = closeoutLane.Steps.Single(step => step.Run?.Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal) == true);
+        Assert.AreEqual("pwsh", summaryStep.Shell ?? closeoutLane.DefaultRunShell);
+        Assert.AreEqual(
+            "always()",
+            summaryStep.StepIfCondition,
+            "workflow-step-violation: full-closeout summary step does not have if=always(); must run even when closeout validation fails.");
+
+        var uploadStep = closeoutLane.Steps.Single(step => step.Uses?.StartsWith("actions/upload-artifact@", StringComparison.Ordinal) == true);
+        StringAssert.Contains(uploadStep.Name!, "full closeout test results");
+    }
+
+    [TestMethod]
+    public void Full_closeout_lane_diagnostics_name_failure_semantics_violations()
+    {
+        var workflow = CiWorkflowModel.Parse("""
+            name: invalid-full-closeout
+            on:
+              workflow_dispatch:
+            jobs:
+              ci-full-closeout:
+                name: ci-full-closeout
+                runs-on: windows-latest
+                defaults:
+                  run:
+                    shell: pwsh
+                steps:
+                  - name: Set up .NET SDK
+                    uses: actions/setup-dotnet@v4
+                  - name: Run full closeout script
+                    id: full_closeout
+                    continue-on-error: true
+                    run: ./scripts/ci.ps1
+                  - name: Write full closeout runtime summary
+                    run: ./scripts/Write-CiRuntimeSummary.ps1 -LaneName ci-full-closeout
+            """);
+
+        var diagnostics = CiWorkflowContractValidator.ValidateFullCloseoutLane(workflow, CloseoutJobId);
+
+        AssertContainsDiagnostic(diagnostics, "workflow-step-violation", "full_closeout", "ContinueOnError=true");
+        AssertContainsDiagnostic(diagnostics, "workflow-step-violation", "full-closeout summary step", "if=always()");
+    }
+
+    [TestMethod]
+    public void Scripts_ci_remains_broad_closeout_command()
+    {
+        var script = CiWorkflowContractValidator.Normalize(File.ReadAllText(Path.Combine(TestRepo.FindRoot().FullName, "scripts", "ci.ps1")));
+
+        StringAssert.Contains(script, "dotnet --info");
+        StringAssert.Contains(script, "dotnet restore VeloFile.sln");
+        StringAssert.Contains(script, "dotnet build VeloFile.sln -c Debug --no-restore");
+        StringAssert.Contains(script, "dotnet run --project tools/VeloFile.UiContracts -- validate-tokens");
+        StringAssert.Contains(script, "dotnet test VeloFile.sln -c Debug --no-build");
+        Assert.IsFalse(script.Contains("--filter", StringComparison.Ordinal), script);
+        Assert.IsFalse(script.Contains("TestCategory=", StringComparison.Ordinal), script);
+    }
+
+    [TestMethod]
     public void Workflow_contract_diagnostics_name_environment_and_command_violations()
     {
         var workflow = CiWorkflowModel.Parse("""
@@ -289,6 +407,11 @@ public sealed class CiWorkflowContractTests
     private static CiWorkflowDocument LoadReleaseEvidenceWorkflow()
     {
         return CiWorkflowModel.LoadFile(Path.Combine(TestRepo.FindRoot().FullName, ReleaseEvidenceWorkflowRelativePath));
+    }
+
+    private static CiWorkflowDocument LoadCloseoutWorkflow()
+    {
+        return CiWorkflowModel.LoadFile(Path.Combine(TestRepo.FindRoot().FullName, CloseoutWorkflowRelativePath));
     }
 
     private static int IndexOfRunContaining(CiWorkflowJob job, string expected)

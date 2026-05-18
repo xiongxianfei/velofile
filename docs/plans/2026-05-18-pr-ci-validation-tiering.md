@@ -265,7 +265,7 @@ Execution constraints:
 
 ### M4. Full Closeout Workflow
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: Add `ci-full-closeout` as a manual broad closeout lane that invokes `scripts/ci.ps1` unchanged.
 - Requirements: R9-R10, R35-R39, R40-R48, R52-R53, R58-R59, R62-R64, R65-R69, AC2, AC10-AC12, AC16-AC20.
 - Files/components likely touched:
@@ -292,6 +292,12 @@ Execution constraints:
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation"`
   - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`
 - Expected observable result: Maintainers can run broad closeout in GitHub Actions manually, and workflow tests prove it remains separate from ordinary PR fast confidence.
+- Implementation evidence:
+  - Added `.github/workflows/closeout.yml` with manual `workflow_dispatch`, stable job/check name `ci-full-closeout`, `windows-latest`, job-level `pwsh`, `actions/setup-dotnet@v4`, and unchanged `./scripts/ci.ps1` invocation.
+  - The closeout workflow writes a runtime summary with `Full closeout=run`, broad unfiltered status text for release evidence and Corpus script smoke, explicit failed-command context from `steps.full_closeout.outcome`, and best-effort TRX artifact upload when structured output exists.
+  - Extended `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs` with closeout workflow contract tests, failure-semantics diagnostics, and a guard that `scripts/ci.ps1` remains a broad unfiltered closeout command.
+  - Extended `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs` with `ValidateFullCloseoutLane` so future changes fail if closeout runs on the wrong hosted environment, skips SDK setup, narrows command selection, uses `continue-on-error`, or drops `if: always()` summary behavior.
+  - Preserved `scripts/ci.ps1` unchanged.
 - Commit message: `M4: add full closeout workflow`
 - Milestone closeout:
   - validation passed
@@ -444,18 +450,19 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M3 reviewed by `code-review-r5`; PRCI-CR3 requires review-resolution.
 - [x] M3 review-resolution completed for PRCI-CR3; code-review rerun requested.
 - [x] M3 code-review rerun completed by `code-review-r6`; M3 closed.
-- [ ] M4 implemented and reviewed.
+- [x] M4 implemented; code-review requested.
+- [ ] M4 reviewed.
 - [ ] M5 implemented and reviewed.
 - [ ] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
 
 - Current milestone: M4. Full Closeout Workflow
-- Current milestone state: planned
+- Current milestone state: review-requested
 - Last reviewed milestone: M3 code-review-r6
-- Review status: M3 code-review-r6 returned clean-with-notes; M3 is closed
-- Remaining in-scope implementation milestones: M4, M5
-- Next stage: implement M4
+- Review status: M4 implementation is complete and ready for code-review; no M4 code-review has run yet
+- Remaining in-scope implementation milestones: M4 review, M5
+- Next stage: code-review M4
 - Final closeout readiness: not ready
 - Reason final closeout is or is not ready: M4-M5, final explain-change, verify, and PR handoff are still open.
 
@@ -475,6 +482,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 - The current hosted PR workflow still contains one broad `ci` job that invokes `scripts/ci.ps1`.
 - Existing corpus test infrastructure already has category inventory, release-evidence tier tests, public script smoke tests, and runtime report tests that the new workflow tests can extend.
 - There is no central package props file; any test-only YAML parser dependency would be added directly to the relevant test project unless the test spec chooses another approach.
+- The M4 closeout workflow can upload TRX only when the invoked broad script produces structured output; with the current unchanged `scripts/ci.ps1`, the summary helper honestly reports missing structured output instead of fabricating slow-test details.
 
 ## Validation Notes
 
@@ -537,10 +545,17 @@ M3 code-review-r6 validation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed during review: 6 tests passed.
 - `git diff --check` passed during review with no output.
 
+M4 validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` failed before workflow implementation as expected because `.github/workflows/closeout.yml` was missing; it passed after implementation with 14 tests.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation"` passed with 16 tests.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1` passed: SDK 10.0.203 on Windows; build 0 warnings/0 errors; UI contract validation passed; Core 168, App 168, Windows 52, Corpus 110 tests passed.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
 ## Outcome And Retrospective
 
 Not started. Fill this after implementation milestones and downstream lifecycle closeout complete.
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. M4 is ready for implementation; the plan is not ready for final verification or PR handoff.
+See `Current Handoff Summary` for live state. M4 is ready for code-review; the plan is not ready for final verification or PR handoff.

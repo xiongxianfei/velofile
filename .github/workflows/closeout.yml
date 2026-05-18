@@ -1,0 +1,68 @@
+name: full-closeout
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-closeout-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci-full-closeout:
+    name: ci-full-closeout
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run full closeout script
+        id: full_closeout
+        run: ./scripts/ci.ps1
+
+      - name: Write full closeout runtime summary
+        if: always()
+        run: |
+          $summaryArgs = @(
+            "-LaneName", "ci-full-closeout",
+            "-Trigger", "${{ github.event_name }}",
+            "-SelectedCategory", "FullSolution",
+            "-ReleaseEvidenceStatus", "unknown; full closeout unfiltered",
+            "-CorpusScriptSmokeStatus", "unknown; full closeout unfiltered",
+            "-FullCloseoutStatus", "run"
+          )
+
+          $trxPaths = @(Get-ChildItem -Path artifacts\test-results -Filter *.trx -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          if ($trxPaths.Count -gt 0) {
+            $summaryArgs += @("-TrxPath", $trxPaths)
+          }
+
+          $closeoutOutcome = "${{ steps.full_closeout.outcome }}"
+          if ($closeoutOutcome -ne "success") {
+            $summaryArgs += @(
+              "-FailedCommand", "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1",
+              "-FailedOutcome", $closeoutOutcome
+            )
+          }
+
+          ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs
+
+      - name: Upload full closeout test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-full-closeout-trx
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: ignore

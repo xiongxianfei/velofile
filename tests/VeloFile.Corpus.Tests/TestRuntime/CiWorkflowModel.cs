@@ -283,6 +283,21 @@ internal static class CiWorkflowContractValidator
         return diagnostics;
     }
 
+    public static IReadOnlyList<string> ValidateFullCloseoutLane(CiWorkflowDocument workflow, string jobId)
+    {
+        var diagnostics = ValidateHostedLane(workflow, jobId).ToList();
+
+        if (!workflow.Jobs.TryGetValue(jobId, out var job))
+        {
+            return diagnostics;
+        }
+
+        ValidateFullCloseoutCommandSelection(job, diagnostics);
+        ValidateFullCloseoutFailureSemantics(job, diagnostics);
+
+        return diagnostics;
+    }
+
     public static IReadOnlyList<string> ValidateHostedLane(CiWorkflowDocument workflow, string jobId)
     {
         var diagnostics = new List<string>();
@@ -389,6 +404,59 @@ internal static class CiWorkflowContractValidator
         else if (!IsAlwaysCondition(summaryStep.StepIfCondition))
         {
             diagnostics.Add("workflow-step-violation: release-evidence summary step does not have if=always(); must run even when validation fails.");
+        }
+    }
+
+    private static void ValidateFullCloseoutCommandSelection(CiWorkflowJob job, List<string> diagnostics)
+    {
+        var closeoutStep = job.Steps.SingleOrDefault(step => StringComparer.Ordinal.Equals(step.Id, "full_closeout"));
+        if (closeoutStep is null)
+        {
+            diagnostics.Add("workflow-command-contract: ci-full-closeout must contain a stable full_closeout step.");
+            return;
+        }
+
+        var closeoutCommand = Normalize(closeoutStep.Run);
+        if (!closeoutCommand.Contains("./scripts/ci.ps1", StringComparison.OrdinalIgnoreCase)
+            && !closeoutCommand.Contains(".\\scripts\\ci.ps1", StringComparison.OrdinalIgnoreCase)
+            && !closeoutCommand.Contains("scripts/ci.ps1", StringComparison.OrdinalIgnoreCase)
+            && !closeoutCommand.Contains("scripts\\ci.ps1", StringComparison.OrdinalIgnoreCase))
+        {
+            diagnostics.Add("workflow-command-contract: ci-full-closeout full_closeout step must invoke scripts/ci.ps1.");
+        }
+
+        foreach (var command in job.RunCommands.Select(Normalize))
+        {
+            if (command.Contains("dotnet test VeloFile.sln", StringComparison.Ordinal)
+                || command.Contains("TestCategory=Fast|TestCategory=Contract", StringComparison.Ordinal)
+                || command.Contains("TestCategory=CorpusScript&TestCategory=Smoke", StringComparison.Ordinal)
+                || command.Contains("TestCategory=ReleaseEvidence", StringComparison.Ordinal))
+            {
+                diagnostics.Add("workflow-command-contract: ci-full-closeout must invoke scripts/ci.ps1 instead of duplicating fast or release-evidence command selection.");
+            }
+        }
+    }
+
+    private static void ValidateFullCloseoutFailureSemantics(CiWorkflowJob job, List<string> diagnostics)
+    {
+        var closeoutStep = job.Steps.SingleOrDefault(step => StringComparer.Ordinal.Equals(step.Id, "full_closeout"));
+        if (closeoutStep is not null && closeoutStep.ContinueOnError)
+        {
+            diagnostics.Add("workflow-step-violation: full_closeout step has ContinueOnError=true; workflow must fail when scripts/ci.ps1 fails.");
+        }
+
+        var summaryStep = job.Steps.SingleOrDefault(step =>
+            Normalize(step.Run).Contains("./scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains(".\\scripts\\Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains("scripts/Write-CiRuntimeSummary.ps1", StringComparison.Ordinal)
+            || Normalize(step.Run).Contains("scripts\\Write-CiRuntimeSummary.ps1", StringComparison.Ordinal));
+        if (summaryStep is null)
+        {
+            diagnostics.Add("workflow-step-violation: ci-full-closeout must contain a runtime summary step.");
+        }
+        else if (!IsAlwaysCondition(summaryStep.StepIfCondition))
+        {
+            diagnostics.Add("workflow-step-violation: full-closeout summary step does not have if=always(); must run even when closeout validation fails.");
         }
     }
 
