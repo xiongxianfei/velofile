@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: code-review
-current_stage_state: m2-review-requested
-current_milestone: M2
-current_milestone_state: review-requested
+current_stage: implement
+current_stage_state: m3-ready
+current_milestone: M3
+current_milestone_state: planned
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -60,16 +60,20 @@ validation:
         result: passed after PRCI-CR2 resolution with 6 tests
       - command: git diff --check
         result: passed after PRCI-CR2 resolution with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r4 with 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: first parallel rerun failed due local build-output file lock while CiWorkflowContract passed; sequential rerun passed during code-review-r4 with 5 tests
 review:
   stage: code-review
-  status: review-requested
-  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
-  findings:
-    - PRCI-CR2
+  status: clean-with-notes
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r4.md
+  findings: []
   resolved_findings:
     - PRCI-SR1
     - PRCI-PLR1
     - PRCI-CR1
+    - PRCI-CR2
   prior_records:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/proposal-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r1.md
@@ -80,6 +84,7 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/test-spec-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: code-review-m2-rerun
+next_stage: implement-m3

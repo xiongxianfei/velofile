@@ -2,7 +2,7 @@
 
 ## Status
 
-PRCI-CR2 implemented; M2 code-review rerun required before M2 can close
+closed by code-review-r4; ready for M3 implementation
 
 ## Findings
 
@@ -10,7 +10,7 @@ PRCI-CR2 implemented; M2 code-review rerun required before M2 can close
 
 - Source review: [code-review-r3](reviews/code-review-r3.md)
 - Disposition: accepted
-- Status: implemented; pending code-review rerun
+- Status: closed by code-review-r4
 - Severity: major
 - Required outcome: The fast-lane summary must report per-test-project duration when `ci-fast-required` produces structured test output or command timing data, and tests must prove the hosted workflow wiring.
 - Safe resolution path:
@@ -29,6 +29,10 @@ PRCI-CR2 implemented; M2 code-review rerun required before M2 can close
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` failed first after the regression test because TRX-derived project durations were missing; passed after the helper update with 5 tests.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"` passed with 6 tests.
   - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- Closeout:
+  - [code-review-r4](reviews/code-review-r4.md) approved the PRCI-CR2 resolution with no findings.
+  - PRCI-CR2 is closed.
+  - M2 is closed.
 
 ### PRCI-CR1: Broad CI summary hook does not report the failed command when CI fails before TRX output exists
 
