@@ -2,7 +2,7 @@
 
 ## Status
 
-PRCI-CR1 resolution implemented; ready for code-review rerun
+closed by code-review-r2; ready for M2 implementation
 
 ## Findings
 
@@ -10,7 +10,7 @@ PRCI-CR1 resolution implemented; ready for code-review rerun
 
 - Source review: [code-review-r1](reviews/code-review-r1.md)
 - Disposition: accepted
-- Status: resolved; pending code-review rerun
+- Status: closed by code-review-r2
 - Severity: material
 - Required outcome: The broad CI summary hook must provide enough failure context for the runtime summary to report the failed command or command outcome when `./scripts/ci.ps1` fails before TRX or equivalent structured output exists, while preserving the original CI failure semantics.
 - Safe resolution path:
@@ -31,8 +31,9 @@ PRCI-CR1 resolution implemented; ready for code-review rerun
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"` passed after the resolution with 4 tests.
   - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"` completed with no matching tests in this project.
 - Closeout:
-  - PRCI-CR1 is implemented and ready for code-review rerun.
-  - M2 remains blocked until M1 code-review rerun closes the finding.
+  - [code-review-r2](reviews/code-review-r2.md) approved M1 with no findings.
+  - PRCI-CR1 is closed.
+  - M1 is closed.
 
 ### PRCI-SR1: Hosted runner and PowerShell shell contract is missing
 

@@ -10,3 +10,4 @@
 | [plan-review-r2](reviews/plan-review-r2.md) | plan-review | plan | approved | none |
 | [test-spec-review-r1](reviews/test-spec-review-r1.md) | test-spec-review | test spec | approved | none |
 | [code-review-r1](reviews/code-review-r1.md) | code-review | M1 | changes-requested | PRCI-CR1 |
+| [code-review-r2](reviews/code-review-r2.md) | code-review | M1 | clean-with-notes | none |

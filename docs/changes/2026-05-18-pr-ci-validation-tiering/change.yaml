@@ -1,9 +1,9 @@
 change_id: 2026-05-18-pr-ci-validation-tiering
 status: active
-current_stage: code-review
-current_stage_state: m1-review-requested
-current_milestone: M1
-current_milestone_state: review-requested
+current_stage: implement
+current_stage_state: m2-ready
+current_milestone: M2
+current_milestone_state: planned
 summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -27,10 +27,12 @@ validation:
         result: failed after PRCI-CR1 test updates because FailedOutcome support and workflow failure-context wiring were missing; passed after resolution with 4 tests
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"
         result: completed with no matching tests in this project
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed during code-review-r2 with 4 tests
 review:
-  stage: review-resolution
-  status: resolved-pending-code-review
-  record: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
+  stage: code-review
+  status: clean-with-notes
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
   findings: []
   resolved_findings:
     - PRCI-SR1
@@ -45,5 +47,6 @@ review:
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r2.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/test-spec-review-r1.md
     - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
   resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
-next_stage: code-review-m1-rerun
+next_stage: implement-m2
