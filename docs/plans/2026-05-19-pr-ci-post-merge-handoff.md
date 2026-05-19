@@ -2,13 +2,13 @@
 
 ## Status
 
-active
+closed
 
-This plan was approved by `plan-review-r2`. M1 recorded branch-protection/ruleset handoff evidence and closed with `code-review-r1` as clean-with-notes. M2 removed the temporary broad `ci` default workflow path and closed with `code-review-r2` as clean-with-notes. M3 recorded hosted confirmation evidence and closed with `code-review-r3` as clean-with-notes. Explain-change and verify are complete; PR handoff is ready.
+This plan is closed. M1 recorded branch-protection/ruleset handoff evidence and closed with `code-review-r1` as clean-with-notes. M2 removed the temporary broad `ci` default workflow path and closed with `code-review-r2` as clean-with-notes. M3 recorded hosted confirmation evidence and closed with `code-review-r3` as clean-with-notes. Explain-change and verify completed, PR #5 merged on 2026-05-19, and hosted `ci-fast-required` passed on the merge commit.
 
 ## Purpose / Big Picture
 
-PR #4 merged the hosted CI tiering work and proved `ci-fast-required` can pass in a hosted PR cycle while the broad `ci` job remained available as a shadow/rollback path. This follow-up plan records the external-policy handoff, removes broad closeout from ordinary PR validation, preserves explicit closeout/release-evidence paths, and has completed final verification for PR handoff.
+PR #4 merged the hosted CI tiering work and proved `ci-fast-required` can pass in a hosted PR cycle while the broad `ci` job remained available as a shadow/rollback path. This follow-up plan recorded the external-policy handoff, removed broad closeout from ordinary PR validation, preserved explicit closeout/release-evidence paths, completed final verification, and merged through PR #5.
 
 This plan keeps the final rollout small. It does not redesign CI lanes, test categories, or release-evidence policy. It sequences the maintainer-operated branch-protection check before changing the ordinary PR workflow shape.
 
@@ -270,18 +270,21 @@ Escalation rule:
 - [x] M3 hosted confirmation and lifecycle closeout reviewed clean-with-notes.
 - [x] Explain-change completed.
 - [x] Verify completed with branch-ready result and a recorded local validation concern.
+- [x] PR #5 marked ready for review and merged.
+- [x] Local `main` synced to merge commit `331c93e39a68d9534264e26efe7ce5ba42f74a67`.
+- [x] Hosted `ci-fast-required` passed on the merge commit in run `26094915062`.
 
 ## Current Handoff Summary
 
-- Current stage: pr
-- Plan status: verify complete; PR handoff ready
+- Current stage: post-merge closeout
+- Plan status: done
 - Current milestone: M3 hosted confirmation and lifecycle closeout
 - Current milestone state: closed
 - Last reviewed stage: code-review-r3 reviewed M3 as clean-with-notes with no material findings
-- Next stage: pr
+- Next stage: none
 - Implementation readiness: all in-scope implementation milestones are closed
-- Final closeout readiness: branch-ready for PR handoff; PR body/open readiness is not yet complete
-- Remaining completion gates: PR handoff
+- Final closeout readiness: complete; PR #5 merged and hosted merge-commit CI passed
+- Remaining completion gates: none
 
 ## Decision Log
 
@@ -408,4 +411,13 @@ Verify:
 
 ## Outcome and Retrospective
 
-Verify completed on 2026-05-19 with branch-ready status for PR handoff. The post-merge handoff removed the default broad `ci` path from ordinary PR/push validation while preserving `ci-full-closeout`, `ci-release-evidence`, and local `scripts/ci.ps1` for explicit release or rollback validation. Remaining lifecycle work is the PR handoff stage.
+Verify completed on 2026-05-19 with branch-ready status for PR handoff. The post-merge handoff removed the default broad `ci` path from ordinary PR/push validation while preserving `ci-full-closeout`, `ci-release-evidence`, and local `scripts/ci.ps1` for explicit release or rollback validation. PR handoff then completed through merged PR #5.
+
+Post-merge closeout:
+
+- PR #5 (`https://github.com/xiongxianfei/velofile/pull/5`) merged into `main` on 2026-05-19 at merge commit `331c93e39a68d9534264e26efe7ce5ba42f74a67`.
+- Local `main` was synced with `git pull --ff-only origin main`.
+- Hosted merge-commit run `26094915062` completed successfully; `ci-fast-required` passed in 7m4s.
+- Result: plan closed and moved to Done in `docs/plan.md`.
+
+Done. PR #5 merged on 2026-05-19 after hosted `ci-fast-required` passed on the merge commit.
