@@ -4,7 +4,7 @@
 
 active
 
-This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and closed with `code-review-r1` as clean-with-notes. M2 has removed the temporary broad `ci` default workflow path and is ready for code review.
+This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and closed with `code-review-r1` as clean-with-notes. M2 removed the temporary broad `ci` default workflow path and closed with `code-review-r2` as clean-with-notes. M3 is blocked until hosted PR evidence exists for the M2 workflow change.
 
 ## Purpose / Big Picture
 
@@ -22,7 +22,7 @@ This plan keeps the final rollout small. It does not redesign CI lanes, test cat
 | Architecture | [system/architecture.md](../architecture/system/architecture.md) | current project architecture |
 | ADR | [0012-hosted-pr-ci-validation-tiers.md](../adr/0012-hosted-pr-ci-validation-tiers.md) | accepted |
 | Completed implementation plan | [2026-05-18-pr-ci-validation-tiering.md](2026-05-18-pr-ci-validation-tiering.md) | done; PR #4 merged |
-| Current project map | [project-map.md](../project-map.md) | records broad `ci` as a temporary shadow/rollback job |
+| Current project map | [project-map.md](../project-map.md) | records post-handoff fast default CI and explicit broad closeout paths |
 
 No new spec or architecture decision is expected for this plan. The work implements the post-merge handoff already required by the approved PR CI tiering spec.
 
@@ -126,7 +126,7 @@ Key files likely touched by this plan:
 
 ### M2. Remove Broad Closeout From Ordinary PRs
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: stop running the broad `ci` closeout job for ordinary pull requests after M1 proves `ci-fast-required` is the intended required PR gate.
 - Requirements: R1-R3, R11-R13, R49-R53, PRCI-T028, PRCI-T029
 - Files/components likely touched:
@@ -259,20 +259,21 @@ Escalation rule:
 - [x] M1 branch-protection handoff evidence implemented.
 - [x] M1 code-review completed by `code-review-r1` with clean-with-notes; no material findings.
 - [x] Maintainer ruleset handoff recorded: active default-branch ruleset `protect` requires `ci-fast-required`.
-- [x] M2 broad PR shadow cleanup implemented; code-review requested.
+- [x] M2 broad PR shadow cleanup implemented.
+- [x] M2 code-review completed by `code-review-r2` with clean-with-notes; no material findings.
 - [ ] M3 hosted confirmation and lifecycle closeout closed.
 
 ## Current Handoff Summary
 
-- Current stage: code-review
-- Plan status: active
-- Current milestone: M2 broad PR shadow cleanup
-- Current milestone state: review-requested
-- Last reviewed stage: code-review-r1 reviewed M1 as clean-with-notes with no material findings
-- Next stage: code-review for M2
-- Implementation readiness: M2 implementation complete; ready for code-review
+- Current stage: blocked before M3 implementation
+- Plan status: blocked
+- Current milestone: M3 hosted confirmation and lifecycle closeout
+- Current milestone state: planned; blocked until hosted PR evidence exists for the M2 workflow change
+- Last reviewed stage: code-review-r2 reviewed M2 as clean-with-notes with no material findings
+- Next stage: collect hosted PR evidence for M2, then implement M3
+- Implementation readiness: M3 blocked until a hosted PR run exists for the M2 workflow change
 - Final closeout readiness: not ready
-- Remaining completion gates: M2 code-review/review-resolution if needed, hosted PR confirmation, explain-change, verify, PR handoff
+- Remaining completion gates: hosted PR confirmation, M3 implementation/review-resolution if needed, explain-change, verify, PR handoff
 
 ## Decision Log
 
@@ -341,6 +342,15 @@ M2 implementation:
 - Updated README, CONTRIBUTING, and project map to describe the ruleset-required fast PR check and preserve broad closeout through `ci-full-closeout` and `scripts/ci.ps1`.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed after implementation with 22 tests.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
+M2 code review:
+
+- `code-review-r2` reviewed commit `0bf7298 M2: Remove broad PR CI shadow after handoff` against the approved spec, test spec, ADR, active plan, workflow diff, test changes, handoff evidence, contributor guidance, and recorded validation.
+- Independent validation rerun: `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed with 22 tests.
+- `git diff --check HEAD~1..HEAD` passed.
+- Review status: clean-with-notes.
+- Material findings: none.
+- Result: M2 closed. M3 remains blocked until hosted PR evidence exists for the M2 workflow change.
 
 ## Outcome and Retrospective
 

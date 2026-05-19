@@ -12,13 +12,13 @@
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| [2026-05-19 PR CI post-merge handoff](plans/2026-05-19-pr-ci-post-merge-handoff.md) | Record branch-protection handoff after PR #4, then remove the broad closeout job from default CI while preserving release-evidence and full-closeout lanes. | M2 implementation complete; code-review requested | code-review M2 |
+| None. | | | |
 
 ## Blocked
 
 | Plan | Scope | Status | Next step |
 |---|---|---|---|
-| None. | | | |
+| [2026-05-19 PR CI post-merge handoff](plans/2026-05-19-pr-ci-post-merge-handoff.md) | Record branch-protection handoff after PR #4, then remove the broad closeout job from default CI while preserving release-evidence and full-closeout lanes. | M2 closed by code-review-r2; M3 blocked by missing hosted PR evidence for the M2 workflow change | collect hosted PR evidence |
 
 ## Done
 

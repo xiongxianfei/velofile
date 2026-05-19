@@ -1,9 +1,9 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
-current_stage: code-review
-current_stage_state: review-requested
-current_milestone: M2
-current_milestone_state: review-requested
+current_stage: implement
+current_stage_state: blocked-by-hosted-pr-evidence
+current_milestone: M3
+current_milestone_state: planned
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -27,6 +27,10 @@ reviews:
     findings: []
   code_review_r1:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/code-review-r1.md
+    status: clean-with-notes
+    findings: []
+  code_review_r2:
+    path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/code-review-r2.md
     status: clean-with-notes
     findings: []
 validation:
@@ -69,3 +73,11 @@ validation:
         result: failed before workflow/docs cleanup because broad ci still existed and stale shadow guidance remained; passed after implementation with 22 tests
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+  code_review_r2:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: passed with 22 tests
+      - command: git diff --check HEAD~1..HEAD
+        result: passed
+    result: M2 reviewed clean-with-notes; no material findings; M2 closed and M3 remains blocked until hosted PR evidence exists for the M2 workflow change
