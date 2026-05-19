@@ -1,9 +1,9 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
-current_stage: implement
-current_stage_state: implementing
+current_stage: code-review
+current_stage_state: requested
 current_milestone: M3
-current_milestone_state: implementing
+current_milestone_state: review-requested
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -15,6 +15,7 @@ artifacts:
   review_log: docs/changes/2026-05-19-pr-ci-post-merge-handoff/review-log.md
   review_resolution: docs/changes/2026-05-19-pr-ci-post-merge-handoff/review-resolution.md
   branch_protection_handoff: docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md
+  shadow_run: docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md
 reviews:
   plan_review_r1:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r1.md
@@ -81,16 +82,27 @@ validation:
       - command: git diff --check HEAD~1..HEAD
         result: passed
     result: M2 reviewed clean-with-notes; no material findings; M2 closed and M3 remains blocked until hosted PR evidence exists for the M2 workflow change
-  m3_in_progress:
-    status: in_progress
+  m3:
+    status: passed
     commands:
       - command: gh pr checks 5 --watch --interval 10
         result: hosted draft PR #5 produced ci-fast-required failure in run 26085553757 after M2 workflow cleanup
       - command: gh run view 26085553757 --log
         result: failure was caused by stale broad-ci preservation tests still asserting scripts/ci.ps1 wiring in .github/workflows/ci.yml instead of closeout.yml
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
-        result: passed with 97 tests after updating stale closeout-preservation assertions
+        result: passed with 97 tests after updating stale closeout-preservation assertions; later passed with 98 tests after adding hosted confirmation evidence
       - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRuntimeSummary|FullyQualifiedName~ReleaseEvidenceTier"
         result: passed with 33 tests
+      - command: gh run view 26086191007 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: passed; run conclusion success, event pull_request, head b29fd249df61c370dcd069edde664a4c7281cec6, one job ci-fast-required completed successfully in 5m22s
+      - command: gh pr checks 5
+        result: ci-fast-required passed in 5m22s
+      - command: gh pr view 5 --json url,state,isDraft,headRefOid,statusCheckRollup
+        result: draft PR #5 remains open at head b29fd249df61c370dcd069edde664a4c7281cec6 with only ci-fast-required in the status-check rollup
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~Post_merge_hosted_confirmation_records_fast_only_pr_cycle"
+        result: failed before docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md existed; passed after evidence artifact creation with 1 test
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: passed with 23 tests
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
+    result: M3 implementation records accepted hosted post-handoff confirmation and is ready for code-review

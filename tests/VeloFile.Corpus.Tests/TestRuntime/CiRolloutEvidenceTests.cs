@@ -53,6 +53,26 @@ public sealed class CiRolloutEvidenceTests
     }
 
     [TestMethod]
+    public void Post_merge_hosted_confirmation_records_fast_only_pr_cycle()
+    {
+        var evidence = ReadChangeFile(
+            "2026-05-19-pr-ci-post-merge-handoff",
+            "shadow-run.md");
+
+        StringAssert.Contains(evidence, "Pull request: https://github.com/xiongxianfei/velofile/pull/5");
+        StringAssert.Contains(evidence, "Run: https://github.com/xiongxianfei/velofile/actions/runs/26086191007");
+        StringAssert.Contains(evidence, "Commit: `b29fd249df61c370dcd069edde664a4c7281cec6`");
+        StringAssert.Contains(evidence, "`ci-fast-required` | passed | 5m22s");
+        StringAssert.Contains(evidence, "No broad `ci` job appeared in the accepted hosted PR run.");
+        StringAssert.Contains(evidence, "Selected categories: `Fast|Contract`; `CorpusScript&Smoke`");
+        StringAssert.Contains(evidence, "ReleaseEvidence: not run in this lane");
+        StringAssert.Contains(evidence, "Full closeout: not run");
+        StringAssert.Contains(evidence, "Broad closeout: not run on ordinary PR");
+        StringAssert.Contains(evidence, "Ruleset required check: `ci-fast-required`");
+        StringAssert.Contains(evidence, "Do not claim classic GitHub branch protection is configured");
+    }
+
+    [TestMethod]
     public void Rollout_guidance_keeps_release_readiness_and_rollback_explicit()
     {
         var repoRoot = TestRepo.FindRoot().FullName;

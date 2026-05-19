@@ -261,19 +261,19 @@ Escalation rule:
 - [x] Maintainer ruleset handoff recorded: active default-branch ruleset `protect` requires `ci-fast-required`.
 - [x] M2 broad PR shadow cleanup implemented.
 - [x] M2 code-review completed by `code-review-r2` with clean-with-notes; no material findings.
-- [ ] M3 hosted confirmation and lifecycle closeout in progress.
+- [ ] M3 hosted confirmation and lifecycle closeout handed to code-review.
 
 ## Current Handoff Summary
 
-- Current stage: M3 implementation
-- Plan status: implementing
+- Current stage: code-review
+- Plan status: M3 review-requested
 - Current milestone: M3 hosted confirmation and lifecycle closeout
-- Current milestone state: implementing; hosted PR evidence exists but first post-handoff run exposed stale broad-CI preservation tests
+- Current milestone state: review-requested
 - Last reviewed stage: code-review-r2 reviewed M2 as clean-with-notes with no material findings
-- Next stage: push the stale contract-test fix, collect the rerun hosted PR evidence, then complete M3 handoff artifacts
-- Implementation readiness: M3 in progress
+- Next stage: code-review for M3
+- Implementation readiness: M3 implementation complete; awaiting independent review
 - Final closeout readiness: not ready
-- Remaining completion gates: hosted PR confirmation, M3 implementation/review-resolution if needed, explain-change, verify, PR handoff
+- Remaining completion gates: M3 code-review/review-resolution if needed, explain-change, verify, PR handoff
 
 ## Decision Log
 
@@ -361,6 +361,14 @@ M3 implementation:
 - Updated the stale tests to preserve broad closeout through `.github/workflows/closeout.yml` and `ci-full-closeout`, without changing fast-lane command selection or workflow failure semantics.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed with 97 tests after rebuilding the test assembly.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRuntimeSummary|FullyQualifiedName~ReleaseEvidenceTier"` passed with 33 tests.
+- Pushed commit `b29fd249df61c370dcd069edde664a4c7281cec6`; hosted run `26086191007` passed `ci-fast-required` on PR #5 in 5m22s.
+- `gh run view 26086191007 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt` recorded one hosted job: `ci-fast-required`, conclusion `success`, event `pull_request`, head SHA `b29fd249df61c370dcd069edde664a4c7281cec6`.
+- `gh pr checks 5` reported `ci-fast-required` passed in 5m22s.
+- `gh pr view 5 --json url,state,isDraft,headRefOid,statusCheckRollup` reported draft PR #5 open at head `b29fd249df61c370dcd069edde664a4c7281cec6` with only `ci-fast-required` in the status-check rollup.
+- Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md` recording the accepted post-handoff hosted cycle, step durations, selected categories, broad-closeout non-execution on ordinary PR, ruleset-required check status, and the earlier failed run.
+- Added `Post_merge_hosted_confirmation_records_fast_only_pr_cycle`; it failed before evidence creation because `shadow-run.md` was missing and passed after the artifact was added.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed with 23 tests.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed with 98 tests.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
