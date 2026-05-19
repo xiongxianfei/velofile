@@ -108,8 +108,9 @@ public sealed class ReleaseEvidenceTierTests
     {
         var repoRoot = TestRepo.FindRoot();
         var ciScript = File.ReadAllText(Path.Combine(repoRoot.FullName, "scripts", "ci.ps1"));
-        var workflow = File.ReadAllText(Path.Combine(repoRoot.FullName, ".github", "workflows", "ci.yml"));
+        var workflow = File.ReadAllText(Path.Combine(repoRoot.FullName, ".github", "workflows", "closeout.yml"));
 
+        StringAssert.Contains(workflow, "ci-full-closeout");
         StringAssert.Contains(workflow, "./scripts/ci.ps1");
         StringAssert.Contains(ciScript, "dotnet test VeloFile.sln -c Debug --no-build");
         Assert.IsFalse(ciScript.Contains("--filter", StringComparison.OrdinalIgnoreCase), "Broad closeout CI must not be silently narrowed to a tier filter.");

@@ -4,7 +4,7 @@
 
 done
 
-This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. PR #4 is ready for review with hosted CI passing.
+This plan was approved by `plan-review-r2`, and the matching test spec was approved by `test-spec-review-r1`. PR #4 merged with hosted CI passing.
 
 ## Purpose / Big Picture
 
@@ -474,7 +474,7 @@ Final verification is owned by `verify` after implementation, code review, and a
 - [x] M5 reviewed by `code-review-r9`; M5 closed.
 - [x] Final explain-change completed.
 - [x] Final verify completed; branch-ready for PR handoff.
-- [x] PR #4 updated and marked ready for review.
+- [x] PR #4 updated, marked ready for review, and merged.
 - [x] Final lifecycle closeout completed.
 
 ## Current Handoff Summary
@@ -484,9 +484,9 @@ Final verification is owned by `verify` after implementation, code review, and a
 - Last reviewed milestone: M5 code-review-r9
 - Review status: M5 code-review-r9 returned clean-with-notes; PRCI-CR4 is closed by hosted PR #4 shadow-run evidence.
 - Remaining in-scope implementation milestones: none
-- Next stage: human review for PR #4
+- Next stage: post-merge branch-protection handoff and broad-shadow cleanup, tracked by [2026-05-19-pr-ci-post-merge-handoff.md](2026-05-19-pr-ci-post-merge-handoff.md)
 - Final closeout readiness: complete
-- Reason final closeout is or is not ready: implementation milestones, explain-change, verify, and PR handoff are complete; PR #4 is ready for human review.
+- Reason final closeout is or is not ready: implementation milestones, explain-change, verify, PR handoff, and merge are complete. External branch-protection handoff remains separate follow-up work.
 
 ## Decision Log
 
@@ -636,4 +636,4 @@ Not started. Fill this after implementation milestones and downstream lifecycle 
 
 ## Readiness
 
-See `Current Handoff Summary` for live state. Final lifecycle closeout is complete and PR #4 is ready for human review.
+See `Current Handoff Summary` for live state. Final lifecycle closeout is complete and PR #4 merged; post-merge branch-protection handoff remains separate follow-up work.

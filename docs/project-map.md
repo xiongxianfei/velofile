@@ -196,12 +196,12 @@ The app test project links selected App source files rather than referencing the
 
 CI:
 
-- [.github/workflows/ci.yml](../.github/workflows/ci.yml) is the hosted PR/push workflow. It runs `ci-fast-required` and the temporary broad `ci` shadow job on `windows-latest` for `pull_request` and `push` to `main`.
+- [.github/workflows/ci.yml](../.github/workflows/ci.yml) is the hosted PR/push workflow. It runs `ci-fast-required` on `windows-latest` for `pull_request` and `push` to `main`.
 - `ci-fast-required` uses job-level `pwsh`, sets up .NET SDK `10.0.x`, runs `dotnet --info`, restore, Debug build with `--no-restore`, UI contract validation, direct Core/App/Windows test projects, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`. It emits TRX output, uploads test artifacts, and writes a runtime summary reporting `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
-- The broad `ci` job still invokes [scripts/ci.ps1](../scripts/ci.ps1) during rollout as a shadow/rollback path until maintainers record branch-protection handoff. Current [scripts/ci.ps1](../scripts/ci.ps1) runs `dotnet --info`, solution restore, Debug build with `--no-restore`, UI contract validation against the valid UI fixture tree, and unfiltered solution tests with `--no-build`.
+- Broad closeout no longer runs from the default PR/push workflow. Current [scripts/ci.ps1](../scripts/ci.ps1) remains the broad closeout command: it runs `dotnet --info`, solution restore, Debug build with `--no-restore`, UI contract validation against the valid UI fixture tree, and unfiltered solution tests with `--no-build`.
 - [.github/workflows/release-evidence.yml](../.github/workflows/release-evidence.yml) defines `ci-release-evidence` for `workflow_dispatch`, nightly schedule, `release/**` branches, `v*` and `v*-rc*` tags, and `merge_group`. It runs explicit Corpus `ReleaseEvidence` validation with release-evidence summary status.
 - [.github/workflows/closeout.yml](../.github/workflows/closeout.yml) defines `ci-full-closeout` for manual broad closeout through [scripts/ci.ps1](../scripts/ci.ps1).
-- PR #4 run `26062568345` recorded the accepted hosted shadow cycle: `ci-fast-required` passed in 7m20s, broad `ci` passed in 16m01s, and GitHub branch protection for `main` was not configured (HTTP 404), so no external required-check handoff is claimed.
+- PR #4 run `26062568345` recorded the accepted hosted shadow cycle: `ci-fast-required` passed in 7m20s and broad `ci` passed in 16m01s. After maintainer handoff, active default-branch ruleset `protect` requires `ci-fast-required`; classic branch protection still reports HTTP 404, so the required-check handoff is ruleset-based.
 
 Release:
 
@@ -232,7 +232,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 - Scratch/output paths for corpus tooling are explicit and isolated by script.
 - UI contract validation is owned by a .NET tool in `tools/` with PowerShell and CI acting as orchestration surfaces.
 - Hosted validation is Windows-native; the approved PR CI tiering spec keeps Linux/macOS hosted validation out of scope until a later accepted cross-platform design exists.
-- Fast validation tiers are contributor feedback tools. Release readiness still depends on explicit release-evidence, closeout, or accepted release-gate evidence.
+- Fast validation tiers are contributor feedback tools. release readiness still depends on explicit release-evidence, closeout, or accepted release-gate evidence.
 
 ## Risk Areas
 
@@ -243,7 +243,7 @@ Observed risks and maintenance pressure points:
 - App tests cover shell routes through linked source seams, but not a full WinUI UI automation surface.
 - Current benchmark evidence is documented as infrastructure-only when it does not drive the app boundary.
 - Association and DPI release evidence are still tracked as not-implemented/manual where automated verifier inputs are absent.
-- Hosted PR CI still keeps the broad `ci` shadow job during rollout until maintainer branch-protection handoff is recorded; this preserves rollback but temporarily spends extra hosted minutes.
+- Hosted PR CI no longer runs broad `ci` as an ordinary PR shadow after maintainer ruleset handoff; rollback remains available by making the broad closeout check required again and leaving `ci-fast-required` optional.
 - Workflow contract tests now guard the PR CI tiering policy, so changes to workflow command selection, runner/shell setup, release-evidence triggers, closeout wiring, or summary behavior should update those tests in the same change.
 - The early repository status line in [specs/v1-product-scope.test.md](../specs/v1-product-scope.test.md) appears historically stale because the source tree and test projects now exist.
 
@@ -253,7 +253,7 @@ Observed risks and maintenance pressure points:
 - When should association and DPI release evidence move from manual or not-implemented classification to automated verifier input?
 - Should the app shell continue with manual refresh/event handling, or should a later architecture slice introduce narrower bindable command/view services?
 - Should `VeloFile.Corpus` split into smaller command modules after V1 closeout to reduce release-evidence drift risk?
-- When should maintainers complete branch-protection handoff so `ci-fast-required` becomes the external required ordinary PR check?
+- When should hosted confirmation after the broad PR shadow cleanup be recorded for the post-handoff PR cycle?
 - Should the stale status wording in `specs/v1-product-scope.test.md` be corrected as documentation hygiene in a separate change?
 
 Recommended next skill for the active PR CI validation tiering change: use `code-review` after M5 implementation evidence is committed.
