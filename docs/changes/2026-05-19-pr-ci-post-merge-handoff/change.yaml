@@ -1,9 +1,9 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
-current_stage: code-review
-current_stage_state: requested
+current_stage: explain-change
+current_stage_state: ready
 current_milestone: M3
-current_milestone_state: review-requested
+current_milestone_state: closed
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -32,6 +32,10 @@ reviews:
     findings: []
   code_review_r2:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/code-review-r2.md
+    status: clean-with-notes
+    findings: []
+  code_review_r3:
+    path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/code-review-r3.md
     status: clean-with-notes
     findings: []
 validation:
@@ -106,3 +110,15 @@ validation:
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
     result: M3 implementation records accepted hosted post-handoff confirmation and is ready for code-review
+  code_review_r3:
+    status: passed
+    commands:
+      - command: gh pr view 5 --json headRefOid,statusCheckRollup,url,state,isDraft
+        result: current draft PR #5 head c2f4abe067612fec3dbadda4c5048e918d613c70 has only ci-fast-required in the status-check rollup, conclusion SUCCESS
+      - command: gh run view 26086704434 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: current-head hosted run conclusion success; event pull_request; job ci-fast-required completed successfully in 5m20s
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: passed with 23 tests
+      - command: git diff --check 6d9f276..HEAD
+        result: passed with no output
+    result: M3 reviewed clean-with-notes; no material findings; M3 closed and next stage is explain-change

@@ -261,19 +261,19 @@ Escalation rule:
 - [x] Maintainer ruleset handoff recorded: active default-branch ruleset `protect` requires `ci-fast-required`.
 - [x] M2 broad PR shadow cleanup implemented.
 - [x] M2 code-review completed by `code-review-r2` with clean-with-notes; no material findings.
-- [ ] M3 hosted confirmation and lifecycle closeout handed to code-review.
+- [x] M3 hosted confirmation and lifecycle closeout reviewed clean-with-notes.
 
 ## Current Handoff Summary
 
-- Current stage: code-review
-- Plan status: M3 review-requested
+- Current stage: explain-change
+- Plan status: implementation milestones closed; final closeout ready to start
 - Current milestone: M3 hosted confirmation and lifecycle closeout
-- Current milestone state: review-requested
-- Last reviewed stage: code-review-r2 reviewed M2 as clean-with-notes with no material findings
-- Next stage: code-review for M3
-- Implementation readiness: M3 implementation complete; awaiting independent review
-- Final closeout readiness: not ready
-- Remaining completion gates: M3 code-review/review-resolution if needed, explain-change, verify, PR handoff
+- Current milestone state: closed
+- Last reviewed stage: code-review-r3 reviewed M3 as clean-with-notes with no material findings
+- Next stage: explain-change
+- Implementation readiness: all in-scope implementation milestones are closed
+- Final closeout readiness: ready to start with explain-change; verify and PR handoff not yet complete
+- Remaining completion gates: explain-change, verify, PR handoff
 
 ## Decision Log
 
@@ -370,6 +370,17 @@ M3 implementation:
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed with 23 tests.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed with 98 tests.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
+M3 code review:
+
+- `code-review-r3` reviewed `6d9f276..HEAD`, including commits `b29fd24` and `c2f4abe`, against the approved spec, test spec, ADR, active plan, M3 evidence artifact, workflow contract tests, and hosted PR evidence.
+- Independent hosted evidence check: `gh pr view 5 --json headRefOid,statusCheckRollup,url,state,isDraft` reported current draft PR #5 head `c2f4abe067612fec3dbadda4c5048e918d613c70` with only `ci-fast-required` in the status-check rollup and conclusion `SUCCESS`.
+- Independent hosted run check: `gh run view 26086704434 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt` reported current-head run success for `ci-fast-required` in 5m20s.
+- Independent validation rerun: `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed with 23 tests.
+- `git diff --check 6d9f276..HEAD` passed with no output.
+- Review status: clean-with-notes.
+- Material findings: none.
+- Result: M3 closed. All implementation milestones are closed; next stage is `explain-change`.
 
 ## Outcome and Retrospective
 
