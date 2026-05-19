@@ -1,6 +1,6 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
-current_stage: explain-change
+current_stage: verify
 current_stage_state: ready
 current_milestone: M3
 current_milestone_state: closed
@@ -16,6 +16,7 @@ artifacts:
   review_resolution: docs/changes/2026-05-19-pr-ci-post-merge-handoff/review-resolution.md
   branch_protection_handoff: docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md
   shadow_run: docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md
+  explain_change: docs/changes/2026-05-19-pr-ci-post-merge-handoff/explain-change.md
 reviews:
   plan_review_r1:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r1.md
@@ -122,3 +123,15 @@ validation:
       - command: git diff --check 6d9f276..HEAD
         result: passed with no output
     result: M3 reviewed clean-with-notes; no material findings; M3 closed and next stage is explain-change
+  explain_change:
+    status: passed
+    commands:
+      - command: git diff --name-status origin/main..HEAD
+        result: reviewed actual changed-file surface for rationale coverage
+      - command: git diff --stat origin/main..HEAD
+        result: reviewed actual diff size and changed areas for rationale coverage
+      - command: rg -n "R11|R12|R13|R23|R24|R35|R36|R39|R40|R49|R50|R51|R52|R53|R61|AC13|AC14|AC15|AC16" specs\pr-ci-validation-tiering.md
+        result: confirmed governing requirement IDs used by the explanation
+      - command: rg -n "PRCI-T027|PRCI-T028|PRCI-T029|PRCI-M001|PRCI-M003" specs\pr-ci-validation-tiering.test.md
+        result: confirmed governing test IDs used by the explanation
+    result: explain-change artifact created; next stage is verify, with final verification and PR handoff still pending

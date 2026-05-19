@@ -206,11 +206,10 @@ Key files likely touched by this plan:
 - Commit message: `M3: Close PR CI post-merge handoff`
 - Milestone closeout:
   - hosted evidence recorded
-  - explain-change completed
-  - verify completed
+  - M3 code-review completed
   - progress updated
-  - plan index updated
   - milestone committed
+  - final closeout handoff recorded for explain-change, verify, and PR handoff
 - Risks:
   - hosted evidence can lag local commits
   - GitHub branch protection may change between M1 and M3
@@ -265,15 +264,15 @@ Escalation rule:
 
 ## Current Handoff Summary
 
-- Current stage: explain-change
-- Plan status: implementation milestones closed; final closeout ready to start
+- Current stage: verify
+- Plan status: explain-change complete; verify ready
 - Current milestone: M3 hosted confirmation and lifecycle closeout
 - Current milestone state: closed
 - Last reviewed stage: code-review-r3 reviewed M3 as clean-with-notes with no material findings
-- Next stage: explain-change
+- Next stage: verify
 - Implementation readiness: all in-scope implementation milestones are closed
-- Final closeout readiness: ready to start with explain-change; verify and PR handoff not yet complete
-- Remaining completion gates: explain-change, verify, PR handoff
+- Final closeout readiness: verify ready; PR handoff not yet complete
+- Remaining completion gates: verify, PR handoff
 
 ## Decision Log
 
@@ -381,6 +380,12 @@ M3 code review:
 - Review status: clean-with-notes.
 - Material findings: none.
 - Result: M3 closed. All implementation milestones are closed; next stage is `explain-change`.
+
+Explain-change:
+
+- Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/explain-change.md` to explain the actual post-merge handoff diff, requirement/test/ADR traceability, file-by-file rationale, validation evidence available before final verify, PRCI-PMHR1 resolution summary, alternatives rejected, scope controls, and remaining risks.
+- Rationale evidence reads included `git diff --name-status origin/main..HEAD`, `git diff --stat origin/main..HEAD`, governing PR CI requirements R11-R13/R23-R24/R35-R36/R39-R40/R49-R53/R61/AC13-AC16, and test-spec items PRCI-T027/T028/T029/M001/M003.
+- Result: explain-change complete. Next stage is `verify`; final verification and PR handoff are not yet complete.
 
 ## Outcome and Retrospective
 
