@@ -1,6 +1,6 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
-current_stage: verify
+current_stage: pr
 current_stage_state: ready
 current_milestone: M3
 current_milestone_state: closed
@@ -17,6 +17,7 @@ artifacts:
   branch_protection_handoff: docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md
   shadow_run: docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md
   explain_change: docs/changes/2026-05-19-pr-ci-post-merge-handoff/explain-change.md
+  verify_report: docs/changes/2026-05-19-pr-ci-post-merge-handoff/verify-report.md
 reviews:
   plan_review_r1:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r1.md
@@ -135,3 +136,31 @@ validation:
       - command: rg -n "PRCI-T027|PRCI-T028|PRCI-T029|PRCI-M001|PRCI-M003" specs\pr-ci-validation-tiering.test.md
         result: confirmed governing test IDs used by the explanation
     result: explain-change artifact created; next stage is verify, with final verification and PR handoff still pending
+  verify:
+    status: passed-with-concern
+    commands:
+      - command: dotnet --info
+        result: passed; SDK 10.0.203 on Windows 10.0.26200 x64
+      - command: dotnet restore VeloFile.sln
+        result: passed; all projects up to date
+      - command: dotnet build VeloFile.sln -c Debug --no-restore
+        result: passed; 0 warnings and 0 errors
+      - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+        result: passed; UI contract validation passed
+      - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --no-build
+        result: passed with 168 tests
+      - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-build
+        result: passed with 168 tests
+      - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --no-build
+        result: passed with 52 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRuntimeSummary|FullyQualifiedName~ReleaseEvidenceTier"
+        result: passed with 34 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "(TestCategory=Fast|TestCategory=Contract)&FullyQualifiedName!~PreparedToolHarnessTests"
+        result: passed with 87 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: concern; timed out locally in pre-existing PreparedTool_current_run_executes_minimal_command, while hosted current-head ci-fast-required passed the full lane
+      - command: gh run view 26087711964 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: passed; hosted ci-fast-required succeeded in 6m8s for head 00f006a17c736439595dcc0b99c6953fe0fe6aac
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+    result: branch-ready for PR handoff; PR body/open readiness remains owned by the pr stage

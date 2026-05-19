@@ -4,11 +4,11 @@
 
 active
 
-This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and closed with `code-review-r1` as clean-with-notes. M2 removed the temporary broad `ci` default workflow path and closed with `code-review-r2` as clean-with-notes. M3 is blocked until hosted PR evidence exists for the M2 workflow change.
+This plan was approved by `plan-review-r2`. M1 recorded branch-protection/ruleset handoff evidence and closed with `code-review-r1` as clean-with-notes. M2 removed the temporary broad `ci` default workflow path and closed with `code-review-r2` as clean-with-notes. M3 recorded hosted confirmation evidence and closed with `code-review-r3` as clean-with-notes. Explain-change and verify are complete; PR handoff is ready.
 
 ## Purpose / Big Picture
 
-PR #4 merged the hosted CI tiering work and proved `ci-fast-required` can pass in a hosted PR cycle while the broad `ci` job remains available as a shadow/rollback path. The remaining rollout work is external-policy handoff plus cleanup: make the ordinary PR gate point at `ci-fast-required`, record that handoff without overclaiming, then stop running the broad closeout job on ordinary pull requests.
+PR #4 merged the hosted CI tiering work and proved `ci-fast-required` can pass in a hosted PR cycle while the broad `ci` job remained available as a shadow/rollback path. This follow-up plan records the external-policy handoff, removes broad closeout from ordinary PR validation, preserves explicit closeout/release-evidence paths, and has completed final verification for PR handoff.
 
 This plan keeps the final rollout small. It does not redesign CI lanes, test categories, or release-evidence policy. It sequences the maintainer-operated branch-protection check before changing the ordinary PR workflow shape.
 
@@ -28,10 +28,10 @@ No new spec or architecture decision is expected for this plan. The work impleme
 
 ## Context and Orientation
 
-Current merged workflow state:
+Initial post-PR #4 workflow state before this handoff plan:
 
-- `.github/workflows/ci.yml` runs `ci-fast-required` on `pull_request` and `push` to `main`.
-- The same workflow still runs the broad `ci` job on `pull_request` and `push` to `main`; that job invokes `scripts/ci.ps1`.
+- `.github/workflows/ci.yml` ran `ci-fast-required` on `pull_request` and `push` to `main`.
+- The same workflow still ran the broad `ci` job on `pull_request` and `push` to `main`; that job invoked `scripts/ci.ps1`.
 - `.github/workflows/release-evidence.yml` preserves explicit release-evidence validation through manual, scheduled, release branch/tag, and merge-queue triggers.
 - `.github/workflows/closeout.yml` preserves manual full closeout validation through `scripts/ci.ps1`.
 - `scripts/Write-CiRuntimeSummary.ps1` and workflow contract tests already cover hosted lane summaries, TRX artifacts, failure context, and fast-lane project durations.
@@ -41,6 +41,13 @@ Current external policy state:
 - `gh api repos/xiongxianfei/velofile/rulesets/16578519 --jq '{id, name, target, enforcement, conditions, rules}'` reports active repository ruleset `protect` on the default branch with `ci-fast-required` as a required status check.
 - `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` still returns `Branch not protected` with HTTP 404, so the observed required-check handoff is ruleset-based rather than classic branch protection.
 - The spec treats branch-protection settings as maintainer-operated external configuration, not something workflow tests should mutate or assume.
+
+Current workflow state after M2/M3:
+
+- `.github/workflows/ci.yml` runs `ci-fast-required` on `pull_request` and `push` to `main`.
+- `.github/workflows/ci.yml` no longer contains the broad `ci` job or invokes `scripts/ci.ps1`.
+- Broad closeout remains available through `.github/workflows/closeout.yml` and local `scripts/ci.ps1`.
+- Hosted PR #5 confirmed `ci-fast-required` on the post-handoff branch without a default broad `ci` job.
 
 Key files likely touched by this plan:
 
@@ -172,7 +179,7 @@ Key files likely touched by this plan:
 
 ### M3. Hosted Confirmation and Lifecycle Closeout
 
-- Milestone state: planned
+- Milestone state: closed
 - Goal: prove the post-handoff workflow behavior in a hosted PR cycle and complete the normal rationale, verification, and PR handoff path.
 - Requirements: R49-R53, AC13, PRCI-M003
 - Files/components likely touched:
@@ -261,18 +268,20 @@ Escalation rule:
 - [x] M2 broad PR shadow cleanup implemented.
 - [x] M2 code-review completed by `code-review-r2` with clean-with-notes; no material findings.
 - [x] M3 hosted confirmation and lifecycle closeout reviewed clean-with-notes.
+- [x] Explain-change completed.
+- [x] Verify completed with branch-ready result and a recorded local validation concern.
 
 ## Current Handoff Summary
 
-- Current stage: verify
-- Plan status: explain-change complete; verify ready
+- Current stage: pr
+- Plan status: verify complete; PR handoff ready
 - Current milestone: M3 hosted confirmation and lifecycle closeout
 - Current milestone state: closed
 - Last reviewed stage: code-review-r3 reviewed M3 as clean-with-notes with no material findings
-- Next stage: verify
+- Next stage: pr
 - Implementation readiness: all in-scope implementation milestones are closed
-- Final closeout readiness: verify ready; PR handoff not yet complete
-- Remaining completion gates: verify, PR handoff
+- Final closeout readiness: branch-ready for PR handoff; PR body/open readiness is not yet complete
+- Remaining completion gates: PR handoff
 
 ## Decision Log
 
@@ -385,8 +394,18 @@ Explain-change:
 
 - Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/explain-change.md` to explain the actual post-merge handoff diff, requirement/test/ADR traceability, file-by-file rationale, validation evidence available before final verify, PRCI-PMHR1 resolution summary, alternatives rejected, scope controls, and remaining risks.
 - Rationale evidence reads included `git diff --name-status origin/main..HEAD`, `git diff --stat origin/main..HEAD`, governing PR CI requirements R11-R13/R23-R24/R35-R36/R39-R40/R49-R53/R61/AC13-AC16, and test-spec items PRCI-T027/T028/T029/M001/M003.
-- Result: explain-change complete. Next stage is `verify`; final verification and PR handoff are not yet complete.
+- Result: explain-change complete. Next stage was `verify`; final verification is now complete and PR handoff is next.
+
+Verify:
+
+- Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/verify-report.md` with branch-ready verification, requirement traceability, hosted CI evidence, artifact-drift corrections, and residual risks.
+- Corrected stale lifecycle state in `docs/plan.md`, the active plan introduction/current-state text, and `branch-protection-handoff.md`.
+- `dotnet --info`, `dotnet restore VeloFile.sln`, `dotnet build VeloFile.sln -c Debug --no-restore`, UI contract validation, and direct Core/App/Windows test project runs passed.
+- Focused workflow/evidence/runtime tests passed with 34 tests, and Corpus `Fast|Contract` excluding `PreparedToolHarnessTests` passed with 87 tests.
+- Local full Corpus `Fast|Contract` validation timed out in the pre-existing `PreparedTool_current_run_executes_minimal_command` path; hosted current-head `ci-fast-required` run `26087711964` passed the full lane in 6m8s for head `00f006a17c736439595dcc0b99c6953fe0fe6aac`.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- Result: verify complete; branch-ready for PR handoff. This does not claim PR body/open readiness or release readiness.
 
 ## Outcome and Retrospective
 
-Not started. Fill this section only after the post-merge handoff, workflow cleanup, hosted confirmation, and final lifecycle closeout complete.
+Verify completed on 2026-05-19 with branch-ready status for PR handoff. The post-merge handoff removed the default broad `ci` path from ordinary PR/push validation while preserving `ci-full-closeout`, `ci-release-evidence`, and local `scripts/ci.ps1` for explicit release or rollback validation. Remaining lifecycle work is the PR handoff stage.

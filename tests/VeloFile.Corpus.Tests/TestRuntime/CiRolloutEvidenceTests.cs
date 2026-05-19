@@ -48,7 +48,7 @@ public sealed class CiRolloutEvidenceTests
         StringAssert.Contains(handoff, "Classic branch-protection result: GitHub returned `Branch not protected` (HTTP 404).");
         StringAssert.Contains(handoff, "Maintainer handoff recorded: ruleset now requires `ci-fast-required`");
         StringAssert.Contains(handoff, "Do not claim classic GitHub branch protection is configured");
-        StringAssert.Contains(handoff, "M2 is unblocked");
+        StringAssert.Contains(handoff, "M2 removed the temporary broad `ci` job from default CI");
         StringAssert.Contains(handoff, "broad closeout");
     }
 

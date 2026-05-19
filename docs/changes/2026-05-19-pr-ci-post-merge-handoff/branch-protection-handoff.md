@@ -34,6 +34,6 @@ Date recorded: 2026-05-19
 
 ## Interpretation
 
-The repository has hosted shadow-run evidence for `ci-fast-required`, and the active default-branch ruleset now requires `ci-fast-required`. Repository files still cannot mutate GitHub branch-protection settings by themselves, but the maintainer-operated handoff is now recorded through the active ruleset. M2 is unblocked: remove or fully disable the temporary broad `ci` job from default CI while preserving explicit broad closeout validation.
+The repository has hosted shadow-run evidence for `ci-fast-required`, and the active default-branch ruleset now requires `ci-fast-required`. Repository files still cannot mutate GitHub branch-protection settings by themselves, but the maintainer-operated handoff is now recorded through the active ruleset.
 
-Until M2 lands, the broad `ci` job remains unchanged as the pre-cleanup shadow/rollback path. Broad closeout validation must remain available through `ci-full-closeout` and local `scripts/ci.ps1` after handoff. If rollback is needed, make the broad closeout check required again and leave `ci-fast-required` optional until the issue is resolved.
+M2 removed the temporary broad `ci` job from default CI after this handoff evidence was recorded. Broad closeout validation remains available through `ci-full-closeout` and local `scripts/ci.ps1`. If rollback is needed, make the broad closeout check required again and leave `ci-fast-required` optional until the issue is resolved.
