@@ -1,7 +1,7 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
-status: draft
-current_stage: pr
-current_stage_state: ready
+status: done
+current_stage: post-merge-closeout
+current_stage_state: closed
 current_milestone: M3
 current_milestone_state: closed
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
@@ -164,3 +164,17 @@ validation:
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only
     result: branch-ready for PR handoff; PR body/open readiness remains owned by the pr stage
+  post_merge:
+    status: passed
+    commands:
+      - command: gh pr view 5 --json number,title,url,state,mergedAt,mergeCommit,baseRefName,headRefName,headRefOid,statusCheckRollup
+        result: PR #5 is MERGED into main at merge commit 331c93e39a68d9534264e26efe7ce5ba42f74a67
+      - command: git checkout main
+        result: switched to local main after confirming the working tree was clean
+      - command: git pull --ff-only origin main
+        result: local main synced to merge commit 331c93e39a68d9534264e26efe7ce5ba42f74a67
+      - command: gh run view 26094915062 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: merge-commit push workflow ci completed successfully; ci-fast-required passed in 7m4s on head 331c93e39a68d9534264e26efe7ce5ba42f74a67
+      - command: git diff --check
+        result: passed for post-merge lifecycle closeout changes with Git LF-to-CRLF working-copy warnings only
+    result: post-merge lifecycle closeout recorded; plan index moved this work to Done
