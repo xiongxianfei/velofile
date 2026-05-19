@@ -1,0 +1,206 @@
+change_id: 2026-05-18-pr-ci-validation-tiering
+status: done
+current_stage: pr
+current_stage_state: ready-for-review
+current_milestone: M6
+current_milestone_state: closed
+summary: Introduce hosted CI validation tiers so ordinary PRs use a fast required lane while release evidence and full closeout remain explicit.
+artifacts:
+  proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
+  spec: specs/pr-ci-validation-tiering.md
+  architecture: docs/architecture/system/architecture.md
+  adr: docs/adr/0012-hosted-pr-ci-validation-tiers.md
+  plan: docs/plans/2026-05-18-pr-ci-validation-tiering.md
+  test_spec: specs/pr-ci-validation-tiering.test.md
+  explain_change: docs/changes/2026-05-18-pr-ci-validation-tiering/explain-change.md
+validation:
+  m1:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: failed before implementation because the summary helper script and broad-CI summary hook were missing; passed after implementation with 4 tests
+      - command: git diff --check -- scripts\Write-CiRuntimeSummary.ps1 .github\workflows\ci.yml tests\VeloFile.Corpus.Tests
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: Select-String -Path scripts\Write-CiRuntimeSummary.ps1,.github\workflows\ci.yml,tests\VeloFile.Corpus.Tests\TestRuntime\CiRuntimeSummaryTests.cs -Pattern '[ \t]+$'
+        result: passed with no trailing whitespace matches
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: failed after PRCI-CR1 test updates because FailedOutcome support and workflow failure-context wiring were missing; passed after resolution with 4 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~WorkflowContract"
+        result: completed with no matching tests in this project
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed during code-review-r2 with 4 tests
+  m2:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: failed before workflow implementation because ci-fast-required was missing; passed after implementation with 6 tests
+      - command: dotnet --info
+        result: passed; SDK 10.0.203 on Windows
+      - command: dotnet restore VeloFile.sln
+        result: passed
+      - command: dotnet build VeloFile.sln -c Debug --no-restore
+        result: passed with 0 warnings and 0 errors
+      - command: dotnet run --project tools\VeloFile.UiContracts -- validate-tokens --contract docs\ui\tokens.v1.json --xaml-root src\VeloFile.App\Resources --scopes docs\ui\ui-contract-scopes.v1.json --scope-root .
+        result: passed
+      - command: dotnet test tests\VeloFile.Core.Tests\VeloFile.Core.Tests.csproj -c Debug --no-build
+        result: passed with 168 tests
+      - command: dotnet test tests\VeloFile.App.Tests\VeloFile.App.Tests.csproj -c Debug --no-build
+        result: passed with 168 tests
+      - command: dotnet test tests\VeloFile.Windows.Tests\VeloFile.Windows.Tests.csproj -c Debug --no-build
+        result: passed with 52 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed with 81 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=CorpusScript&TestCategory=Smoke"
+        result: passed with 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed with 4 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: failed after PRCI-CR2 regression test because TRX-derived project durations were missing; passed after resolution with 5 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed after PRCI-CR2 resolution with 6 tests
+      - command: git diff --check
+        result: passed after PRCI-CR2 resolution with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r4 with 6 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: first parallel rerun failed due local build-output file lock while CiWorkflowContract passed; sequential rerun passed during code-review-r4 with 5 tests
+  m3:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: failed before workflow implementation because release-evidence.yml was missing; passed after implementation with 9 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed after release-evidence summary coverage with 6 tests
+      - command: dotnet restore VeloFile.sln
+        result: passed
+      - command: dotnet build VeloFile.sln -c Debug --no-restore
+        result: passed with 0 warnings and 0 errors
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence"
+        result: passed with 10 tests in 5 m 12 s after final build
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r5 with 9 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed during code-review-r5 with 6 tests
+      - command: git diff --check
+        result: passed during code-review-r5 with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed after PRCI-CR3 resolution with 10 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed after PRCI-CR3 resolution with 6 tests
+      - command: git diff --check
+        result: passed after PRCI-CR3 resolution with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r6 with 10 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRuntimeSummary"
+        result: passed during code-review-r6 with 6 tests
+      - command: git diff --check
+        result: passed during code-review-r6 with no output
+  m4:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: failed before workflow implementation because closeout.yml was missing; passed after implementation with 14 tests
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation"
+        result: passed with 16 tests
+      - command: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
+        result: passed; SDK 10.0.203 on Windows; build 0 warnings and 0 errors; UI contract validation passed; Core 168, App 168, Windows 52, Corpus 110 tests passed
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract"
+        result: passed during code-review-r7 with 14 tests
+      - command: git diff --check
+        result: passed during code-review-r7 with no output
+  m5_preflight:
+    status: blocked
+    commands:
+      - command: git status --short --branch
+        result: local main was clean and ahead of origin/main by 13 commits
+      - command: gh run list --limit 20 --json databaseId,workflowName,displayTitle,event,headBranch,headSha,status,conclusion,createdAt,updatedAt,url
+        result: no hosted run existed for local HEAD 9ec9c78ce54cc4c5dd701cec76ff1b49ba8293e7; run history only showed older broad ci workflow runs
+      - command: gh run view 26002964319 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: PR #3 had one broad ci job and no ci-fast-required shadow job
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: blocked by missing external configuration evidence; GitHub returned Branch not protected (HTTP 404)
+  m5:
+    status: passed
+    commands:
+      - command: hosted PR #4 run 26062568345
+        result: passed; ci-fast-required passed in 7m20s and broad ci passed in 16m01s at commit 28de2d60faaa7fc2fbf0f3eade53f8467c26ff1a
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: returned Branch not protected (HTTP 404); branch-protection-handoff.md records no maintainer handoff and no external required-check claim
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: failed before evidence and guidance were added, as expected
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"
+        result: passed with 20 tests
+      - command: rg -n "ci-fast-required|ci-release-evidence|ci-full-closeout|ReleaseEvidence: not run in this lane|Full closeout" README.md docs specs .github
+        result: passed with expected matches in guidance, specs, workflows, and change records
+      - command: git diff --check -- .github\workflows README.md CONTRIBUTING.md docs\project-map.md docs\changes\2026-05-18-pr-ci-validation-tiering docs\plans\2026-05-18-pr-ci-validation-tiering.md tests\VeloFile.Corpus.Tests
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  m5_code_review:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRolloutEvidence"
+        result: reviewer rerun passed with 20 tests
+      - command: git diff --check HEAD~1..HEAD
+        result: reviewer rerun passed with no output
+      - command: gh run view 26063623475 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+        result: latest hosted PR run for commit 91a843f6625aefb74cc7979e3680007e0b65cdc4 was in_progress during review; not claimed as passed
+  explain_change:
+    status: passed
+    commands:
+      - command: git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: gh run list --branch pr-ci-validation-tiering --limit 3 --json databaseId,workflowName,displayTitle,event,headSha,status,conclusion,createdAt,updatedAt,url
+        result: latest hosted PR run for commit 0e13d8ba537c4befd461fa2f712371ae00072ba6 was queued when explain-change ran; not claimed as passed at that stage
+  verify:
+    status: passed
+    report: docs/changes/2026-05-18-pr-ci-validation-tiering/verify-report.md
+    commands:
+      - command: gh run watch 26063842493 --interval 30 --exit-status
+        result: passed; latest hosted PR run completed successfully
+      - command: gh run view 26063842493 --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+        result: workflow ci succeeded for commit 5188c33459218edd382cf50ab9adfca973b0c974; ci-fast-required passed in 6m32s and broad ci passed in 17m11s
+      - command: git diff --check -- docs\changes\2026-05-18-pr-ci-validation-tiering\verify-report.md docs\changes\2026-05-18-pr-ci-validation-tiering\explain-change.md docs\plans\2026-05-18-pr-ci-validation-tiering.md docs\plan.md docs\changes\2026-05-18-pr-ci-validation-tiering\change.yaml
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  pr:
+    status: ready-for-review
+    url: https://github.com/xiongxianfei/velofile/pull/4
+    commands:
+      - command: gh pr edit 4 --body <review-ready body>
+        result: passed; PR body updated with summary, rationale, spec/plan/architecture links, validation, hosted CI evidence, risks, rollback, and reviewer notes
+      - command: gh pr ready 4
+        result: passed; PR #4 marked ready for review
+review:
+  stage: code-review
+  status: clean-with-notes
+  record: docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r9.md
+  findings: []
+  resolved_findings:
+    - PRCI-SR1
+    - PRCI-PLR1
+    - PRCI-CR1
+    - PRCI-CR2
+    - PRCI-CR3
+    - PRCI-CR4
+  prior_records:
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/proposal-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/spec-review-r2.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/architecture-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/plan-review-r2.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/test-spec-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r1.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r2.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r3.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r4.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r5.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r6.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r7.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/reviews/code-review-r8.md
+    - docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
+  prior_resolution: docs/changes/2026-05-18-pr-ci-validation-tiering/review-resolution.md
+  resolution: no review-resolution required; M5 closed by code-review-r9
+next_stage: human-review

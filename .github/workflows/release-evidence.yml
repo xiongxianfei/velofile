@@ -1,0 +1,94 @@
+name: release-evidence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    branches:
+      - "release/**"
+    tags:
+      - "v*"
+      - "v*-rc*"
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-evidence-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-release-evidence:
+    name: ci-release-evidence
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Show .NET SDK info
+        id: dotnet_info
+        run: dotnet --info
+
+      - name: Restore solution
+        id: restore
+        run: dotnet restore VeloFile.sln
+
+      - name: Build solution
+        id: build
+        run: dotnet build VeloFile.sln -c Debug --no-restore
+
+      - name: Test Corpus release evidence
+        id: test_release_evidence
+        run: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter "TestCategory=ReleaseEvidence" --logger "trx;LogFileName=VeloFile.Corpus.ReleaseEvidence.trx" --results-directory artifacts\test-results\release-evidence
+
+      - name: Write release evidence runtime summary
+        if: always()
+        run: |
+          $summaryArgs = @{
+            LaneName = "ci-release-evidence"
+            Trigger = "${{ github.event_name }}"
+            SelectedCategory = "ReleaseEvidence;Benchmark=run;Visual=not selected in this lane;ManualEvidence=absent from current test inventory"
+            ReleaseEvidenceStatus = "run"
+            CorpusScriptSmokeStatus = "not selected in this lane"
+            FullCloseoutStatus = "not run"
+          }
+
+          $trxPaths = @(Get-ChildItem -Path artifacts\test-results -Filter *.trx -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          if ($trxPaths.Count -gt 0) {
+            $summaryArgs["TrxPath"] = $trxPaths
+          }
+
+          $validationSteps = @(
+            @{ Outcome = "${{ steps.dotnet_info.outcome }}"; Command = "dotnet --info" },
+            @{ Outcome = "${{ steps.restore.outcome }}"; Command = "dotnet restore VeloFile.sln" },
+            @{ Outcome = "${{ steps.build.outcome }}"; Command = "dotnet build VeloFile.sln -c Debug --no-restore" },
+            @{ Outcome = "${{ steps.test_release_evidence.outcome }}"; Command = "dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --no-build --filter TestCategory=ReleaseEvidence" }
+          )
+
+          $failedStep = $validationSteps | Where-Object { $_.Outcome -and $_.Outcome -notin @("success", "skipped") } | Select-Object -First 1
+          if ($failedStep) {
+            $summaryArgs["FailedCommand"] = $failedStep.Command
+            $summaryArgs["FailedOutcome"] = $failedStep.Outcome
+          }
+
+          ./scripts/Write-CiRuntimeSummary.ps1 @summaryArgs
+
+      - name: Upload release evidence test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-release-evidence-trx
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: ignore

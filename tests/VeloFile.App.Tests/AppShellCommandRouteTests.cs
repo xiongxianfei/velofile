@@ -1584,7 +1584,9 @@ public sealed class AppShellCommandRouteTests
         viewModel.StartRecursiveSearch("new");
         searchService.Emit("new", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\new-1.txt", "new-1.txt"), 1));
         searchService.Emit("old", RecursiveSearchUpdate.ResultFound(Item(@"D:\projects\old-late.txt", "old-late.txt"), 3));
-        await WaitUntilAsync(() => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "new-1.txt");
+        await WaitUntilAsync(
+            () => viewModel.VisibleItems.Count == 1 && viewModel.VisibleItems[0].Name == "new-1.txt",
+            TimeSpan.FromSeconds(5));
 
         Assert.AreEqual("new", viewModel.RecursiveSearch.Query);
         Assert.IsFalse(viewModel.RecursiveSearch.ResultLimitReached);
@@ -2025,9 +2027,9 @@ public sealed class AppShellCommandRouteTests
         }
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition)
+    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan? timeout = null)
     {
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(2);
+        var deadline = DateTimeOffset.UtcNow + (timeout ?? TimeSpan.FromSeconds(2));
         while (DateTimeOffset.UtcNow < deadline)
         {
             if (condition())

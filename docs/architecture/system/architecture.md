@@ -2,7 +2,7 @@
 
 ## Lifecycle Metadata
 
-- Status: approved; amended 2026-05-16 for test runtime optimization architecture; amended 2026-05-17 for optional shell visual artifacts by architecture-review-r1
+- Status: approved; includes 2026-05-18 PR CI validation tiering amendment approved by architecture-review-r1
 - Scope: canonical baseline architecture for VeloFile V1
 - Related V1 proposal: [V1 Product Direction](../../proposals/2026-05-04-v1-product-direction.md)
 - Related V1 spec: [V1 Product Scope](../../../specs/v1-product-scope.md)
@@ -12,10 +12,12 @@
 - Related shell visual-coherence spec: [UI Shell Visual Coherence](../../../specs/ui-shell-visual-coherence.md)
 - Related test runtime proposal: [Test Runtime Optimization](../../proposals/2026-05-16-test-runtime-optimization.md)
 - Related test runtime spec: [Test Runtime Optimization](../../../specs/test-runtime-optimization.md)
+- Related PR CI proposal: [PR CI Validation Tiering](../../proposals/2026-05-18-pr-ci-validation-tiering.md)
+- Related PR CI spec: [PR CI Validation Tiering](../../../specs/pr-ci-validation-tiering.md)
 - Context diagram: [diagrams/context.mmd](diagrams/context.mmd)
 - Container diagram: [diagrams/container.mmd](diagrams/container.mmd)
 - Component diagram: [diagrams/desktop-app-components.mmd](diagrams/desktop-app-components.mmd)
-- Last updated: 2026-05-16
+- Last updated: 2026-05-18
 
 ## 1. Introduction and Goals
 
@@ -29,7 +31,7 @@ Primary goals:
 - Keep open-source contribution boundaries visible through explicit services, providers, adapters, diagnostics, and ADRs.
 - Keep visible UI quality governed by repo-owned WinUI design contracts, validation tools, and reviewed evidence rather than external prototype packages.
 - Keep whole-shell visual coherence governed by additive token/scope contracts, deterministic vector fixture icons, optional full-shell review artifacts, and behavior-preservation matrices.
-- Keep validation feedback loops tiered so contributors can run fast contract checks locally without removing release-evidence validation from full closeout paths.
+- Keep validation feedback loops tiered so contributors and hosted PR workflows can run fast confidence checks without removing release-evidence validation from full closeout paths.
 - Preserve post-V1 extension points without pre-building out-of-scope features.
 
 ## 2. Architecture Constraints
@@ -44,7 +46,8 @@ Primary goals:
 - Shell-wide visual-coherence contracts extend `docs/ui/tokens.v1.json` and `docs/ui/ui-contract-scopes.v1.json` additively unless an approved incompatible redesign reset creates a new major contract.
 - Deterministic fixture icons use VeloFile-owned XAML vector resources and allowlisted icon kinds; first visual baselines do not depend on real Windows Shell icon extraction.
 - Full-shell visual artifacts may use effective-pixel app-window review profiles and remain optional soft-review context until a later accepted decision hardens screenshot comparison.
-- Test runtime optimization keeps `scripts/ci.ps1` as the broad closeout command for the first slice; CI job splitting requires a later accepted decision.
+- Test runtime optimization keeps `scripts/ci.ps1` as the broad closeout command. Hosted CI splitting follows the approved PR CI validation tiering spec: ordinary PR confidence, release evidence, and full closeout are separate named lanes.
+- Hosted CI validation introduced or changed by the PR CI tiering work runs on Windows GitHub Actions runners, uses PowerShell 7 (`pwsh`) for PowerShell and repository script steps unless a reviewed exception is recorded, and selects the repository-approved .NET SDK before restore, build, test, UI contract, release-evidence, or closeout commands.
 - Prepared corpus tool execution is internal to tests for the first slice, uses test-owned scratch/temp roots, and is guarded by a current-run prepared-tool manifest.
 - Public corpus wrapper command-line contracts remain backward compatible in the first test runtime optimization slice.
 - Shell-owned behavior is preferred for Windows-correct copy, move, delete, drag/drop, file association, thumbnail/icon, long-path, and Recycle Bin behavior.
@@ -82,6 +85,7 @@ The architecture uses a layered Windows desktop app:
 - **UI design resources** own VeloFile token/resource dictionaries, shell surface resources, command/sidebar/status/preview resources, deterministic vector fixture icons, file-list row presentation resources, focus and density constants, and resource consumption rules inside the WinUI app.
 - **UI contract tooling** owns static validation from repo-owned UI contracts to WinUI resources, fixture icon resources, screenshot sidecars, and scoped literal checks without launching the app.
 - **Corpus validation tooling** owns validation tiers, corpus contract tests, public script smoke tests, hermetic wrapper isolation, test-internal prepared-tool execution, and runtime duration evidence for contributor and closeout validation.
+- **Hosted CI validation orchestration** owns GitHub Actions workflow lanes, runner/shell/SDK setup contracts, workflow contract validation, lane-specific command selection, runtime summaries, TRX artifacts, and shadow-run evidence for branch-protection transition.
 - **Application services** own navigation, tabs, search, filtering, commands, session restore, settings, diagnostics, preview orchestration, and benchmark hooks.
 - **Windows integration adapters** wrap Shell COM, Win32, WinRT, drag/drop, terminal launch, file associations, thumbnails/icons, and MSIX/platform behaviors.
 - **Persistence providers** own versioned session state, settings, crash markers, last-action markers, diagnostic logs, benchmark reports, favorites, and recent locations.
@@ -101,6 +105,7 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 - **Local app data**: versioned JSON and local diagnostic log files for settings, favorites, recent locations, session state, local crash markers, last-action markers, and diagnostics.
 - **UI contract tooling**: solution-included .NET console tooling plus review-gated PowerShell orchestration for validating UI token/scope contracts, checking WinUI resources, and updating reviewed visual baselines.
 - **Corpus validation tooling**: solution-included corpus test harnesses, public PowerShell script smoke coverage, hermetic wrapper isolation checks, prepared-tool test execution, and runtime reporting for validation tiers.
+- **Hosted CI validation workflows**: GitHub Actions workflow files and shared reporting helper that run `ci-fast-required`, `ci-release-evidence`, and `ci-full-closeout` on Windows runners with `pwsh`, explicit SDK setup, lane-specific commands, TRX output, and job summaries.
 - **Visual baseline evidence**: committed PNG screenshots and JSON sidecars under reviewed profiles. Generated current captures and diffs are transient validation output and are not committed.
 - **Benchmark harness**: test executable that creates the deterministic corpus, drives the app process, and emits benchmark reports for release gating.
 - **MSIX package and stable release channel**: signed package and release metadata for side-by-side install, stable update channel documentation, versioning policy, update cadence expectation, and rollback/uninstall instructions.
@@ -154,6 +159,13 @@ Hot-path work is isolated from slow Windows integration work. Navigation renders
 | Test runtime R39-R43 | Release Evidence; CI and Script Orchestration; Corpus Validation Tooling |
 | Test runtime R44-R47 | Test Projects; Corpus Validation Tooling |
 | Test runtime R48-R60 | Runtime Reports; Review Evidence; CI and Script Orchestration |
+| PR CI R1-R13 | Hosted CI Validation Workflows; Branch-Protection Handoff Evidence; Architecture Decisions |
+| PR CI R65-R69 | Hosted CI Execution Environment; Workflow Contract Tests; GitHub Actions Windows Runners |
+| PR CI R14-R27 | Hosted CI Validation Workflows; UI Contract Tooling; Product Test Projects; Corpus Validation Tooling |
+| PR CI R28-R39 | Release Evidence; Full Closeout; CI and Script Orchestration |
+| PR CI R40-R48 | CI Runtime Summary Helper; TRX Artifacts; GitHub Actions Job Summaries |
+| PR CI R49-R53 | Shadow-Run Evidence; Branch-Protection Handoff; Rollback Decision Record |
+| PR CI R54-R64 | Release Evidence Preservation; Security/Privacy; Workflow Contract Tests |
 
 ## 6. Runtime View
 
@@ -224,6 +236,20 @@ Test runtime optimization separates validation work by purpose without removing 
 8. `ReleaseEvidence`, `Benchmark`, `Visual`, and `ManualEvidence` tiers remain explicit and available for full closeout, release readiness, or future full validation commands.
 9. Runtime reports record before/after command durations, top slow tests, and whether full `scripts/ci.ps1` improved, stayed the same, or regressed.
 
+### Hosted CI Validation
+
+Hosted CI validation separates ordinary PR confidence from expensive evidence lanes without changing product runtime behavior:
+
+1. `ci-fast-required` is the ordinary PR confidence lane. It restores, builds, validates production UI contracts, runs Core/App/Windows test projects directly without category filters, runs Corpus `Fast|Contract`, and runs Corpus `CorpusScript&Smoke`.
+2. `ci-fast-required` does not call `scripts/ci.ps1` and does not run Corpus `ReleaseEvidence` by default. Its summary labels the lane as fast PR confidence, not release readiness.
+3. `ci-release-evidence` is the explicit expensive evidence lane. It is manually runnable, scheduled nightly or daily, and runs for release branches/tags or merge queue when merge queue is used as a release-readiness gate.
+4. `ci-release-evidence` runs build-producing restore/build before `--no-build` release-evidence tests and reports whether `ReleaseEvidence`, `Benchmark`, `Visual`, and `ManualEvidence` categories ran, were absent, or were intentionally not selected.
+5. `ci-full-closeout` is the manual broad validation lane and invokes `scripts/ci.ps1` unchanged.
+6. All hosted lanes introduced or changed by this architecture use Windows runners, `pwsh` for PowerShell/repository script steps unless reviewed exceptions exist, and SDK setup before validation commands.
+7. A shared PowerShell reporting helper owns GitHub job-summary rendering and TRX slow-test extraction for hosted lanes. Workflows pass lane name, trigger, selected categories, release-evidence status, full-closeout status, command timing, and test result paths into the helper.
+8. Runtime summaries are written even after a validation command fails once the job has started. If TRX output is missing because a build or earlier command failed, the summary reports that limitation rather than fabricating slow-test data.
+9. `ci-fast-required` shadow-runs as non-required for at least one PR cycle before maintainers change branch protection. The change record, not the workflow file alone, records shadow-run comparison and external branch-protection handoff evidence.
+
 ### UI Contract Validation and Visual Fixtures
 
 First-slice UI validation starts from repo-owned contracts, not from `hifi-design/`. The UI contract tool reads `docs/ui/tokens.v1.json`, `docs/ui/ui-contract-scopes.v1.json`, and governed XAML resource dictionaries as static artifacts. It validates required token keys, resource types, directly comparable values, color-to-brush relationships, duplicate governed keys, and first-slice literal rules without launching the app or depending on the WinUI runtime.
@@ -268,6 +294,9 @@ Validation and repository evidence:
 - Test runtime category metadata lives in test source and is checked by category inventory validation.
 - Prepared corpus tool manifests live only under test-owned scratch/temp roots and identify the current test-harness setup invocation, expected tool kind, configuration, target framework, and entrypoint.
 - Test runtime reports are review evidence and must identify command, configuration, filter, date, measured duration, top slow tests, and local environment assumptions.
+- Hosted CI workflows live under `.github/workflows/`. The PR CI tiering architecture uses separate workflow files for ordinary PR confidence, release evidence, and full closeout so triggers and branch-protection check names remain stable and reviewable.
+- Hosted CI job summaries are GitHub Actions job-summary output generated by a repository PowerShell helper. TRX or equivalent structured test outputs may be uploaded as artifacts when present.
+- Workflow contract tests inspect committed GitHub Actions workflow YAML through a structured YAML parser and a test-owned workflow model rather than relying only on ad hoc string checks. They prove lane names, triggers, Windows runner use, `pwsh`, SDK setup ordering, command selection, release-evidence separation, and summary/reporting hooks.
 - First-slice committed visual baselines live under `tests/visual/baselines/winui/<profile>/` with JSON sidecars.
 - Optional shell-wide full-shell visual artifacts may use reviewed profiles under `tests/visual/baselines/winui/<profile>/` with JSON sidecars. Suggested shell visual-coherence profiles are `shell-min-900x560-100`, `shell-standard-1440x900-100`, and `shell-standard-1440x900-200`; missing profile coverage is not a closeout blocker.
 - Generated visual outputs under `tests/visual/current/` and `tests/visual/diffs/` are transient and ignored by Git.
@@ -302,6 +331,8 @@ Local diagnostics include crash markers, last-action markers, diagnostic logs, a
 
 Test runtime observability is separate from product diagnostics. Runtime reports record validation command durations, filters, configuration, date, local environment assumptions, and top slow tests. They must not be used as universal performance guarantees. Category inventory and prepared-tool boundary diagnostics should name the offending test, category, rejected condition, or allowed root without exposing unrelated private local paths.
 
+Hosted CI observability is a separate contributor/release surface. GitHub Actions job summaries record lane name, trigger, selected categories, whether release evidence ran, whether `CorpusScript&Smoke` ran, whether full closeout ran, total/build/test-project durations when available, and slowest tests from TRX when available. Hosted success for `ci-fast-required` must not be described as release readiness.
+
 Diagnostic events may include only these field categories:
 
 - Event id, event type, UTC timestamp, monotonic sequence number, severity, component, operation id, and correlation id.
@@ -329,6 +360,8 @@ Ownership boundaries:
 File paths, file names, settings, session files, and diagnostics are untrusted. Diagnostic data follows the local-only allowed/prohibited field contract above. V1 does not host third-party Shell extension menu handlers.
 
 Test runtime artifacts follow the same privacy posture. Prepared-tool manifests must not store raw local usernames, private profile paths, secrets, tokens, credentials, or machine-specific private data. Prepared-tool execution must not mutate user PATH, global .NET configuration, or repository build output outside the assigned scratch/temp root.
+
+Hosted CI artifacts follow the same privacy posture. Runtime summaries, TRX artifacts, cache keys, runner/shell exception evidence, and workflow diagnostics must not include secrets, signing material, release tokens, credentials, raw private profile details, or unrelated machine inventory. Ordinary PR workflows should not require new repository secrets and should grant only the token permissions needed for checkout, setup, validation, summary writing, and artifact upload.
 
 ### Accessibility
 
@@ -360,6 +393,16 @@ Corpus script smoke and corpus contract tests have different responsibilities. C
 
 Prepared-tool execution is a test harness optimization only. It is not a public script feature in the first slice. The prepared tool root must stay inside the allowed scratch/temp root, carry a current-run manifest, declare expected tool metadata, and contain the expected artifact before invocation. Source-hash and cross-run cache staleness detection are deferred unless a later accepted decision introduces cross-run prepared-tool reuse.
 
+### Hosted CI Validation Contracts
+
+Hosted validation tiers are an architecture boundary for repository workflow, not a replacement for release evidence. Ordinary PRs should receive fast required feedback through `ci-fast-required`, while release readiness remains explicit through `ci-release-evidence`, `ci-full-closeout`, local `scripts/ci.ps1`, or another accepted release gate.
+
+`scripts/ci.ps1` stays broad and local-runnable. It must not be narrowed to fast-only filters as part of PR CI tiering. The full closeout lane invokes it rather than duplicating its closeout role through copied workflow commands.
+
+Workflow contract tests own static protection for the hosted CI architecture. They parse workflow YAML through a structured parser into a test-owned model. They should fail if Core/App/Windows tests are selected through solution-level Corpus category filters, if release evidence is run by default in `ci-fast-required`, if `scripts/ci.ps1` is called from the fast lane, if hosted lanes omit the Windows/pwsh/SDK setup contract, or if runtime summaries cannot report selected evidence tiers.
+
+Dependency caching remains secondary. Cache setup may reduce restore cost, but cache misses must not switch the ordinary PR lane to full release-evidence validation.
+
 ## 9. Architecture Decisions
 
 Durable decisions are recorded in ADRs:
@@ -375,6 +418,7 @@ Durable decisions are recorded in ADRs:
 - [ADR 0009: UI Design Contracts, Static Validation, and Visual Fixtures](../../adr/0009-ui-design-contracts-static-validation-and-visual-fixtures.md)
 - [ADR 0010: Shell Visual-Coherence Contracts and Evidence](../../adr/0010-shell-visual-coherence-contracts.md)
 - [ADR 0011: Test Runtime Validation Tiers and Corpus Harness Optimization](../../adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md)
+- [ADR 0012: Hosted PR CI Validation Tiers](../../adr/0012-hosted-pr-ci-validation-tiers.md) (accepted by architecture-review-r1)
 
 ## 10. Quality Requirements
 
@@ -395,6 +439,7 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 | QS-UI-SHELL-01 | Shell visual coherence | A contributor changes governed shell surface, command band, sidebar, status, preview, file-list, or icon resources. | Local validation or CI on Windows/.NET. | Static UI contract validation rejects unapproved literals, raw/default governed visuals, forbidden icon controls, arbitrary fixture icon keys, and invalid optional sidecar metadata when sidecars are present. | 100% of governed shell-scope contract violations produce nonzero validation with actionable file/scope/rule output. |
 | QS-UI-SHELL-02 | Optional full-shell visual artifacts | A maintainer chooses to record shell visual-coherence screenshots or manual visual notes. | Chosen shell states and effective-pixel profiles. | Optional full-shell screenshots and sidecars remain supporting review context, generated current/diff outputs remain uncommitted, and behavior preservation is cited separately. | Optional visual artifacts never replace behavior proof; committed/referenced sidecars are privacy-safe and generated current/diff outputs remain uncommitted. |
 | QS-TEST-RUNTIME-01 | Validation feedback speed | A contributor runs the documented fast or corpus contract command after a build. | Local Windows/.NET validation with projects already built. | Fast/contract filters exclude script smoke and release-evidence tiers by default, while full closeout validation remains available through `scripts/ci.ps1`. | Corpus category inventory rejects missing/unknown categories and invalid expensive-tier combinations; runtime evidence records baseline, optimized contract, optimized script-smoke, top 10 slow tests, and full CI status. |
+| QS-PR-CI-01 | Hosted PR feedback speed with explicit release evidence | An ordinary pull request updates code, tests, or validation contracts. | GitHub Actions hosted Windows runner with repository-approved .NET SDK and `pwsh`. | `ci-fast-required` runs build-producing restore/build, UI contract validation, direct Core/App/Windows tests, Corpus `Fast|Contract`, and Corpus `CorpusScript&Smoke`; release evidence and full closeout remain explicit lanes. | Workflow contract tests prove lane names, triggers, Windows/pwsh/SDK setup, command selection, and no default `ReleaseEvidence`; job summaries report selected tiers and durations or limitations. |
 
 ## 11. Risks and Technical Debt
 
@@ -414,6 +459,9 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - Validation tiers may be misused to skip release evidence. Mitigation: keep `scripts/ci.ps1` as the first-slice broad closeout command, require explicit `ReleaseEvidence` commands, and record runtime evidence without presenting fast runs as release proof.
 - Prepared-tool execution may hide wrapper isolation regressions. Mitigation: keep one common hermetic wrapper isolation test and minimal public script smoke tests for supported script families.
 - Runtime reports may overfit to one machine. Mitigation: record command, filter, configuration, date, and environment assumptions, and treat local timing as evidence for the slice rather than a universal guarantee.
+- Hosted fast PR CI may be mistaken for release readiness. Mitigation: stable lane names, job summaries, branch-protection handoff records, and release-evidence/full-closeout workflows keep evidence tiers explicit.
+- Workflow YAML drift may silently weaken validation. Mitigation: static workflow contract tests parse committed workflow definitions and fail on missing lanes, wrong runner/shell/SDK setup, wrong command selection, or missing summary hooks.
+- Runtime-summary generation may become duplicated across workflows. Mitigation: keep summary rendering and TRX slow-test extraction in a shared PowerShell helper with fixture-based tests.
 
 ## 12. Glossary
 
@@ -428,12 +476,15 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - **Visual baseline evidence**: reviewed screenshots and JSON sidecars used to compare first-slice UI presentation over time.
 - **Shell visual-coherence artifacts**: optional reviewed full-shell screenshots, JSON sidecars, or manual notes across chosen shell states and effective-pixel profiles, used as soft-review context alongside behavior-preservation proof.
 - **Validation tier**: accepted test category that tells contributors whether a test is intended for fast inner-loop, contract, smoke, release-evidence, benchmark, visual, or manual-evidence validation.
+- **Hosted CI lane**: stable GitHub Actions job/check name with a defined trigger, environment, command selection, and summary contract.
+- **Runtime summary**: GitHub Actions job-summary output that reports lane purpose, selected validation tiers, durations, slow-test details when available, and limitations when structured output is absent.
 - **V1**: first public release scope defined by the approved V1 product scope spec.
 
 ## Next Artifacts
 
-- Execution plan for test runtime optimization.
-- Matching test spec for [Test Runtime Optimization](../../../specs/test-runtime-optimization.md) after execution planning.
+- Execution plan for [PR CI Validation Tiering](../../../specs/pr-ci-validation-tiering.md).
+- Plan review for the PR CI validation tiering execution plan.
+- Matching test spec for workflow contracts, runtime summaries, release-evidence preservation, and rollout evidence.
 
 ## Follow-on Artifacts
 
@@ -446,8 +497,11 @@ Quality requirements are expressed as measurable scenarios. Design mechanisms st
 - [Test Runtime Optimization Proposal](../../proposals/2026-05-16-test-runtime-optimization.md)
 - [Test Runtime Optimization Spec](../../../specs/test-runtime-optimization.md)
 - [ADR 0011: Test Runtime Validation Tiers and Corpus Harness Optimization](../../adr/0011-test-runtime-validation-tiers-and-corpus-harness-optimization.md)
+- [PR CI Validation Tiering Proposal](../../proposals/2026-05-18-pr-ci-validation-tiering.md)
+- [PR CI Validation Tiering Spec](../../../specs/pr-ci-validation-tiering.md)
+- [ADR 0012: Hosted PR CI Validation Tiers](../../adr/0012-hosted-pr-ci-validation-tiers.md)
 - Architecture review for the UI design-system update completed on 2026-05-11 with status `approved` and no material findings.
 
 ## Readiness
 
-Architecture review for the 2026-05-17 visual-evidence gate removal amendment is approved by `docs/changes/2026-05-11-ui-shell-visual-coherence/reviews/architecture-review-r1.md`. The architecture keeps screenshots/manual visual notes optional, preserves static/resource and behavior-preservation proof as the hard boundary, and is ready for matching plan-review.
+Approved for execution planning by `architecture-review-r1` for the 2026-05-18 PR CI validation tiering amendment. The design keeps production App/Core/Windows behavior unchanged, preserves `scripts/ci.ps1` as broad closeout, separates hosted fast PR confidence from release evidence and full closeout, and does not authorize implementation before execution planning, plan-review, and a matching test spec.

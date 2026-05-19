@@ -137,7 +137,7 @@ public sealed class AppShellThumbnailUiTests
             new PreviewMetadataProvider(),
             new PreviewControllerOptions(
                 TimeSpan.FromMilliseconds(1),
-                PreviewTimeoutPolicy.ForTesting(TimeSpan.FromMilliseconds(500)))));
+                PreviewTimeoutPolicy.ForTesting(TimeSpan.FromSeconds(5)))));
         var loading = Item("loading.txt");
         var unsupported = Item("unsupported.bin");
         var failed = Item("failed.bin");

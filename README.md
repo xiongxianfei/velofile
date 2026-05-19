@@ -48,7 +48,7 @@ dotnet test VeloFile.sln -c Debug
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
-The GitHub CI workflow runs on Windows with `pwsh` and calls `scripts/ci.ps1`. Local Windows PowerShell can run the same script as a fallback when PowerShell 7 is unavailable.
+The GitHub PR workflow runs on Windows with `pwsh`. Ordinary PRs run `ci-fast-required` for fast PR confidence and currently also shadow-run the broad `ci` job until maintainer branch-protection handoff is recorded. `ci-fast-required` is the intended ordinary required check after handoff, but repository docs do not claim GitHub branch protection has changed until that external setting is recorded.
 
 ### Focused Validation Tiers
 
@@ -63,6 +63,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ci.ps1
 ```
 
 `--no-build` commands assume the relevant projects have already been built. Use `scripts\ci.ps1` for broad milestone closeout and review gates; focused tiers are for intentional local feedback, not a replacement for full validation.
+
+### Hosted CI Tiers
+
+- `ci-fast-required`: ordinary PR confidence. It restores, builds, validates UI contracts, runs Core/App/Windows tests directly, runs Corpus `Fast|Contract`, and runs Corpus `CorpusScript&Smoke`. Its summary reports `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
+- `ci-release-evidence`: manual, scheduled, release, and merge-queue release-evidence validation. It is not the default ordinary PR gate and remains part of release readiness.
+- `ci-full-closeout`: manual full closeout workflow that invokes `scripts/ci.ps1`. Full closeout remains available for milestone and release gates.
+
+Fast PR confidence is not release readiness. Use `ci-release-evidence`, `ci-full-closeout`, local `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1`, or another accepted release gate before claiming release readiness. The rollback path is to make the broad closeout check required again and leave `ci-fast-required` optional.
 
 ## Release Verification
 
