@@ -261,17 +261,17 @@ Escalation rule:
 - [x] Maintainer ruleset handoff recorded: active default-branch ruleset `protect` requires `ci-fast-required`.
 - [x] M2 broad PR shadow cleanup implemented.
 - [x] M2 code-review completed by `code-review-r2` with clean-with-notes; no material findings.
-- [ ] M3 hosted confirmation and lifecycle closeout closed.
+- [ ] M3 hosted confirmation and lifecycle closeout in progress.
 
 ## Current Handoff Summary
 
-- Current stage: blocked before M3 implementation
-- Plan status: blocked
+- Current stage: M3 implementation
+- Plan status: implementing
 - Current milestone: M3 hosted confirmation and lifecycle closeout
-- Current milestone state: planned; blocked until hosted PR evidence exists for the M2 workflow change
+- Current milestone state: implementing; hosted PR evidence exists but first post-handoff run exposed stale broad-CI preservation tests
 - Last reviewed stage: code-review-r2 reviewed M2 as clean-with-notes with no material findings
-- Next stage: collect hosted PR evidence for M2, then implement M3
-- Implementation readiness: M3 blocked until a hosted PR run exists for the M2 workflow change
+- Next stage: push the stale contract-test fix, collect the rerun hosted PR evidence, then complete M3 handoff artifacts
+- Implementation readiness: M3 in progress
 - Final closeout readiness: not ready
 - Remaining completion gates: hosted PR confirmation, M3 implementation/review-resolution if needed, explain-change, verify, PR handoff
 
@@ -289,6 +289,7 @@ Escalation rule:
 
 - Post-merge `main` classic branch protection still returns HTTP 404, but active repository ruleset `protect` now requires `ci-fast-required` on the default branch. Handoff evidence must describe this as ruleset-based protection.
 - The merged `ci.yml` still ran broad `ci` on ordinary PRs as the intended shadow/rollback state from PR #4 until M2 removed that default workflow path.
+- First hosted PR #5 run after M2 failed in `ci-fast-required` because fast/contract Corpus tests still contained stale broad-`ci` preservation assertions against `.github/workflows/ci.yml`. The workflow behavior was correct; the stale tests needed to preserve broad closeout through `.github/workflows/closeout.yml`.
 
 ## Validation Notes
 
@@ -351,6 +352,16 @@ M2 code review:
 - Review status: clean-with-notes.
 - Material findings: none.
 - Result: M2 closed. M3 remains blocked until hosted PR evidence exists for the M2 workflow change.
+
+M3 implementation:
+
+- Opened draft PR #5 (`https://github.com/xiongxianfei/velofile/pull/5`) from `pr-ci-post-merge-handoff` to trigger hosted confirmation for the M2 workflow cleanup.
+- `gh pr checks 5 --watch --interval 10` observed `ci-fast-required` fail in run `26085553757` after 4m25s.
+- `gh run view 26085553757 --log` showed `Test Corpus fast and contract` failed because `ReleaseEvidenceTierTests.Broad_closeout_ci_remains_unsplit_and_unfiltered` and `CiRuntimeSummaryTests.Broad_ci_workflow_writes_runtime_summary_after_repository_ci_step` still expected broad `scripts/ci.ps1` wiring in `.github/workflows/ci.yml`.
+- Updated the stale tests to preserve broad closeout through `.github/workflows/closeout.yml` and `ci-full-closeout`, without changing fast-lane command selection or workflow failure semantics.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"` passed with 97 tests after rebuilding the test assembly.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRuntimeSummary|FullyQualifiedName~ReleaseEvidenceTier"` passed with 33 tests.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective
 

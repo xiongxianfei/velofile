@@ -1,9 +1,9 @@
 change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
 current_stage: implement
-current_stage_state: blocked-by-hosted-pr-evidence
+current_stage_state: implementing
 current_milestone: M3
-current_milestone_state: planned
+current_milestone_state: implementing
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
 artifacts:
   proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
@@ -81,3 +81,16 @@ validation:
       - command: git diff --check HEAD~1..HEAD
         result: passed
     result: M2 reviewed clean-with-notes; no material findings; M2 closed and M3 remains blocked until hosted PR evidence exists for the M2 workflow change
+  m3_in_progress:
+    status: in_progress
+    commands:
+      - command: gh pr checks 5 --watch --interval 10
+        result: hosted draft PR #5 produced ci-fast-required failure in run 26085553757 after M2 workflow cleanup
+      - command: gh run view 26085553757 --log
+        result: failure was caused by stale broad-ci preservation tests still asserting scripts/ci.ps1 wiring in .github/workflows/ci.yml instead of closeout.yml
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "TestCategory=Fast|TestCategory=Contract"
+        result: passed with 97 tests after updating stale closeout-preservation assertions
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation|FullyQualifiedName~CiRuntimeSummary|FullyQualifiedName~ReleaseEvidenceTier"
+        result: passed with 33 tests
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only

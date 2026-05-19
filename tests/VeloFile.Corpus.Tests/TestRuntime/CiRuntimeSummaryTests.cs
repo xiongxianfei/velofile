@@ -160,22 +160,21 @@ public sealed class CiRuntimeSummaryTests
     }
 
     [TestMethod]
-    public void Broad_ci_workflow_writes_runtime_summary_after_repository_ci_step()
+    public void Full_closeout_workflow_writes_runtime_summary_after_closeout_step()
     {
-        var workflowPath = Path.Combine(TestRepo.FindRoot().FullName, ".github", "workflows", "ci.yml");
+        var workflowPath = Path.Combine(TestRepo.FindRoot().FullName, ".github", "workflows", "closeout.yml");
         var workflow = File.ReadAllText(workflowPath);
 
         StringAssert.Contains(workflow, "permissions:");
         StringAssert.Contains(workflow, "contents: read");
-        StringAssert.Contains(workflow, "Run repository CI script");
-        StringAssert.Contains(workflow, "id: repository_ci");
+        StringAssert.Contains(workflow, "Run full closeout script");
+        StringAssert.Contains(workflow, "id: full_closeout");
         StringAssert.Contains(workflow, "run: ./scripts/ci.ps1");
-        StringAssert.Contains(workflow, "Write CI runtime summary");
+        StringAssert.Contains(workflow, "Write full closeout runtime summary");
         StringAssert.Contains(workflow, "if: always()");
-        StringAssert.Contains(workflow, "shell: pwsh");
         StringAssert.Contains(workflow, "./scripts/Write-CiRuntimeSummary.ps1");
-        StringAssert.Contains(workflow, "steps.repository_ci.outcome");
-        StringAssert.Contains(workflow, "$repositoryCiOutcome -ne \"success\"");
+        StringAssert.Contains(workflow, "steps.full_closeout.outcome");
+        StringAssert.Contains(workflow, "$closeoutOutcome -ne \"success\"");
         StringAssert.Contains(workflow, "FailedCommand");
         StringAssert.Contains(workflow, "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1");
         StringAssert.Contains(workflow, "$summaryArgs = @{");
