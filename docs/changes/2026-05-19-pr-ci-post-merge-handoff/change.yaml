@@ -1,0 +1,50 @@
+change_id: 2026-05-19-pr-ci-post-merge-handoff
+status: draft
+current_stage: code-review
+current_stage_state: review-requested
+current_milestone: M1
+current_milestone_state: review-requested
+summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
+artifacts:
+  proposal: docs/proposals/2026-05-18-pr-ci-validation-tiering.md
+  spec: specs/pr-ci-validation-tiering.md
+  architecture: docs/architecture/system/architecture.md
+  adr: docs/adr/0012-hosted-pr-ci-validation-tiers.md
+  plan: docs/plans/2026-05-19-pr-ci-post-merge-handoff.md
+  test_spec: specs/pr-ci-validation-tiering.test.md
+  review_log: docs/changes/2026-05-19-pr-ci-post-merge-handoff/review-log.md
+  review_resolution: docs/changes/2026-05-19-pr-ci-post-merge-handoff/review-resolution.md
+  branch_protection_handoff: docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md
+reviews:
+  plan_review_r1:
+    path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r1.md
+    status: changes-requested
+    findings:
+      - PRCI-PMHR1
+  plan_review_r2:
+    path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r2.md
+    status: approved
+    findings: []
+validation:
+  plan_resolution:
+    status: passed
+    commands:
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+      - command: Select-String -Path docs\plans\2026-05-19-pr-ci-post-merge-handoff.md -Pattern 'add a job-level condition|workflow contract test proves broad `ci` is limited|push-only broad|Keep broad `ci` on `push` to `main` for the first cleanup slice' -Quiet
+        result: passed; returned False, so no stale push-main broad assertions remain in the revised plan
+      - command: Select-String -Path docs\plans\2026-05-19-pr-ci-post-merge-handoff.md,docs\changes\2026-05-19-pr-ci-post-merge-handoff\review-resolution.md -Pattern 'remove or fully disable|broad `ci` still runs on `pull_request` or `push`|default `push` to `main` lane|Remove broad `ci` from default CI'
+        result: passed; revised removal/disablement language and closeout-preservation expectations are present
+  m1:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"
+        result: failed before implementation because the post-merge branch-protection handoff artifact was missing; passed after implementation with 4 tests
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: GitHub returned Branch not protected (HTTP 404), so no external required-check handoff is claimed and M2 remains blocked
+      - command: gh pr view 4 --json url,state,mergedAt,mergeCommit,baseRefName,headRefOid,title
+        result: PR #4 is MERGED into main at merge commit 37a17cb1ced1f8d213aad258d8b4514434454b3d
+      - command: gh run view 26065439926 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
+        result: final observed PR run passed ci-fast-required and broad ci on head 85fbb0bc5e6bee98c9055c4ad284579474f8a8b0
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only

@@ -34,6 +34,23 @@ public sealed class CiRolloutEvidenceTests
     }
 
     [TestMethod]
+    public void Post_merge_handoff_records_current_branch_protection_blocker()
+    {
+        var handoff = ReadChangeFile(
+            "2026-05-19-pr-ci-post-merge-handoff",
+            "branch-protection-handoff.md");
+
+        StringAssert.Contains(handoff, "Date recorded: 2026-05-19");
+        StringAssert.Contains(handoff, "Branch protection status: not configured");
+        StringAssert.Contains(handoff, "HTTP 404");
+        StringAssert.Contains(handoff, "No maintainer handoff recorded");
+        StringAssert.Contains(handoff, "Intended ordinary required check: `ci-fast-required`");
+        StringAssert.Contains(handoff, "Do not claim GitHub branch protection has changed");
+        StringAssert.Contains(handoff, "M2 blocked");
+        StringAssert.Contains(handoff, "broad closeout");
+    }
+
+    [TestMethod]
     public void Rollout_guidance_keeps_release_readiness_and_rollback_explicit()
     {
         var repoRoot = TestRepo.FindRoot().FullName;
@@ -54,11 +71,16 @@ public sealed class CiRolloutEvidenceTests
 
     private static string ReadChangeFile(string fileName)
     {
+        return ReadChangeFile("2026-05-18-pr-ci-validation-tiering", fileName);
+    }
+
+    private static string ReadChangeFile(string changeId, string fileName)
+    {
         return File.ReadAllText(Path.Combine(
             TestRepo.FindRoot().FullName,
             "docs",
             "changes",
-            "2026-05-18-pr-ci-validation-tiering",
+            changeId,
             fileName));
     }
 }

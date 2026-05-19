@@ -1,0 +1,321 @@
+# PR CI Post-Merge Handoff Execution Plan
+
+## Status
+
+active
+
+This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and is ready for code review. M2 remains blocked until maintainers configure or record the external `ci-fast-required` branch-protection handoff.
+
+## Purpose / Big Picture
+
+PR #4 merged the hosted CI tiering work and proved `ci-fast-required` can pass in a hosted PR cycle while the broad `ci` job remains available as a shadow/rollback path. The remaining rollout work is external-policy handoff plus cleanup: make the ordinary PR gate point at `ci-fast-required`, record that handoff without overclaiming, then stop running the broad closeout job on ordinary pull requests.
+
+This plan keeps the final rollout small. It does not redesign CI lanes, test categories, or release-evidence policy. It sequences the maintainer-operated branch-protection check before changing the ordinary PR workflow shape.
+
+## Source Artifacts
+
+| Artifact | Path | Status |
+|---|---|---|
+| Proposal | [2026-05-18-pr-ci-validation-tiering.md](../proposals/2026-05-18-pr-ci-validation-tiering.md) | accepted |
+| Spec | [pr-ci-validation-tiering.md](../../specs/pr-ci-validation-tiering.md) | approved |
+| Test spec | [pr-ci-validation-tiering.test.md](../../specs/pr-ci-validation-tiering.test.md) | approved |
+| Architecture | [system/architecture.md](../architecture/system/architecture.md) | current project architecture |
+| ADR | [0012-hosted-pr-ci-validation-tiers.md](../adr/0012-hosted-pr-ci-validation-tiers.md) | accepted |
+| Completed implementation plan | [2026-05-18-pr-ci-validation-tiering.md](2026-05-18-pr-ci-validation-tiering.md) | done; PR #4 merged |
+| Current project map | [project-map.md](../project-map.md) | records broad `ci` as a temporary shadow/rollback job |
+
+No new spec or architecture decision is expected for this plan. The work implements the post-merge handoff already required by the approved PR CI tiering spec.
+
+## Context and Orientation
+
+Current merged workflow state:
+
+- `.github/workflows/ci.yml` runs `ci-fast-required` on `pull_request` and `push` to `main`.
+- The same workflow still runs the broad `ci` job on `pull_request` and `push` to `main`; that job invokes `scripts/ci.ps1`.
+- `.github/workflows/release-evidence.yml` preserves explicit release-evidence validation through manual, scheduled, release branch/tag, and merge-queue triggers.
+- `.github/workflows/closeout.yml` preserves manual full closeout validation through `scripts/ci.ps1`.
+- `scripts/Write-CiRuntimeSummary.ps1` and workflow contract tests already cover hosted lane summaries, TRX artifacts, failure context, and fast-lane project durations.
+
+Current external policy state:
+
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` with HTTP 404 after PR #4 merged.
+- Because branch protection is not configured, no repository artifact may claim that `ci-fast-required` is required on `main`.
+- The spec treats branch-protection settings as maintainer-operated external configuration, not something workflow tests should mutate or assume.
+
+Key files likely touched by this plan:
+
+- `.github/workflows/ci.yml`
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs`
+- `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs`
+- `docs/changes/2026-05-19-pr-ci-post-merge-handoff/`
+- `docs/project-map.md`
+- `CONTRIBUTING.md` and `README.md`, only if contributor-facing CI guidance changes
+- this plan and `docs/plan.md`
+
+## Non-goals
+
+- Do not change fast-lane command selection.
+- Do not change test categories, release-evidence filters, or public corpus wrapper smoke policy.
+- Do not remove `scripts/ci.ps1`.
+- Do not remove the manual full closeout workflow.
+- Do not make release evidence required for every ordinary PR.
+- Do not automate branch-protection mutation from tests.
+- Do not claim branch protection changed unless fresh maintainer evidence proves it.
+- Do not treat the fast PR lane as release readiness.
+
+## Requirements Covered
+
+| Requirements | Plan coverage |
+|---|---|
+| R1-R3 | M2 removes broad closeout cost from ordinary PRs after handoff while keeping `scripts/ci.ps1` available through closeout. |
+| R11-R13 | M1 records maintainer-operated required-check state; M2 keeps ordinary PR CI centered on `ci-fast-required`. |
+| R49-R51 | M1 confirms the shadow run and required-check handoff before M2 changes the broad PR shadow behavior. |
+| R52 | M2 and M3 keep release readiness tied to release-evidence, full closeout, or accepted release gates. |
+| R53 | M2 records rollback to broad closeout-required behavior if the fast required check fails in production use. |
+| AC13 | M1 and M3 record branch-protection state without overclaiming external settings. |
+| PRCI-T027 | M1 preserves the existing hosted shadow-run evidence and records the post-merge handoff decision. |
+| PRCI-T028 | M1 updates handoff evidence so tests/docs distinguish intended required checks from actual GitHub branch protection. |
+| PRCI-T029 / PRCI-M003 | M2-M3 preserve release readiness and rollback documentation after ordinary PR cleanup. |
+
+## Milestones
+
+### M1. Branch-Protection Handoff Evidence
+
+- Milestone state: review-requested
+- Goal: record the post-merge required-check state and maintainer handoff decision before workflow cleanup.
+- Requirements: R13, R49-R51, AC13, PRCI-T027, PRCI-T028
+- Files/components likely touched:
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/change.yaml`
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md`
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md`, if the accepted evidence is copied forward instead of linked
+  - `tests/VeloFile.Corpus.Tests/TestRuntime/CiRolloutEvidenceTests.cs`, if existing evidence tests need a post-merge handoff fixture
+  - this plan and `docs/plan.md`
+- Dependencies:
+  - PR #4 remains merged on `main`.
+  - Maintainers either configure branch protection or explicitly record that branch protection remains absent.
+  - Fresh GitHub API evidence is available.
+- Tests to add/update:
+  - evidence test proves the handoff artifact names intended required check `ci-fast-required`
+  - evidence test proves the artifact does not claim branch protection changed when GitHub reports 404
+  - evidence test proves rollback path still names broad closeout validation
+- Implementation steps:
+  - capture current `main` branch-protection state with `gh api`
+  - record exact required status checks if protection exists
+  - record that `ci-fast-required` is the intended ordinary PR check
+  - record whether broad `ci` remains only as shadow/rollback or is still externally required
+  - stop before M2 if branch protection is missing or does not yet require `ci-fast-required`
+- Validation commands:
+  - `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'`
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"`
+  - `git diff --check`
+- Expected observable result:
+  - branch-protection evidence is fresh and explicit
+  - the plan either advances to M2 or records why M2 is blocked
+- Commit message: `M1: Record PR CI post-merge handoff evidence`
+- Milestone closeout:
+  - validation passed
+  - progress updated
+  - decision log updated if needed
+  - validation notes updated with branch-protection API result
+  - milestone committed
+- Risks:
+  - branch protection may remain absent, which blocks workflow cleanup
+  - required check names may differ from workflow job names
+- Rollback/recovery:
+  - leave broad `ci` unchanged and move this plan to Blocked until maintainers record the handoff
+
+### M2. Remove Broad Closeout From Ordinary PRs
+
+- Milestone state: planned
+- Goal: stop running the broad `ci` closeout job for ordinary pull requests after M1 proves `ci-fast-required` is the intended required PR gate.
+- Requirements: R1-R3, R11-R13, R49-R53, PRCI-T028, PRCI-T029
+- Files/components likely touched:
+  - `.github/workflows/ci.yml`
+  - `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowContractTests.cs`
+  - `tests/VeloFile.Corpus.Tests/TestRuntime/CiWorkflowModel.cs`
+  - `docs/project-map.md`
+  - `CONTRIBUTING.md` and `README.md`, only if ordinary PR guidance still says broad `ci` shadows PRs
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/`
+- Dependencies:
+  - M1 closed with accepted branch-protection handoff evidence.
+  - `ci-fast-required` is named as the ordinary PR check in the handoff record.
+- Tests to add/update:
+  - workflow contract test proves `ci-fast-required` still runs on ordinary PRs
+  - workflow contract test proves broad `ci` no longer runs from `.github/workflows/ci.yml` on `pull_request` or `push` after handoff
+  - workflow contract test proves broad closeout remains available through `.github/workflows/closeout.yml`
+  - workflow contract test proves release evidence remains outside ordinary PR triggers
+  - rollout evidence test proves docs no longer describe broad `ci` as an ordinary PR shadow after cleanup
+- Implementation steps:
+  - remove or fully disable the temporary broad `ci` job from `.github/workflows/ci.yml`
+  - keep `ci-fast-required` unchanged
+  - update workflow model/tests to fail if broad `ci` still runs on `pull_request` or `push`
+  - update guidance and project map to remove stale shadow-rollout language
+- Validation commands:
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"`
+  - `git diff --check`
+- Expected observable result:
+  - ordinary PR workflow contract is fast-only by default
+  - default push validation does not run the temporary broad `ci` shadow job
+  - full closeout and release evidence remain explicit, runnable lanes
+- Commit message: `M2: Remove broad PR CI shadow after handoff`
+- Milestone closeout:
+  - validation passed
+  - progress updated
+  - decision log updated if hosted or maintainer evidence changes the accepted handoff behavior
+  - validation notes updated
+  - milestone committed
+- Risks:
+  - removing broad `ci` too early could leave maintainers without a fallback required check
+  - tests might assert workflow implementation details instead of event semantics
+- Rollback/recovery:
+  - restore the broad `ci` job for pull requests or make broad closeout required again and leave `ci-fast-required` optional
+
+### M3. Hosted Confirmation and Lifecycle Closeout
+
+- Milestone state: planned
+- Goal: prove the post-handoff workflow behavior in a hosted PR cycle and complete the normal rationale, verification, and PR handoff path.
+- Requirements: R49-R53, AC13, PRCI-M003
+- Files/components likely touched:
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/explain-change.md`
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/verify-report.md`
+  - `docs/changes/2026-05-19-pr-ci-post-merge-handoff/shadow-run.md` or hosted confirmation evidence
+  - this plan and `docs/plan.md`
+- Dependencies:
+  - M1 and M2 closed.
+  - A hosted PR run exists for the M2 workflow change.
+- Tests to add/update:
+  - no new product tests expected
+  - update evidence tests only if hosted confirmation artifact shape changes
+- Implementation steps:
+  - collect hosted PR run evidence for `ci-fast-required`
+  - confirm broad `ci` does not run on ordinary PR according to the M2 contract
+  - confirm broad `ci` does not run on `push` to `main` unless an upstream spec or ADR amendment explicitly accepts a default broad push lane
+  - confirm release-evidence and closeout workflows remain manually or explicitly triggered
+  - write `explain-change`
+  - run final `verify`
+  - prepare PR handoff only after validation and hosted evidence are recorded
+- Validation commands:
+  - `gh run view <run-id> --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt`
+  - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"`
+  - `git diff --check`
+  - additional `verify`-stage commands selected by the verify skill
+- Expected observable result:
+  - hosted PR evidence shows the ordinary PR lane uses `ci-fast-required` without broad closeout cost
+  - hosted evidence does not show a default broad `ci` job on PR or push
+  - release-readiness and rollback caveats remain documented
+- Commit message: `M3: Close PR CI post-merge handoff`
+- Milestone closeout:
+  - hosted evidence recorded
+  - explain-change completed
+  - verify completed
+  - progress updated
+  - plan index updated
+  - milestone committed
+- Risks:
+  - hosted evidence can lag local commits
+  - GitHub branch protection may change between M1 and M3
+- Rollback/recovery:
+  - if hosted PR evidence contradicts the expected behavior, return to M2 or reinstate the broad PR job before requesting review
+
+## Validation Plan
+
+Focused local validation:
+
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"`
+- `git diff --check`
+
+External/manual validation:
+
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'`
+- `gh run view <run-id> --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt`
+
+Escalation rule:
+
+- If branch protection is still absent or does not name `ci-fast-required`, stop before M2 and record the blocker instead of changing workflow behavior.
+
+## Risks and Recovery
+
+- Risk: branch protection cannot be observed or remains absent. Recovery: leave broad `ci` unchanged, keep this plan Blocked, and record the missing external gate.
+- Risk: broad `ci` is still required by maintainers under a hidden or renamed check. Recovery: do not remove the PR shadow job until the exact check names are reconciled.
+- Risk: workflow cleanup accidentally changes fast-lane commands. Recovery: workflow contract tests must prove the fast-lane command sequence remains unchanged.
+- Risk: release evidence appears to be removed. Recovery: keep release-evidence and closeout workflow contract tests in the M2 validation scope.
+- Risk: hosted run behavior differs from static workflow parsing. Recovery: treat hosted evidence as authoritative for M3 and revise M2 if needed.
+
+## Dependencies
+
+- Maintainer-operated GitHub branch protection configuration.
+- GitHub Actions availability for a hosted PR confirmation run.
+- Existing approved PR CI tiering spec, test spec, and ADR.
+- Existing workflow model and contract tests in `tests/VeloFile.Corpus.Tests/TestRuntime/`.
+
+## Progress
+
+- [x] PR #4 merged to `main`.
+- [x] Local `main` synced to merge commit `37a17cb1ced1f8d213aad258d8b4514434454b3d`.
+- [x] Current branch-protection preflight recorded: GitHub API returned HTTP 404, `Branch not protected`.
+- [x] Plan review r1 completed with PRCI-PMHR1.
+- [x] PRCI-PMHR1 plan revision completed.
+- [x] Plan review rerun approved by `plan-review-r2`.
+- [x] M1 branch-protection handoff evidence implemented; code-review requested.
+- [ ] M2 broad PR shadow cleanup closed.
+- [ ] M3 hosted confirmation and lifecycle closeout closed.
+
+## Current Handoff Summary
+
+- Current stage: code-review
+- Plan status: active
+- Current milestone: M1 branch-protection handoff evidence
+- Current milestone state: review-requested
+- Last reviewed stage: plan-review-r2 approved the revised plan
+- Next stage: code-review for M1
+- Implementation readiness: M2 blocked until maintainers configure or record the external `ci-fast-required` branch-protection handoff
+- Final closeout readiness: not ready
+- Remaining completion gates: M1 code-review, branch-protection handoff, M2 implementation/review-resolution if needed, hosted PR confirmation, explain-change, verify, PR handoff
+
+## Decision Log
+
+| Date | Decision | Reason | Alternatives rejected |
+|---|---|---|---|
+| 2026-05-19 | Treat post-merge branch protection as a separate follow-up plan. | PR #4 merged the workflow tiering, but the branch-protection API still reports `main` as unprotected. | Claim the PR #4 plan changed external required checks. |
+| 2026-05-19 | Do not remove broad `ci` from ordinary PRs until handoff evidence exists. | The approved spec requires shadow evidence before required-check changes and forbids overclaiming maintainer-operated settings. | Remove broad PR CI immediately after merge. |
+| 2026-05-19 | Remove broad `ci` from default CI after branch-protection handoff. | Broad closeout validation remains accessible via `ci-full-closeout` and local `scripts/ci.ps1`; a continuing push-to-main broad lane would need a spec or ADR amendment. | Keep broad `ci` on `push` to `main` as a default hosted lane. |
+| 2026-05-19 | Keep release evidence and closeout workflows unchanged in this plan. | The remaining issue is rollout cleanup, not lane semantics. | Reopen command selection, categories, or release triggers. |
+
+## Surprises and Discoveries
+
+- Post-merge `main` branch protection currently returns HTTP 404, so the repository cannot yet claim `ci-fast-required` is required by branch protection.
+- The merged `ci.yml` still runs broad `ci` on ordinary PRs as the intended shadow/rollback state from PR #4.
+
+## Validation Notes
+
+Planning preflight:
+
+- `git fetch origin`, `git checkout main`, and `git pull --ff-only` synced local `main` to merge commit `37a17cb1ced1f8d213aad258d8b4514434454b3d`.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` with HTTP 404.
+- `.github/workflows/ci.yml` inspection confirmed `ci-fast-required` and broad `ci` both still run under the top-level `pull_request` trigger.
+
+Plan artifact validation:
+
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+- `rg -n "post-merge handoff|Branch-Protection Handoff|Remove Broad Closeout|HTTP 404|plan-review" docs\plan.md docs\plans\2026-05-19-pr-ci-post-merge-handoff.md docs\plans\2026-05-18-pr-ci-validation-tiering.md` confirmed the new draft plan, index row, stale-state settlement, and handoff blocker references.
+
+Review-resolution notes:
+
+- PRCI-PMHR1 was accepted. M2 now plans to remove or fully disable the temporary broad `ci` job from `.github/workflows/ci.yml` after branch-protection handoff, not keep it as a default `push` to `main` lane.
+- Workflow contract expectations now fail if broad `ci` still runs on `pull_request` or `push` after handoff, while preserving `ci-full-closeout` and local `scripts/ci.ps1` as broad closeout paths.
+
+M1 implementation:
+
+- Added `Post_merge_handoff_records_current_branch_protection_blocker` to `tests/VeloFile.Corpus.Tests/TestRuntime/CiRolloutEvidenceTests.cs`.
+- The new test failed before implementation because `docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md` did not exist.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` (HTTP 404).
+- `gh pr view 4 --json url,state,mergedAt,mergeCommit,baseRefName,headRefOid,title` confirmed PR #4 is merged into `main` at merge commit `37a17cb1ced1f8d213aad258d8b4514434454b3d`.
+- `gh run view 26065439926 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt` confirmed the final observed PR run passed `ci-fast-required` and broad `ci` on PR head `85fbb0bc5e6bee98c9055c4ad284579474f8a8b0`.
+- Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md` recording the 404 branch-protection result, intended required check, no maintainer handoff claim, and M2 blocker.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"` passed after evidence implementation with 4 tests.
+- Final M1 rerun of `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"` passed with 4 tests.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
+## Outcome and Retrospective
+
+Not started. Fill this section only after the post-merge handoff, workflow cleanup, hosted confirmation, and final lifecycle closeout complete.
