@@ -12,11 +12,11 @@ Thanks for contributing.
 
 ## CI validation tiers
 
-- `ci-fast-required` is the intended ordinary PR confidence check after maintainer handoff. It is fast PR feedback, not release readiness. Its summary reports `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
+- `ci-fast-required` is the ordinary PR confidence check required by the active default-branch ruleset. It is fast PR feedback, not release readiness. Its summary reports `ReleaseEvidence: not run in this lane`, `CorpusScript Smoke: run`, and `Full closeout: not run`.
 - `ci-release-evidence` runs explicit release-evidence validation for manual, scheduled, release, and merge-queue gates.
 - `ci-full-closeout` runs the full closeout path through `scripts/ci.ps1`.
 
-During rollout, broad CI may still shadow ordinary PRs until branch-protection handoff is recorded. The rollback path is to make the broad closeout check required again and leave `ci-fast-required` optional.
+Broad CI no longer shadows ordinary PRs in the default workflow. The rollback path is to make the broad closeout check required again and leave `ci-fast-required` optional.
 
 ## Pull request expectations
 

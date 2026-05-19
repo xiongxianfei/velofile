@@ -4,7 +4,7 @@
 
 active
 
-This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and is ready for code review. M2 remains blocked until maintainers configure or record the external `ci-fast-required` branch-protection handoff.
+This plan was approved by `plan-review-r2`. M1 has recorded current branch-protection evidence and closed with `code-review-r1` as clean-with-notes. M2 has removed the temporary broad `ci` default workflow path and is ready for code review.
 
 ## Purpose / Big Picture
 
@@ -38,8 +38,8 @@ Current merged workflow state:
 
 Current external policy state:
 
-- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` returned `Branch not protected` with HTTP 404 after PR #4 merged.
-- Because branch protection is not configured, no repository artifact may claim that `ci-fast-required` is required on `main`.
+- `gh api repos/xiongxianfei/velofile/rulesets/16578519 --jq '{id, name, target, enforcement, conditions, rules}'` reports active repository ruleset `protect` on the default branch with `ci-fast-required` as a required status check.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` still returns `Branch not protected` with HTTP 404, so the observed required-check handoff is ruleset-based rather than classic branch protection.
 - The spec treats branch-protection settings as maintainer-operated external configuration, not something workflow tests should mutate or assume.
 
 Key files likely touched by this plan:
@@ -81,7 +81,7 @@ Key files likely touched by this plan:
 
 ### M1. Branch-Protection Handoff Evidence
 
-- Milestone state: review-requested
+- Milestone state: closed
 - Goal: record the post-merge required-check state and maintainer handoff decision before workflow cleanup.
 - Requirements: R13, R49-R51, AC13, PRCI-T027, PRCI-T028
 - Files/components likely touched:
@@ -126,7 +126,7 @@ Key files likely touched by this plan:
 
 ### M2. Remove Broad Closeout From Ordinary PRs
 
-- Milestone state: planned
+- Milestone state: review-requested
 - Goal: stop running the broad `ci` closeout job for ordinary pull requests after M1 proves `ci-fast-required` is the intended required PR gate.
 - Requirements: R1-R3, R11-R13, R49-R53, PRCI-T028, PRCI-T029
 - Files/components likely touched:
@@ -155,7 +155,7 @@ Key files likely touched by this plan:
   - `git diff --check`
 - Expected observable result:
   - ordinary PR workflow contract is fast-only by default
-  - default push validation does not run the temporary broad `ci` shadow job
+  - default push validation does not run the former broad `ci` shadow job
   - full closeout and release evidence remain explicit, runnable lanes
 - Commit message: `M2: Remove broad PR CI shadow after handoff`
 - Milestone closeout:
@@ -256,21 +256,23 @@ Escalation rule:
 - [x] Plan review r1 completed with PRCI-PMHR1.
 - [x] PRCI-PMHR1 plan revision completed.
 - [x] Plan review rerun approved by `plan-review-r2`.
-- [x] M1 branch-protection handoff evidence implemented; code-review requested.
-- [ ] M2 broad PR shadow cleanup closed.
+- [x] M1 branch-protection handoff evidence implemented.
+- [x] M1 code-review completed by `code-review-r1` with clean-with-notes; no material findings.
+- [x] Maintainer ruleset handoff recorded: active default-branch ruleset `protect` requires `ci-fast-required`.
+- [x] M2 broad PR shadow cleanup implemented; code-review requested.
 - [ ] M3 hosted confirmation and lifecycle closeout closed.
 
 ## Current Handoff Summary
 
 - Current stage: code-review
 - Plan status: active
-- Current milestone: M1 branch-protection handoff evidence
+- Current milestone: M2 broad PR shadow cleanup
 - Current milestone state: review-requested
-- Last reviewed stage: plan-review-r2 approved the revised plan
-- Next stage: code-review for M1
-- Implementation readiness: M2 blocked until maintainers configure or record the external `ci-fast-required` branch-protection handoff
+- Last reviewed stage: code-review-r1 reviewed M1 as clean-with-notes with no material findings
+- Next stage: code-review for M2
+- Implementation readiness: M2 implementation complete; ready for code-review
 - Final closeout readiness: not ready
-- Remaining completion gates: M1 code-review, branch-protection handoff, M2 implementation/review-resolution if needed, hosted PR confirmation, explain-change, verify, PR handoff
+- Remaining completion gates: M2 code-review/review-resolution if needed, hosted PR confirmation, explain-change, verify, PR handoff
 
 ## Decision Log
 
@@ -280,11 +282,12 @@ Escalation rule:
 | 2026-05-19 | Do not remove broad `ci` from ordinary PRs until handoff evidence exists. | The approved spec requires shadow evidence before required-check changes and forbids overclaiming maintainer-operated settings. | Remove broad PR CI immediately after merge. |
 | 2026-05-19 | Remove broad `ci` from default CI after branch-protection handoff. | Broad closeout validation remains accessible via `ci-full-closeout` and local `scripts/ci.ps1`; a continuing push-to-main broad lane would need a spec or ADR amendment. | Keep broad `ci` on `push` to `main` as a default hosted lane. |
 | 2026-05-19 | Keep release evidence and closeout workflows unchanged in this plan. | The remaining issue is rollout cleanup, not lane semantics. | Reopen command selection, categories, or release triggers. |
+| 2026-05-19 | Treat the active repository ruleset as the external required-check handoff. | GitHub classic branch protection still returns HTTP 404, but ruleset `protect` applies to the default branch and requires `ci-fast-required`. | Wait for classic branch protection when the repository uses rulesets. |
 
 ## Surprises and Discoveries
 
-- Post-merge `main` branch protection currently returns HTTP 404, so the repository cannot yet claim `ci-fast-required` is required by branch protection.
-- The merged `ci.yml` still runs broad `ci` on ordinary PRs as the intended shadow/rollback state from PR #4.
+- Post-merge `main` classic branch protection still returns HTTP 404, but active repository ruleset `protect` now requires `ci-fast-required` on the default branch. Handoff evidence must describe this as ruleset-based protection.
+- The merged `ci.yml` still ran broad `ci` on ordinary PRs as the intended shadow/rollback state from PR #4 until M2 removed that default workflow path.
 
 ## Validation Notes
 
@@ -314,6 +317,29 @@ M1 implementation:
 - Added `docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md` recording the 404 branch-protection result, intended required check, no maintainer handoff claim, and M2 blocker.
 - `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"` passed after evidence implementation with 4 tests.
 - Final M1 rerun of `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiRolloutEvidence"` passed with 4 tests.
+- `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
+
+M1 code review:
+
+- `code-review-r1` reviewed commit `e0b4ea8 M1: Record PR CI post-merge handoff evidence` against the approved proposal, spec, test spec, ADR, active plan, handoff artifact, focused rollout evidence test, and recorded validation.
+- Review status: clean-with-notes.
+- Material findings: none.
+- Result at review time: M1 closed while M2 stayed blocked pending maintainer handoff evidence.
+
+Maintainer ruleset handoff:
+
+- `gh api repos/xiongxianfei/velofile/rulesets/16578519 --jq '{id, name, target, enforcement, conditions, rules}'` reported active default-branch ruleset `protect` with `required_status_checks` containing `ci-fast-required` and integration id `15368`.
+- `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'` still returned `Branch not protected` (HTTP 404), so evidence records the required check as ruleset-based rather than classic branch protection.
+- Updated `docs/changes/2026-05-19-pr-ci-post-merge-handoff/branch-protection-handoff.md` and `Post_merge_handoff_records_ruleset_required_check` to prove the handoff evidence names the active ruleset, required `ci-fast-required` check, classic-API distinction, and M2 unblocked state.
+
+M2 implementation:
+
+- Updated workflow contract tests first so `.github/workflows/ci.yml` fails if broad `ci` still exists, invokes `scripts/ci.ps1`, or reports full closeout as run in the default PR/push workflow.
+- Updated rollout guidance tests first so README, CONTRIBUTING, and project map fail if they still describe broad `ci` as an ordinary PR shadow after handoff.
+- Initial focused M2 validation failed as expected because `.github/workflows/ci.yml` still contained broad `ci` and docs still contained shadow-rollout wording.
+- Removed the broad `ci` job from `.github/workflows/ci.yml`; `ci-fast-required` remains unchanged.
+- Updated README, CONTRIBUTING, and project map to describe the ruleset-required fast PR check and preserve broad closeout through `ci-full-closeout` and `scripts/ci.ps1`.
+- `dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"` passed after implementation with 22 tests.
 - `git diff --check` passed with Git LF-to-CRLF working-copy warnings only.
 
 ## Outcome and Retrospective

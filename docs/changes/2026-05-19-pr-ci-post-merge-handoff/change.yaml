@@ -2,7 +2,7 @@ change_id: 2026-05-19-pr-ci-post-merge-handoff
 status: draft
 current_stage: code-review
 current_stage_state: review-requested
-current_milestone: M1
+current_milestone: M2
 current_milestone_state: review-requested
 summary: Complete the post-merge PR CI branch-protection handoff and remove the temporary broad PR shadow path without changing fast-lane or release-evidence semantics.
 artifacts:
@@ -25,6 +25,10 @@ reviews:
     path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/plan-review-r2.md
     status: approved
     findings: []
+  code_review_r1:
+    path: docs/changes/2026-05-19-pr-ci-post-merge-handoff/reviews/code-review-r1.md
+    status: clean-with-notes
+    findings: []
 validation:
   plan_resolution:
     status: passed
@@ -46,5 +50,22 @@ validation:
         result: PR #4 is MERGED into main at merge commit 37a17cb1ced1f8d213aad258d8b4514434454b3d
       - command: gh run view 26065439926 --json name,event,headSha,status,conclusion,jobs,url,createdAt,updatedAt
         result: final observed PR run passed ci-fast-required and broad ci on head 85fbb0bc5e6bee98c9055c4ad284579474f8a8b0
+      - command: git diff --check
+        result: passed with Git LF-to-CRLF working-copy warnings only
+  code_review_r1:
+    status: passed
+    result: M1 reviewed clean-with-notes; no material findings; M1 closed and M2 remains blocked until maintainer branch-protection handoff evidence exists
+  branch_protection_ruleset_handoff:
+    status: passed
+    commands:
+      - command: gh api repos/xiongxianfei/velofile/rulesets/16578519 --jq '{id, name, target, enforcement, conditions, rules}'
+        result: active default-branch repository ruleset protect requires ci-fast-required as a required status check
+      - command: gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'
+        result: classic branch-protection API still returns Branch not protected (HTTP 404), so the handoff evidence is ruleset-based
+  m2:
+    status: passed
+    commands:
+      - command: dotnet test tests\VeloFile.Corpus.Tests\VeloFile.Corpus.Tests.csproj -c Debug --filter "FullyQualifiedName~CiWorkflowContract|FullyQualifiedName~CiRolloutEvidence|FullyQualifiedName~ValidationCommandDocumentation"
+        result: failed before workflow/docs cleanup because broad ci still existed and stale shadow guidance remained; passed after implementation with 22 tests
       - command: git diff --check
         result: passed with Git LF-to-CRLF working-copy warnings only

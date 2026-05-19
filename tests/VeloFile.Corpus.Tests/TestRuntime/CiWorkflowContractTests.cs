@@ -21,7 +21,30 @@ public sealed class CiWorkflowContractTests
         CollectionAssert.Contains(workflow.PushBranches.ToArray(), "main");
         Assert.IsTrue(workflow.Permissions.TryGetValue("contents", out var contentsPermission));
         Assert.AreEqual("read", contentsPermission);
-        Assert.IsTrue(workflow.Jobs.ContainsKey("ci"));
+        Assert.IsFalse(
+            workflow.Jobs.ContainsKey("ci"),
+            "workflow-lane-contract: broad ci must not run from the default PR/push workflow after handoff.");
+    }
+
+    [TestMethod]
+    public void Default_ci_workflow_no_longer_runs_broad_closeout_job()
+    {
+        var workflow = LoadCiWorkflow();
+
+        foreach (var job in workflow.Jobs.Values)
+        {
+            Assert.AreNotEqual("ci", job.Id, "workflow-lane-contract: broad ci job must be removed from .github/workflows/ci.yml after handoff.");
+
+            foreach (var command in job.RunCommands.Select(CiWorkflowContractValidator.Normalize))
+            {
+                Assert.IsFalse(
+                    command.Contains("scripts/ci.ps1", StringComparison.OrdinalIgnoreCase),
+                    $"workflow-lane-contract: .github/workflows/ci.yml must not invoke broad closeout scripts after handoff; job {job.Id} had {command}.");
+                Assert.IsFalse(
+                    command.Contains("FullCloseoutStatus = \"run\"", StringComparison.Ordinal),
+                    $"workflow-lane-contract: .github/workflows/ci.yml must not report full closeout as run after handoff; job {job.Id} had {command}.");
+            }
+        }
     }
 
     [TestMethod]

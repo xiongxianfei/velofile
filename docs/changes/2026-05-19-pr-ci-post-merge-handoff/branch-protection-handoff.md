@@ -5,12 +5,20 @@ Date recorded: 2026-05-19
 ## Status
 
 - Branch: `main`
-- Branch protection status: not configured
-- Evidence command: `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'`
-- Result: GitHub returned `Branch not protected` (HTTP 404).
-- No maintainer handoff recorded.
-- Intended ordinary required check: `ci-fast-required`
-- Do not claim GitHub branch protection has changed.
+- Protection mechanism: repository ruleset `protect`
+- Ruleset id: `16578519`
+- Ruleset target: `branch`
+- Ruleset enforcement: `active`
+- Ruleset condition: default branch (`~DEFAULT_BRANCH`)
+- Required status check: `ci-fast-required`
+- Required status check integration id: `15368`
+- Ruleset evidence command: `gh api repos/xiongxianfei/velofile/rulesets/16578519 --jq '{id, name, target, enforcement, conditions, rules}'`
+- Ruleset result: active default-branch ruleset includes `required_status_checks` for `ci-fast-required`.
+- Classic branch-protection evidence command: `gh api repos/xiongxianfei/velofile/branches/main/protection --jq '{required_status_checks: .required_status_checks.contexts, checks: .required_status_checks.checks}'`
+- Classic branch-protection result: GitHub returned `Branch not protected` (HTTP 404).
+- Maintainer handoff recorded: ruleset now requires `ci-fast-required`.
+- Ordinary required check: `ci-fast-required`
+- Do not claim classic GitHub branch protection is configured; the observed protection is ruleset-based.
 
 ## Merge And Shadow Evidence
 
@@ -26,6 +34,6 @@ Date recorded: 2026-05-19
 
 ## Interpretation
 
-The repository has hosted shadow-run evidence for `ci-fast-required`, but repository files cannot change GitHub branch-protection settings by themselves. Because `main` branch protection is not configured, M2 blocked: do not remove or disable the temporary broad `ci` job from default CI until maintainers record the external handoff requiring `ci-fast-required`.
+The repository has hosted shadow-run evidence for `ci-fast-required`, and the active default-branch ruleset now requires `ci-fast-required`. Repository files still cannot mutate GitHub branch-protection settings by themselves, but the maintainer-operated handoff is now recorded through the active ruleset. M2 is unblocked: remove or fully disable the temporary broad `ci` job from default CI while preserving explicit broad closeout validation.
 
-During this blocked state, the broad `ci` job remains unchanged as a shadow/rollback path. Broad closeout validation must remain available through `ci-full-closeout` and local `scripts/ci.ps1` after handoff. If rollback is needed, make the broad closeout check required again and leave `ci-fast-required` optional until the issue is resolved.
+Until M2 lands, the broad `ci` job remains unchanged as the pre-cleanup shadow/rollback path. Broad closeout validation must remain available through `ci-full-closeout` and local `scripts/ci.ps1` after handoff. If rollback is needed, make the broad closeout check required again and leave `ci-fast-required` optional until the issue is resolved.

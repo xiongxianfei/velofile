@@ -34,19 +34,21 @@ public sealed class CiRolloutEvidenceTests
     }
 
     [TestMethod]
-    public void Post_merge_handoff_records_current_branch_protection_blocker()
+    public void Post_merge_handoff_records_ruleset_required_check()
     {
         var handoff = ReadChangeFile(
             "2026-05-19-pr-ci-post-merge-handoff",
             "branch-protection-handoff.md");
 
         StringAssert.Contains(handoff, "Date recorded: 2026-05-19");
-        StringAssert.Contains(handoff, "Branch protection status: not configured");
-        StringAssert.Contains(handoff, "HTTP 404");
-        StringAssert.Contains(handoff, "No maintainer handoff recorded");
-        StringAssert.Contains(handoff, "Intended ordinary required check: `ci-fast-required`");
-        StringAssert.Contains(handoff, "Do not claim GitHub branch protection has changed");
-        StringAssert.Contains(handoff, "M2 blocked");
+        StringAssert.Contains(handoff, "Protection mechanism: repository ruleset `protect`");
+        StringAssert.Contains(handoff, "Ruleset enforcement: `active`");
+        StringAssert.Contains(handoff, "Required status check: `ci-fast-required`");
+        StringAssert.Contains(handoff, "required_status_checks");
+        StringAssert.Contains(handoff, "Classic branch-protection result: GitHub returned `Branch not protected` (HTTP 404).");
+        StringAssert.Contains(handoff, "Maintainer handoff recorded: ruleset now requires `ci-fast-required`");
+        StringAssert.Contains(handoff, "Do not claim classic GitHub branch protection is configured");
+        StringAssert.Contains(handoff, "M2 is unblocked");
         StringAssert.Contains(handoff, "broad closeout");
     }
 
@@ -56,8 +58,9 @@ public sealed class CiRolloutEvidenceTests
         var repoRoot = TestRepo.FindRoot().FullName;
         var readme = File.ReadAllText(Path.Combine(repoRoot, "README.md"));
         var contributing = File.ReadAllText(Path.Combine(repoRoot, "CONTRIBUTING.md"));
+        var projectMap = File.ReadAllText(Path.Combine(repoRoot, "docs", "project-map.md"));
 
-        foreach (var document in new[] { readme, contributing })
+        foreach (var document in new[] { readme, contributing, projectMap })
         {
             StringAssert.Contains(document, "ci-fast-required");
             StringAssert.Contains(document, "ci-release-evidence");
@@ -66,6 +69,22 @@ public sealed class CiRolloutEvidenceTests
             StringAssert.Contains(document, "Full closeout");
             StringAssert.Contains(document, "release readiness");
             StringAssert.Contains(document, "rollback");
+        }
+
+        foreach (var document in new[] { readme, contributing, projectMap })
+        {
+            Assert.IsFalse(
+                document.Contains("shadow-run the broad `ci` job", StringComparison.OrdinalIgnoreCase),
+                "rollout-guidance-contract: docs must not describe broad ci as an ordinary PR shadow after handoff.");
+            Assert.IsFalse(
+                document.Contains("broad CI may still shadow ordinary PRs", StringComparison.OrdinalIgnoreCase),
+                "rollout-guidance-contract: docs must not describe broad ci as an ordinary PR shadow after handoff.");
+            Assert.IsFalse(
+                document.Contains("temporary broad `ci` shadow job", StringComparison.OrdinalIgnoreCase),
+                "rollout-guidance-contract: project map must not describe broad ci as an ordinary PR shadow after handoff.");
+            Assert.IsFalse(
+                document.Contains("Hosted PR CI still keeps the broad `ci` shadow job", StringComparison.OrdinalIgnoreCase),
+                "rollout-guidance-contract: project map risk notes must not describe broad ci as an active ordinary PR shadow after handoff.");
         }
     }
 

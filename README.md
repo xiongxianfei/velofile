@@ -48,7 +48,7 @@ dotnet test VeloFile.sln -c Debug
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1
 ```
 
-The GitHub PR workflow runs on Windows with `pwsh`. Ordinary PRs run `ci-fast-required` for fast PR confidence and currently also shadow-run the broad `ci` job until maintainer branch-protection handoff is recorded. `ci-fast-required` is the intended ordinary required check after handoff, but repository docs do not claim GitHub branch protection has changed until that external setting is recorded.
+The GitHub PR workflow runs on Windows with `pwsh`. Ordinary PRs run `ci-fast-required` for fast PR confidence, and the active default-branch ruleset requires that check. Broad closeout validation is no longer part of the default PR/push workflow.
 
 ### Focused Validation Tiers
 
